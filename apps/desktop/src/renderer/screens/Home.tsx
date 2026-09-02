@@ -2,7 +2,10 @@ import { useState } from "react";
 import type { Agent, Question } from "@crew/shared";
 import { store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
-import { Avatar, Button, Checkbox, Group, IconButton, KindPill, KV, Money, Popup, Progress, SearchField, StatusPill, Toolbar, ago, dur, modelLabel } from "../ui/kit";
+import { Avatar, Button, Checkbox, Group, IconButton, KindPill, KV, Popup, SearchField, StatusPill, Toolbar, ago, dur, modelLabel } from "../ui/kit";
+import { Money } from "../ui/kit";
+import { ModelPicker } from "../components/ModelPicker";
+import { BudgetEditor, workHoursOf } from "../components/BudgetEditor";
 
 export function HomeScreen() {
   const agents = useStore((s) => s.agents);
@@ -163,9 +166,8 @@ function AgentInspector({ agent }: { agent: Agent }) {
         <IconButton title={agent.paused ? "Resume" : "Pause"} onClick={() => void store.pauseAgent(agent.id, !agent.paused)}>{agent.paused ? <Ic.Play size={14} /> : <Ic.Pause size={14} />}</IconButton>
       </div>
       <Group title="Model">
-        <KV k="Provider"><Popup value={agent.provider} options={[{ value: "anthropic", label: "Anthropic" }, { value: "openrouter", label: "OpenRouter" }]} onChange={(provider) => set({ provider, model: provider === "anthropic" ? "claude-opus-5" : "z-ai/glm-5.3", checkinModel: provider === "anthropic" ? "claude-haiku-4-5" : "z-ai/glm-5.3-flash" })} /></KV>
-        <KV k="Model"><input className="field mono" value={agent.model} onChange={(e) => set({ model: e.target.value })} /></KV>
-        <KV k="Check-ins on"><input className="field mono" value={agent.checkinModel} onChange={(e) => set({ checkinModel: e.target.value })} /></KV>
+        <KV k="Model"><ModelPicker value={agent.model} provider={agent.provider} onChange={(model, provider) => set({ model, provider, ...(provider !== agent.provider ? { checkinModel: provider === "anthropic" ? "claude-haiku-4-5" : "z-ai/glm-5.3-flash" } : {}) })} width={168} /></KV>
+        <KV k="Check-ins on"><ModelPicker value={agent.checkinModel} provider={agent.provider} onChange={(checkinModel) => set({ checkinModel })} width={168} /></KV>
       </Group>
       <Group title="Wake-ups">
         <KV k="Check in every">
@@ -197,9 +199,7 @@ function AgentInspector({ agent }: { agent: Agent }) {
         <KV k="Network"><Popup value={rule("Bash(curl*)")} options={PERM} onChange={(v) => setRule("Bash(curl*)", v)} ask={rule("Bash(curl*)") !== "allow"} /></KV>
       </Group>
       <Group title="Budget">
-        <KV k="Daily cap"><span className="mono" style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>$<input className="field mono" style={{ width: 56 }} value={agent.budget.dailyUsd} onChange={(e) => set({ budget: { ...agent.budget, dailyUsd: Number(e.target.value) || 0 } })} /></span></KV>
-        <KV k="Per run"><span className="mono" style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>$<input className="field mono" style={{ width: 56 }} value={agent.budget.perRunUsd} onChange={(e) => set({ budget: { ...agent.budget, perRunUsd: Number(e.target.value) || 0 } })} /></span></KV>
-        <KV k="Used today"><Progress value={used} max={agent.budget.dailyUsd} /><Money v={used} /></KV>
+        <BudgetEditor budget={agent.budget} used={used} workHours={workHoursOf(agent.heartbeat.workHours)} onChange={(budget) => set({ budget })} />
       </Group>
       <div style={{ padding: "12px 14px", display: "flex", gap: 6 }}>
         <Button style={{ flex: 1 }} onClick={() => store.openSheet({ kind: "agent", agentId: agent.id, tab: "soul" })}>Soul &amp; Rules…</Button>

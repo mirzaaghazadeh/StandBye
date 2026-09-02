@@ -8,6 +8,8 @@ import { AgentSheet } from "./screens/AgentSheet";
 import { BuilderSheet } from "./screens/BuilderSheet";
 import { KeysSheet } from "./screens/KeysSheet";
 import { WakeSheet } from "./screens/WakeSheet";
+import { OnboardingSheet } from "./screens/OnboardingSheet";
+import { ManualTeamSheet } from "./screens/ManualTeamSheet";
 import { StatusBar } from "./components/StatusBar";
 import { Ic } from "./ui/icons";
 
@@ -33,8 +35,10 @@ export function App() {
         <StatusBar />
       </div>
 
-      {sheet.kind !== "none" && <div className="dim" onClick={() => sheet.kind !== "builder" && store.closeSheet()} />}
-      {sheet.kind === "builder" && <BuilderSheet />}
+      {sheet.kind !== "none" && <div className="dim" onClick={() => ["keys", "agent", "wake"].includes(sheet.kind) && store.closeSheet()} />}
+      {sheet.kind === "onboarding" && <OnboardingSheet />}
+      {sheet.kind === "manual" && <ManualTeamSheet />}
+      {sheet.kind === "builder" && <BuilderSheet mode={sheet.mode} />}
       {sheet.kind === "keys" && <KeysSheet />}
       {sheet.kind === "agent" && <AgentSheet agentId={sheet.agentId} tab={sheet.tab} />}
       {sheet.kind === "wake" && <WakeSheet agentId={sheet.agentId} />}

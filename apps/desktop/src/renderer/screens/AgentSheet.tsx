@@ -2,7 +2,9 @@ import { useEffect, useState, type ReactElement } from "react";
 import type { Agent, AgentFiles, CronTrigger, PermissionBehavior, PermissionRule, Provider } from "@crew/shared";
 import { store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
-import { Avatar, Button, Checkbox, IconButton, KV, Money, Popup, Progress, Switch } from "../ui/kit";
+import { Avatar, Button, Checkbox, IconButton, KV, Popup, Switch } from "../ui/kit";
+import { ModelPicker } from "../components/ModelPicker";
+import { BudgetEditor, workHoursOf } from "../components/BudgetEditor";
 
 type Tab = "general" | "soul" | "rules" | "wakeups" | "permissions" | "memory" | "budget";
 
@@ -118,11 +120,8 @@ function GeneralTab({ agent }: { agent: Agent }) {
       </div>
       <div style={{ border: "1px solid var(--border)", borderRadius: 7, background: "var(--surface)", padding: "8px 12px" }}>
         <div className="grp-t" style={{ marginTop: 4 }}>Model</div>
-        <KV k="Provider">
-          <Popup<Provider> value={agent.provider} options={[{ value: "anthropic", label: "Anthropic" }, { value: "openrouter", label: "OpenRouter" }]} onChange={(provider) => { const d = DEFAULT_MODEL[provider]; setModel(d.main); setCheckin(d.checkin); set({ provider, model: d.main, checkinModel: d.checkin }); }} />
-        </KV>
-        <KV k="Model"><input className="field mono" value={model} onChange={(e) => setModel(e.target.value)} onBlur={() => model.trim() && model !== agent.model && set({ model: model.trim() })} /></KV>
-        <KV k="Check-ins on"><input className="field mono" value={checkin} onChange={(e) => setCheckin(e.target.value)} onBlur={() => checkin.trim() && checkin !== agent.checkinModel && set({ checkinModel: checkin.trim() })} /></KV>
+        <KV k="Model"><ModelPicker value={agent.model} provider={agent.provider} width={260} onChange={(m, provider) => { const d = DEFAULT_MODEL[provider]; setModel(m); if (provider !== agent.provider) setCheckin(d.checkin); set({ provider, model: m, ...(provider !== agent.provider ? { checkinModel: d.checkin } : {}) }); }} /></KV>
+        <KV k="Check-ins on"><ModelPicker value={agent.checkinModel} provider={agent.provider} width={260} onChange={(m) => { setCheckin(m); set({ checkinModel: m }); }} /></KV>
         <div style={{ fontSize: 11, color: "var(--ink-4)", padding: "4px 0 6px 102px" }}>Check-ins run on the small model and only escalate when there is real work.</div>
       </div>
       <div style={{ marginTop: "auto" }}>
@@ -260,11 +259,9 @@ function BudgetTab({ agent }: { agent: Agent }) {
   const used = spend?.perAgent[agent.id] ?? agent.spentTodayUsd;
   const set = (patch: Partial<Agent>) => void store.updateAgent(agent.id, patch);
   return (
-    <div style={{ border: "1px solid var(--border)", borderRadius: 7, background: "var(--surface)", padding: "8px 12px" }}>
-      <KV k="Daily cap"><span className="mono" style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>$<input className="field mono" style={{ width: 64 }} value={agent.budget.dailyUsd} onChange={(e) => set({ budget: { ...agent.budget, dailyUsd: Number(e.target.value) || 0 } })} /></span></KV>
-      <KV k="Per run"><span className="mono" style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>$<input className="field mono" style={{ width: 64 }} value={agent.budget.perRunUsd} onChange={(e) => set({ budget: { ...agent.budget, perRunUsd: Number(e.target.value) || 0 } })} /></span></KV>
-      <KV k="Used today"><Progress value={used} max={agent.budget.dailyUsd} /><Money v={used} /></KV>
-      <div style={{ fontSize: 11, color: "var(--ink-4)", padding: "4px 0 6px 102px" }}>When the daily cap is reached {agent.name} sleeps until tomorrow. A run that passes the per-run cap is stopped.</div>
+    <div style={{ border: "1px solid var(--border)", borderRadius: 7, background: "var(--surface)", padding: "12px 12px" }}>
+      <BudgetEditor budget={agent.budget} used={used} workHours={workHoursOf(agent.heartbeat.workHours)} onChange={(budget) => set({ budget })} />
+      <div style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 10 }}>Set it the way you think about it: a daily cap, an hourly rate, or a limit per job. Every limit that is set is enforced; when one is reached {agent.name} sleeps until it clears.</div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type {
-  Agent, AgentFiles, Channel, KeyStatus, Message, PushEvent, Question, Run, RunStep, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft,
+  Agent, AgentFiles, Channel, KeyStatus, Message, ModelInfo, Provider, ProviderSettings, ProviderStatus, PushEvent, Question, Run, RunStep, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft,
 } from "@crew/shared";
 
 export type Route =
@@ -10,7 +10,14 @@ export type Route =
   | { name: "channel"; channelId: string }
   | { name: "agent"; agentId: string };
 
-export type Sheet = { kind: "none" } | { kind: "builder" } | { kind: "keys" } | { kind: "agent"; agentId: string; tab?: string } | { kind: "wake"; agentId: string };
+export type Sheet =
+  | { kind: "none" }
+  | { kind: "onboarding" }
+  | { kind: "builder"; mode?: "describe" | "template" }
+  | { kind: "manual" }
+  | { kind: "keys" }
+  | { kind: "agent"; agentId: string; tab?: string }
+  | { kind: "wake"; agentId: string };
 
 export interface State {
   ready: boolean;
@@ -19,6 +26,8 @@ export interface State {
   sheet: Sheet;
   status: SupervisorStatus | null;
   keys: KeyStatus;
+  providers: ProviderStatus | null;
+  models: Record<Provider, ModelInfo[]> | null;
   team: TeamConfig | null;
   agents: Agent[];
   channels: Channel[];
@@ -35,7 +44,7 @@ export interface State {
 
 const initial: State = {
   ready: false, error: null, route: { name: "home" }, sheet: { kind: "none" }, status: null,
-  keys: { anthropic: false, openrouter: false }, team: null, agents: [], channels: [], messages: {}, questions: [], runs: [], steps: {},
+  keys: { anthropic: false, openrouter: false }, providers: null, models: null, team: null, agents: [], channels: [], messages: {}, questions: [], runs: [], steps: {},
   spend: null, selectedAgentId: null, builderDraft: null, builderBusy: false, toast: null,
 };
 
@@ -68,12 +77,26 @@ class Store {
   }
 
   async refreshAll(): Promise<void> {
-    const [status, keys, team, agents, channels, questions, runs, spend] = await Promise.all([
-      this.rpc<SupervisorStatus>("status.get"), window.crew.keysGet(), this.rpc<TeamConfig | null>("team.get"), this.rpc<Agent[]>("agents.list"),
+    const [status, keys, providers, team, agents, channels, questions, runs, spend] = await Promise.all([
+      this.rpc<SupervisorStatus>("status.get"), window.crew.keysGet(), this.rpc<ProviderStatus>("providers.get"), this.rpc<TeamConfig | null>("team.get"), this.rpc<Agent[]>("agents.list"),
       this.rpc<Channel[]>("channels.list"), this.rpc<Question[]>("questions.list", {}), this.rpc<Run[]>("runs.list", { limit: 200 }), this.rpc<SpendSummary>("spend.get"),
     ]);
-    this.set({ status, keys, team, agents, channels, questions, runs, spend, selectedAgentId: this.state.selectedAgentId ?? agents[0]?.id ?? null });
-    if (!team) this.set({ sheet: keys.anthropic || keys.openrouter ? { kind: "builder" } : { kind: "keys" } });
+    this.set({ status, keys, providers, team, agents, channels, questions, runs, spend, selectedAgentId: this.state.selectedAgentId ?? agents[0]?.id ?? null });
+    if (!team && this.state.sheet.kind === "none") this.set({ sheet: { kind: "onboarding" } });
+    void this.loadModels();
+  }
+
+  async loadModels(force = false): Promise<void> {
+    try {
+      const models = await this.rpc<Record<Provider, ModelInfo[]>>("models.list", { force });
+      this.set({ models });
+    } catch (e) {
+      this.toast(`Could not load models: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+  async setProviders(patch: Partial<ProviderSettings>): Promise<void> {
+    const providers = await this.rpc<ProviderStatus>("providers.set", patch);
+    this.set({ providers, keys: { anthropic: providers.anthropic.ready, openrouter: providers.openrouter.ready } });
   }
 
   private onEvent(e: PushEvent): void {
@@ -147,9 +170,11 @@ class Store {
   async saveAgentFile(id: string, file: keyof AgentFiles, content: string): Promise<void> { await this.rpc("agent.files.set", { id, file, content }); this.toast("Saved."); }
   async cancelRun(id: string): Promise<void> { await this.rpc("run.cancel", { id }); }
   async saveKeys(patch: Record<string, string>): Promise<void> {
-    const keys = await window.crew.keysSet(patch);
-    this.set({ keys });
-    this.toast("Keys saved.");
+    await window.crew.keysSet(patch);
+    const providers = await this.rpc<ProviderStatus>("providers.get");
+    this.set({ providers, keys: { anthropic: providers.anthropic.ready, openrouter: providers.openrouter.ready } });
+    this.toast(Object.values(patch).some(Boolean) ? "Key saved." : "Key removed.");
+    void this.loadModels(true);
   }
   async draftTeam(description: string, ownerName: string, workspaceRoot: string | null): Promise<void> {
     this.set({ builderBusy: true });

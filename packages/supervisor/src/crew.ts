@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { nanoid } from "nanoid";
 import type {
-  Agent, AgentConfig, AgentDraft, AgentStatus, Channel, KeyStatus, Message, MessageKind, Question, QuestionKind,
+  Agent, AgentConfig, AgentDraft, AgentStatus, Channel, KeyStatus, Message, MessageKind, ProviderSettings, ProviderStatus, Question, QuestionKind,
   Run, RunStatus, RunStep, RunStepKind, RunTrigger, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft,
 } from "@crew/shared";
 import { DEFAULT_MODELS } from "@crew/shared";
@@ -49,14 +49,39 @@ export class Crew {
     if (stale > 0) console.error(`[crew] marked ${stale} stale run(s) as failed after restart`);
   }
 
-  // ---------------- keys ----------------
+  // ---------------- keys & providers ----------------
 
   setKeys(keys: Keys): void {
     this.keys = { ...this.keys, ...keys };
     this.bus.emit("supervisor.status", this.status());
   }
   keyStatus(): KeyStatus {
-    return { anthropic: Boolean(this.keys.anthropic) || this.hasClaudeLogin(), openrouter: Boolean(this.keys.openrouter) };
+    const p = this.providerStatus();
+    return { anthropic: p.anthropic.ready, openrouter: p.openrouter.ready };
+  }
+  get providers(): ProviderSettings {
+    return this.readProviders();
+  }
+  setProviders(patch: Partial<ProviderSettings>): ProviderStatus {
+    const next: ProviderSettings = { ...this.readProviders(), ...patch };
+    fs.writeFileSync(path.join(this.opts.dataDir, "providers.json"), JSON.stringify(next, null, 2));
+    this.bus.emit("supervisor.status", this.status());
+    return this.providerStatus();
+  }
+  private readProviders(): ProviderSettings {
+    const p = path.join(this.opts.dataDir, "providers.json");
+    if (!fs.existsSync(p)) return { anthropic: { enabled: true }, openrouter: { enabled: true } };
+    try { return { anthropic: { enabled: true }, openrouter: { enabled: true }, ...(JSON.parse(fs.readFileSync(p, "utf8")) as Partial<ProviderSettings>) }; }
+    catch { return { anthropic: { enabled: true }, openrouter: { enabled: true } }; }
+  }
+  providerStatus(): ProviderStatus {
+    const s = this.readProviders();
+    const hasKey = Boolean(this.keys.anthropic);
+    const hasLogin = this.hasClaudeLogin();
+    return {
+      anthropic: { enabled: s.anthropic.enabled, hasKey, hasLogin, ready: s.anthropic.enabled && (hasKey || hasLogin) },
+      openrouter: { enabled: s.openrouter.enabled, hasKey: Boolean(this.keys.openrouter), ready: s.openrouter.enabled && Boolean(this.keys.openrouter) },
+    };
   }
   /** True when Claude Code is signed in on this machine, so the Claude runner works without an API key. */
   hasClaudeLogin(): boolean {
@@ -126,7 +151,7 @@ export class Crew {
       heartbeat: { everyMinutes: draft.heartbeatMinutes || DEFAULTS.heartbeatMinutes, workHours: DEFAULTS.workHours },
       triggers: { onMention: true, cron: [] },
       permissions: DEFAULT_DEV_RULES,
-      budget: { dailyUsd: draft.dailyBudgetUsd || DEFAULTS.agentDailyUsd, perRunUsd: DEFAULTS.agentPerRunUsd },
+      budget: { dailyUsd: draft.dailyBudgetUsd || DEFAULTS.agentDailyUsd, perRunUsd: draft.perRunBudgetUsd ?? DEFAULTS.agentPerRunUsd, hourlyUsd: draft.hourlyBudgetUsd ?? null, capBy: draft.capBy ?? "day" },
       channels: memberOf,
       workspace: null,
       color: draft.color || "#EFEDE8",
@@ -359,7 +384,11 @@ export class Crew {
   }
   budgetAllows(agentId: string): { ok: boolean; reason?: string } {
     const agent = this.getAgent(agentId);
-    if (agent.spentTodayUsd >= agent.budget.dailyUsd) return { ok: false, reason: `${agent.name} reached the daily budget ($${agent.budget.dailyUsd})` };
+    if (!this.providers[agent.provider].enabled) return { ok: false, reason: `${agent.provider} is turned off in Settings` };
+    if (agent.budget.dailyUsd > 0 && agent.spentTodayUsd >= agent.budget.dailyUsd) return { ok: false, reason: `${agent.name} reached the daily budget ($${agent.budget.dailyUsd})` };
+    if (agent.budget.hourlyUsd && this.db.spentSince(agentId, new Date(Date.now() - 3_600_000).toISOString()) >= agent.budget.hourlyUsd) {
+      return { ok: false, reason: `${agent.name} reached the hourly budget ($${agent.budget.hourlyUsd})` };
+    }
     const s = this.spend();
     if (s.todayUsd >= s.capUsd) return { ok: false, reason: `Team daily cap ($${s.capUsd}) reached` };
     return { ok: true };

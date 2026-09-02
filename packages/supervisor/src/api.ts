@@ -1,9 +1,10 @@
 import { WebSocketServer, WebSocket } from "ws";
 import fs from "node:fs";
 import path from "node:path";
-import type { AgentConfig, AgentFiles, PushEvent, RpcRequest, RpcResponse, TeamDraft } from "@crew/shared";
+import type { AgentConfig, AgentFiles, ProviderSettings, PushEvent, RpcRequest, RpcResponse, TeamDraft } from "@crew/shared";
 import { TeamDraftSchema } from "@crew/shared";
 import { draftTeam } from "./builder.js";
+import { listModels } from "./models.js";
 import type { Crew } from "./crew.js";
 import type { Scheduler } from "./scheduler.js";
 import { TEAM_TOOLS, type ToolContext } from "./tools/team-tools.js";
@@ -62,6 +63,9 @@ export class Api {
       "status.get": () => crew.status(),
       "keys.set": (p: { anthropic?: string; openrouter?: string }) => { crew.setKeys(p); return crew.keyStatus(); },
       "keys.get": () => crew.keyStatus(),
+      "providers.get": () => crew.providerStatus(),
+      "providers.set": (p: Partial<ProviderSettings>) => crew.setProviders(p),
+      "models.list": (p: { force?: boolean }) => listModels(crew, p.force ?? false),
       "supervisor.pauseAll": () => { crew.pausedAll = true; q.cancelAll(); crew.bus.emit("agents.updated", crew.listAgents()); return crew.status(); },
       "supervisor.resumeAll": () => { crew.pausedAll = false; crew.bus.emit("agents.updated", crew.listAgents()); scheduler.tick(); return crew.status(); },
 

@@ -19,10 +19,15 @@ export interface BuilderInput {
  */
 export async function draftTeam(crew: Crew, input: BuilderInput): Promise<TeamDraft> {
   const template = soloDevTeam(input.ownerName, input.workspaceRoot ? input.workspaceRoot.split("/").pop() ?? "" : "");
+  const status = crew.providerStatus();
+  if (!status.anthropic.ready) {
+    // No Claude at all: keep the template but move everyone to OpenRouter.
+    return { ...template, agents: template.agents.map((a) => ({ ...a, provider: "openrouter", model: DEFAULT_MODELS.openrouter.main })) };
+  }
   if (!crew.keys.anthropic) return template; // The Messages API needs a key; the Claude login only covers the Claude runner.
 
   const client = new Anthropic({ apiKey: crew.keys.anthropic });
-  const hasOpenRouter = Boolean(crew.keys.openrouter);
+  const hasOpenRouter = status.openrouter.ready;
   const system = [
     "You design small teams of AI agents that work autonomously, 24/7, for one person. Each agent is a folder with a SOUL.md (persona and working style), RULES.md, and a budget.",
     "Design principles: few agents with clear ownership beat many; every agent has 2-4 standing responsibilities; the lead plans and reports; a reviewer/tester is almost always worth it; docs agent only if the project has docs.",

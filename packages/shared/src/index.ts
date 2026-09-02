@@ -9,6 +9,42 @@ export const DEFAULT_MODELS: Record<Provider, { main: string; checkin: string }>
   openrouter: { main: "z-ai/glm-5.3", checkin: "z-ai/glm-5.3-flash" },
 };
 
+// ---------- Models & providers ----------
+
+export interface ModelInfo {
+  id: string;
+  name: string;
+  provider: Provider;
+  /** USD per million tokens, null when unknown */
+  inputPerM: number | null;
+  outputPerM: number | null;
+  context: number | null;
+  tools: boolean;
+  /** e.g. "reasoning", "fast", "cheap" */
+  tags: string[];
+}
+
+export interface ProviderSettings {
+  anthropic: { enabled: boolean };
+  openrouter: { enabled: boolean };
+}
+
+export interface ProviderStatus {
+  anthropic: { enabled: boolean; hasKey: boolean; hasLogin: boolean; ready: boolean };
+  openrouter: { enabled: boolean; hasKey: boolean; ready: boolean };
+}
+
+export type BudgetCap = "day" | "hour" | "run";
+
+export interface Budget {
+  dailyUsd: number;
+  perRunUsd: number;
+  /** Optional rolling 60-minute cap */
+  hourlyUsd?: number | null;
+  /** Which figure the owner thinks in; all three are enforced when set */
+  capBy?: BudgetCap;
+}
+
 // ---------- Permissions ----------
 
 export type PermissionBehavior = "allow" | "ask" | "block";
@@ -48,7 +84,7 @@ export interface AgentConfig {
     cron: CronTrigger[];
   };
   permissions: PermissionRule[];
-  budget: { dailyUsd: number; perRunUsd: number };
+  budget: Budget;
   channels: string[];
   /** Working directory the agent operates in. Defaults to the team workspace. */
   workspace: string | null;
@@ -207,6 +243,9 @@ export const AgentDraftSchema = z.object({
   responsibilities: z.array(z.string()).describe("2-4 concrete standing responsibilities"),
   heartbeatMinutes: z.number().int().min(5).max(720),
   dailyBudgetUsd: z.number().min(0.1).max(100),
+  hourlyBudgetUsd: z.number().min(0.05).max(50).nullable().optional(),
+  perRunBudgetUsd: z.number().min(0.1).max(50).nullable().optional(),
+  capBy: z.enum(["day", "hour", "run"]).optional(),
   channels: z.array(z.string()),
   color: z.string().describe("hex background color for the avatar"),
 });
