@@ -1,0 +1,208 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; font-size: 13px; line-height: 1.4; color: #1D1C1A; -webkit-font-smoothing: antialiased; background: #D6D3CB; }
+    a { color: #C4532B; text-decoration: none; } a:hover { color: #9E3F1F; }
+    .mono { font-family: "SF Mono", Menlo, Consolas, monospace; }
+    .win { width: 1440px; height: 900px; border-radius: 10px; overflow: hidden; background: #F5F4F1; box-shadow: 0 22px 60px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.14); display: flex; }
+    .side { width: 220px; flex-shrink: 0; background: #EAE8E3; border-right: 1px solid #D9D6CF; display: flex; flex-direction: column; }
+    .sec { font-size: 11px; font-weight: 700; color: #8C887F; padding: 14px 16px 4px; }
+    .srow { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; margin: 0 8px; border-radius: 5px; color: #2B2926; font-size: 13px; }
+    .srow-on { background: rgba(196,83,43,0.16); font-weight: 500; }
+    .tb { height: 52px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-bottom: 1px solid #D9D6CF; background: #F5F4F1; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 24px; padding: 0 10px; border-radius: 6px; background: #FFFFFF; border: 1px solid #CFCBC3; box-shadow: 0 1px 1px rgba(0,0,0,0.05); font-size: 12px; font-weight: 500; color: #1D1C1A; white-space: nowrap; }
+    .btn-primary { background: #C4532B; border-color: #A8441F; color: #FFFFFF; }
+    .ibtn { width: 28px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #5C5850; }
+    .seg { display: inline-flex; background: #E3E0D9; border-radius: 7px; padding: 2px; }
+    .seg-i { height: 22px; padding: 0 10px; border-radius: 5px; font-size: 12px; font-weight: 500; color: #5C5850; display: flex; align-items: center; gap: 5px; }
+    .seg-on { background: #FFFFFF; color: #1D1C1A; box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+    .pill { display: inline-flex; align-items: center; gap: 5px; height: 18px; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+    .status { height: 24px; flex-shrink: 0; border-top: 1px solid #D9D6CF; background: #EFEDE8; display: flex; align-items: center; gap: 16px; padding: 0 12px; font-size: 11px; color: #77736B; }
+    .av { width: 24px; height: 24px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+    .li { display: flex; gap: 10px; padding: 10px 12px 10px 10px; border-bottom: 1px solid #E5E2DB; background: #FFFFFF; }
+    .li-sel { background: rgba(196,83,43,0.12); }
+    .opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid #D9D6CF; border-radius: 7px; background: #FFFFFF; }
+    .rad { width: 15px; height: 15px; border-radius: 999px; border: 1px solid #CFCBC3; background: #FFFFFF; flex-shrink: 0; margin-top: 2px; display: inline-flex; align-items: center; justify-content: center; }
+    .chk { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #CFCBC3; background: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .chk-on { background: #C4532B; border-color: #A8441F; }
+  </style>
+</helmet>
+<div style="width: 1520px; height: 980px; position: relative; background: linear-gradient(160deg, #DAD7CF 0%, #CFCBC2 100%); padding: 40px;">
+  <div class="win">
+    <div class="side">
+      <div style="display: flex; gap: 8px; padding: 18px 16px 10px;">
+        <span style="width: 12px; height: 12px; border-radius: 999px; background: #FF5F57; border: 1px solid rgba(0,0,0,0.12);"></span>
+        <span style="width: 12px; height: 12px; border-radius: 999px; background: #FEBC2E; border: 1px solid rgba(0,0,0,0.12);"></span>
+        <span style="width: 12px; height: 12px; border-radius: 999px; background: #28C840; border: 1px solid rgba(0,0,0,0.12);"></span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; margin: 4px 12px 0; padding: 6px 8px; border-radius: 6px; background: rgba(0,0,0,0.05);">
+        <span style="width: 20px; height: 20px; border-radius: 5px; background: #C4532B; display: inline-flex; align-items: center; justify-content: center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><circle cx="17" cy="9" r="2.5"></circle><path d="M15.5 20a5 5 0 0 1 6 0"></path></svg></span>
+        <span style="flex: 1; font-weight: 600; font-size: 12px;">Navid's dev team</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8C887F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg>
+      </div>
+      <div class="sec">Team</div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"></path><path d="M5 10v10h14V10"></path></svg><span style="flex: 1;">Home</span></div>
+      <div class="srow srow-on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4532B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2.5-8h13L21 13v7H3z"></path><path d="M3 13h5l2 3h4l2-3h5"></path></svg><span style="flex: 1;">Inbox</span><span class="mono" style="font-size: 10px; font-weight: 600; background: #C4532B; color: #FFFFFF; border-radius: 999px; padding: 1px 6px;">2</span></div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg><span style="flex: 1;">Runs</span></div>
+      <div class="sec">Channels</div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="flex: 1;">general</span></div>
+      <div class="srow" style="font-weight: 600;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="flex: 1;">backend</span><span style="width: 7px; height: 7px; border-radius: 999px; background: #C4532B;"></span></div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="flex: 1;">frontend</span></div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="flex: 1;">reviews</span></div>
+      <div class="sec">Agents</div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #2E9B5F;"></span><span style="flex: 1;">Ada</span><span style="font-size: 11px; color: #8C887F;">lead</span></div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #B8862B;"></span><span style="flex: 1;">Kai</span><span style="font-size: 11px; color: #8C887F;">backend</span></div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #2E9B5F;"></span><span style="flex: 1;">Rex</span><span style="font-size: 11px; color: #8C887F;">qa</span></div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #BDB9B0;"></span><span style="flex: 1;">Noor</span><span style="font-size: 11px; color: #8C887F;">frontend</span></div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #BDB9B0;"></span><span style="flex: 1;">Sol</span><span style="font-size: 11px; color: #8C887F;">docs</span></div>
+      <div style="flex: 1;"></div>
+      <div style="margin: 0 12px 10px; padding: 8px 10px; border-radius: 6px; background: rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #5C5850;"><span>Spend today</span><span class="mono">$3.40 / $10</span></div>
+        <div style="height: 4px; border-radius: 999px; background: rgba(0,0,0,0.08); margin-top: 6px; overflow: hidden;"><div style="width: 34%; height: 100%; background: #C4532B;"></div></div>
+      </div>
+      <div class="srow" style="margin-bottom: 10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"></path></svg><span>Settings</span></div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+      <div class="tb">
+        <div class="ibtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg></div>
+        <div class="ibtn" style="color: #BDB9B0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></div>
+        <span style="font-weight: 600; font-size: 13px; margin-left: 4px;">Inbox</span>
+        <div class="seg" style="margin-left: 12px;">
+          <div class="seg-i seg-on">All <span class="mono" style="font-size: 10px; color: #77736B;">4</span></div>
+          <div class="seg-i">Questions <span class="mono" style="font-size: 10px; color: #77736B;">1</span></div>
+          <div class="seg-i">Approvals <span class="mono" style="font-size: 10px; color: #77736B;">2</span></div>
+          <div class="seg-i">Reports <span class="mono" style="font-size: 10px; color: #77736B;">1</span></div>
+        </div>
+        <div style="flex: 1;"></div>
+        <div class="btn">Mark All Read</div>
+      </div>
+
+      <div style="flex: 1; min-height: 0; display: flex;">
+        <!-- List pane -->
+        <div style="width: 340px; flex-shrink: 0; border-right: 1px solid #D9D6CF; background: #FFFFFF; display: flex; flex-direction: column; overflow: hidden;">
+          <div class="li li-sel">
+            <span style="width: 7px; height: 7px; border-radius: 999px; background: #C4532B; margin-top: 7px; flex-shrink: 0;"></span>
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline;"><span style="font-weight: 600;">Kai</span><span class="mono" style="font-size: 11px; color: #77736B;">13:56</span></div>
+              <div style="display: flex; align-items: center; gap: 6px; margin-top: 1px;"><span class="pill" style="background: #FBF1E9; color: #9E3F1F;">Question</span><span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Postgres or SQLite for the job queue?</span></div>
+              <div style="font-size: 12px; color: #77736B; margin-top: 2px;">Auto-answers SQLite at 16:00</div>
+            </div>
+          </div>
+          <div class="li">
+            <span style="width: 7px; height: 7px; border-radius: 999px; background: #C4532B; margin-top: 7px; flex-shrink: 0;"></span>
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline;"><span style="font-weight: 600;">Ada</span><span class="mono" style="font-size: 11px; color: #77736B;">13:27</span></div>
+              <div style="display: flex; align-items: center; gap: 6px; margin-top: 1px;"><span class="pill" style="background: #E8EAF6; color: #3B4A8C;">Hire</span><span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Add a Reviewer agent</span></div>
+              <div style="font-size: 12px; color: #77736B; margin-top: 2px;">Sonnet 5 · about $2/day</div>
+            </div>
+          </div>
+          <div class="li">
+            <span style="width: 7px; height: 7px; border-radius: 999px; background: transparent; margin-top: 7px; flex-shrink: 0;"></span>
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline;"><span style="font-weight: 600;">Kai</span><span class="mono" style="font-size: 11px; color: #77736B;">12:31</span></div>
+              <div style="display: flex; align-items: center; gap: 6px; margin-top: 1px;"><span class="pill" style="background: #FBEAEA; color: #9B2C2C;">Approval</span><span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Push hotfix to main</span></div>
+              <div style="font-size: 12px; color: #77736B; margin-top: 2px;">Rule: pushes to main need you</div>
+            </div>
+          </div>
+          <div class="li">
+            <span style="width: 7px; height: 7px; border-radius: 999px; background: transparent; margin-top: 7px; flex-shrink: 0;"></span>
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline;"><span style="font-weight: 600;">Ada</span><span class="mono" style="font-size: 11px; color: #77736B;">Yesterday</span></div>
+              <div style="display: flex; align-items: center; gap: 6px; margin-top: 1px;"><span class="pill" style="background: #EFEDE8; color: #5C5850;">Report</span><span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">End of day: 4 PRs merged, 1 blocked</span></div>
+              <div style="font-size: 12px; color: #77736B; margin-top: 2px;">Blocked on the queue decision</div>
+            </div>
+          </div>
+          <div style="font-size: 11px; font-weight: 700; color: #8C887F; padding: 12px 12px 4px; background: #F5F4F1; border-bottom: 1px solid #E5E2DB;">Resolved</div>
+          <div class="li" style="opacity: 0.7;">
+            <span style="width: 7px; height: 7px; border-radius: 999px; background: transparent; margin-top: 7px; flex-shrink: 0;"></span>
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline;"><span style="font-weight: 600;">Noor</span><span class="mono" style="font-size: 11px; color: #77736B;">Yesterday</span></div>
+              <div style="display: flex; align-items: center; gap: 6px; margin-top: 1px;"><span class="pill" style="background: #FBF1E9; color: #9E3F1F;">Question</span><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Tailwind or plain CSS?</span></div>
+              <div style="font-size: 12px; color: #77736B; margin-top: 2px;">You answered Tailwind · saved as a decision</div>
+            </div>
+          </div>
+          <div style="flex: 1; background: #FFFFFF;"></div>
+        </div>
+
+        <!-- Detail pane -->
+        <div style="flex: 1; min-width: 0; background: #FFFFFF; display: flex; flex-direction: column; overflow: hidden;">
+          <div style="padding: 20px 28px 16px; border-bottom: 1px solid #E5E2DB;">
+            <div style="display: flex; align-items: center; gap: 8px;"><span class="pill" style="background: #FBF1E9; color: #9E3F1F;">Question</span><span style="font-size: 12px; color: #77736B;">Asked in <a href="#">#backend</a> · 13:56 · waiting 11 min</span></div>
+            <div style="font-size: 18px; font-weight: 600; margin-top: 8px;">Postgres or SQLite for the job queue?</div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;"><span class="av" style="background: #D7E3DA; color: #1F4D33;">K</span><span style="font-weight: 500;">Kai</span><span style="color: #77736B;">Backend engineer</span></div>
+          </div>
+
+          <div style="flex: 1; min-height: 0; padding: 18px 28px; display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 28px;">
+            <div style="display: flex; flex-direction: column; gap: 18px;">
+              <div>
+                <div style="font-size: 11px; font-weight: 700; color: #8C887F; margin-bottom: 6px;">Why I'm asking</div>
+                <div style="color: #2B2926;">The webhook worker needs a durable queue before retries ship. Ada and I lean SQLite, but this shapes the deployment for a long time, so it's yours to decide.</div>
+              </div>
+              <div>
+                <div style="font-size: 11px; font-weight: 700; color: #8C887F; margin-bottom: 8px;">Your answer</div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <div class="opt" style="border-color: #C4532B; background: #FDF8F4;">
+                    <span class="rad" style="border-color: #C4532B;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #C4532B;"></span></span>
+                    <div style="flex: 1;"><div style="font-weight: 600;">SQLite <span class="pill" style="background: #E3F2E9; color: #1F6B41; margin-left: 4px;">Kai's pick</span></div><div style="font-size: 12px; color: #5C5850; margin-top: 2px;">WAL mode, single worker. Zero new services. Fits the one-box deploy.</div></div>
+                  </div>
+                  <div class="opt">
+                    <span class="rad"></span>
+                    <div style="flex: 1;"><div style="font-weight: 600;">Postgres</div><div style="font-size: 12px; color: #5C5850; margin-top: 2px;">SKIP LOCKED queue. Scales to many workers, adds a service to run and back up.</div></div>
+                  </div>
+                  <div class="opt">
+                    <span class="rad"></span>
+                    <div style="flex: 1;"><div style="font-weight: 600;">Something else</div><div style="height: 26px; margin-top: 6px; border: 1px solid #CFCBC3; border-radius: 5px; background: #FFFFFF; padding: 0 8px; display: flex; align-items: center; color: #8C887F; font-size: 12px;">Tell Kai what you want instead</div></div>
+                  </div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+                <span class="chk chk-on"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg></span>
+                <span>Save as a team decision so nobody asks this again</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="btn btn-primary" style="height: 28px; padding: 0 14px;">Send Answer</div>
+                <div class="btn" style="height: 28px;">Discuss in #backend</div>
+                <div style="flex: 1;"></div>
+                <span class="mono" style="font-size: 11px; color: #77736B;">No answer by 16:00 → SQLite</span>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <div style="border: 1px solid #E5E2DB; border-radius: 7px; background: #F5F4F1; padding: 12px;">
+                <div style="font-size: 11px; font-weight: 700; color: #8C887F; margin-bottom: 8px;">Context</div>
+                <div style="display: flex; flex-direction: column; gap: 7px; font-size: 12px;">
+                  <div style="display: flex; gap: 8px; align-items: center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><a href="#">Thread in #backend</a><span style="color: #77736B;">9 messages</span></div>
+                  <div style="display: flex; gap: 8px; align-items: center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"></circle><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="8" r="2.5"></circle><path d="M6 8.5v7M18 10.5c0 3-3 4-6 4.5-2 .3-4 1-6 3"></path></svg><a href="#">PR #142</a><span style="color: #77736B;">retry worker, draft</span></div>
+                  <div style="display: flex; gap: 8px; align-items: flex-start;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px;"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path></svg><span class="mono" style="font-size: 11px; line-height: 1.6;">src/worker/queue.py<br>src/worker/retry.py<br>tests/test_queue.py</span></div>
+                </div>
+              </div>
+              <div style="border: 1px solid #E5E2DB; border-radius: 7px; background: #F5F4F1; padding: 12px;">
+                <div style="font-size: 11px; font-weight: 700; color: #8C887F; margin-bottom: 8px;">What Kai does meanwhile</div>
+                <div style="font-size: 12px; color: #2B2926;">Writing tests that pass with either backend. Starts the queue itself the moment you answer.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="status">
+        <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #2E9B5F;"></span>Supervisor running since 07:12</span>
+        <span>2 unread · 1 approval pending</span>
+        <div style="flex: 1;"></div>
+        <span>Average answer time this week: 26 min</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

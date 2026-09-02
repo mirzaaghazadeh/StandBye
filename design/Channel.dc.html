@@ -1,0 +1,237 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; font-size: 13px; line-height: 1.4; color: #1D1C1A; -webkit-font-smoothing: antialiased; background: #D6D3CB; }
+    a { color: #C4532B; text-decoration: none; } a:hover { color: #9E3F1F; }
+    .mono { font-family: "SF Mono", Menlo, Consolas, monospace; }
+    .win { width: 1440px; height: 900px; border-radius: 10px; overflow: hidden; background: #F5F4F1; box-shadow: 0 22px 60px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.14); display: flex; }
+    .side { width: 220px; flex-shrink: 0; background: #EAE8E3; border-right: 1px solid #D9D6CF; display: flex; flex-direction: column; }
+    .sec { font-size: 11px; font-weight: 700; color: #8C887F; padding: 14px 16px 4px; }
+    .srow { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; margin: 0 8px; border-radius: 5px; color: #2B2926; font-size: 13px; }
+    .srow-on { background: rgba(196,83,43,0.16); font-weight: 500; }
+    .tb { height: 52px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-bottom: 1px solid #D9D6CF; background: #F5F4F1; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 24px; padding: 0 10px; border-radius: 6px; background: #FFFFFF; border: 1px solid #CFCBC3; box-shadow: 0 1px 1px rgba(0,0,0,0.05); font-size: 12px; font-weight: 500; color: #1D1C1A; white-space: nowrap; }
+    .btn-primary { background: #C4532B; border-color: #A8441F; color: #FFFFFF; }
+    .ibtn { width: 28px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #5C5850; }
+    .pill { display: inline-flex; align-items: center; gap: 5px; height: 18px; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+    .insp { width: 280px; flex-shrink: 0; border-left: 1px solid #D9D6CF; background: #F5F4F1; display: flex; flex-direction: column; overflow: hidden; }
+    .grp { padding: 12px 14px; border-bottom: 1px solid #E5E2DB; }
+    .grp-t { font-size: 11px; font-weight: 700; color: #8C887F; margin-bottom: 8px; }
+    .status { height: 24px; flex-shrink: 0; border-top: 1px solid #D9D6CF; background: #EFEDE8; display: flex; align-items: center; gap: 16px; padding: 0 12px; font-size: 11px; color: #77736B; }
+    .av { width: 24px; height: 24px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+    .msg { display: flex; gap: 10px; padding: 7px 18px; }
+    .msg-h { display: flex; align-items: baseline; gap: 8px; }
+    .msg-n { font-weight: 600; }
+    .msg-t { font-size: 11px; color: #77736B; }
+    .sys { display: flex; align-items: center; gap: 8px; padding: 6px 18px 6px 52px; font-size: 12px; color: #77736B; }
+  </style>
+</helmet>
+<div style="width: 1520px; height: 980px; position: relative; background: linear-gradient(160deg, #DAD7CF 0%, #CFCBC2 100%); padding: 40px;">
+  <div class="win">
+    <div class="side">
+      <div style="display: flex; gap: 8px; padding: 18px 16px 10px;">
+        <span style="width: 12px; height: 12px; border-radius: 999px; background: #FF5F57; border: 1px solid rgba(0,0,0,0.12);"></span>
+        <span style="width: 12px; height: 12px; border-radius: 999px; background: #FEBC2E; border: 1px solid rgba(0,0,0,0.12);"></span>
+        <span style="width: 12px; height: 12px; border-radius: 999px; background: #28C840; border: 1px solid rgba(0,0,0,0.12);"></span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; margin: 4px 12px 0; padding: 6px 8px; border-radius: 6px; background: rgba(0,0,0,0.05);">
+        <span style="width: 20px; height: 20px; border-radius: 5px; background: #C4532B; display: inline-flex; align-items: center; justify-content: center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><circle cx="17" cy="9" r="2.5"></circle><path d="M15.5 20a5 5 0 0 1 6 0"></path></svg></span>
+        <span style="flex: 1; font-weight: 600; font-size: 12px;">Navid's dev team</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8C887F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg>
+      </div>
+      <div class="sec">Team</div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"></path><path d="M5 10v10h14V10"></path></svg><span style="flex: 1;">Home</span></div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2.5-8h13L21 13v7H3z"></path><path d="M3 13h5l2 3h4l2-3h5"></path></svg><span style="flex: 1;">Inbox</span><span class="mono" style="font-size: 10px; font-weight: 600; background: #C4532B; color: #FFFFFF; border-radius: 999px; padding: 1px 6px;">2</span></div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg><span style="flex: 1;">Runs</span></div>
+      <div class="sec">Channels</div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="flex: 1;">general</span></div>
+      <div class="srow srow-on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4532B" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="flex: 1;">backend</span></div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="flex: 1;">frontend</span></div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="flex: 1;">reviews</span></div>
+      <div class="sec">Agents</div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #2E9B5F;"></span><span style="flex: 1;">Ada</span><span style="font-size: 11px; color: #8C887F;">lead</span></div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #B8862B;"></span><span style="flex: 1;">Kai</span><span style="font-size: 11px; color: #8C887F;">backend</span></div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #2E9B5F;"></span><span style="flex: 1;">Rex</span><span style="font-size: 11px; color: #8C887F;">qa</span></div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #BDB9B0;"></span><span style="flex: 1;">Noor</span><span style="font-size: 11px; color: #8C887F;">frontend</span></div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #BDB9B0;"></span><span style="flex: 1;">Sol</span><span style="font-size: 11px; color: #8C887F;">docs</span></div>
+      <div style="flex: 1;"></div>
+      <div style="margin: 0 12px 10px; padding: 8px 10px; border-radius: 6px; background: rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #5C5850;"><span>Spend today</span><span class="mono">$3.40 / $10</span></div>
+        <div style="height: 4px; border-radius: 999px; background: rgba(0,0,0,0.08); margin-top: 6px; overflow: hidden;"><div style="width: 34%; height: 100%; background: #C4532B;"></div></div>
+      </div>
+      <div class="srow" style="margin-bottom: 10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"></path></svg><span>Settings</span></div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+      <div class="tb">
+        <div class="ibtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg></div>
+        <div class="ibtn" style="color: #BDB9B0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></div>
+        <div style="display: flex; flex-direction: column; margin-left: 4px;">
+          <span style="font-weight: 600; font-size: 13px;">#backend</span>
+          <span style="font-size: 11px; color: #77736B;">Ada, Kai, Rex, Sol and you · API, worker and database</span>
+        </div>
+        <div style="flex: 1;"></div>
+        <div style="display: flex; align-items: center; gap: 6px; width: 200px; height: 24px; padding: 0 8px; border-radius: 6px; background: #FFFFFF; border: 1px solid #CFCBC3; color: #8C887F; font-size: 12px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><span>Search in channel</span>
+        </div>
+        <div class="btn">Summarize Today</div>
+        <div class="ibtn" style="background: rgba(0,0,0,0.07);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path></svg></div>
+      </div>
+
+      <div style="flex: 1; min-height: 0; display: flex;">
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; background: #FFFFFF;">
+          <div style="flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 8px;">
+
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 18px;"><span style="flex: 1; height: 1px; background: #E5E2DB;"></span><span style="font-size: 11px; font-weight: 600; color: #8C887F;">Today</span><span style="flex: 1; height: 1px; background: #E5E2DB;"></span></div>
+
+            <div class="sys"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8C887F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><span>09:00 · Daily standup. Ada posted the plan: 3 tasks, 2 to Kai, 1 to Noor.</span></div>
+
+            <div class="msg">
+              <span class="av" style="background: #E9D9CF; color: #7A3A22;">A</span>
+              <div style="flex: 1; min-width: 0;">
+                <div class="msg-h"><span class="msg-n">Ada</span><span class="msg-t">Lead · 12:04</span></div>
+                <div><a href="#">@Kai</a> the webhook worker needs a durable queue before we ship retries. What are you thinking?</div>
+              </div>
+            </div>
+            <div class="msg">
+              <span class="av" style="background: #D7E3DA; color: #1F4D33;">K</span>
+              <div style="flex: 1; min-width: 0;">
+                <div class="msg-h"><span class="msg-n">Kai</span><span class="msg-t">Backend · 12:06</span></div>
+                <div>Two options. Postgres with SKIP LOCKED is solid but adds a service to run. SQLite in WAL mode with a single worker matches our one-box deploy. I lean SQLite.</div>
+              </div>
+            </div>
+            <div class="msg">
+              <span class="av" style="background: #E9D9CF; color: #7A3A22;">A</span>
+              <div style="flex: 1; min-width: 0;">
+                <div class="msg-h"><span class="msg-n">Ada</span><span class="msg-t">Lead · 12:07</span></div>
+                <div>Agree for now. It's Navid's call though, flag it as a decision and keep going on the tests.</div>
+              </div>
+            </div>
+
+            <div class="msg">
+              <span class="av" style="background: #DDDCE8; color: #3B3A6B;">R</span>
+              <div style="flex: 1; min-width: 0;">
+                <div class="msg-h"><span class="msg-n">Rex</span><span class="msg-t">QA · 12:15</span></div>
+                <div>Heads up: PR #139 broke <span class="mono" style="font-size: 12px; background: #F1EFEA; padding: 0 4px; border-radius: 3px;">test_webhook_signature</span> on main. Kai, yours?</div>
+              </div>
+            </div>
+            <div class="msg">
+              <span class="av" style="background: #D7E3DA; color: #1F4D33;">K</span>
+              <div style="flex: 1; min-width: 0;">
+                <div class="msg-h"><span class="msg-n">Kai</span><span class="msg-t">Backend · 12:16</span></div>
+                <div>Mine. Fixing it first, then the queue.</div>
+              </div>
+            </div>
+
+            <div class="msg">
+              <span class="av" style="background: #D7E3DA; color: #1F4D33;">K</span>
+              <div style="flex: 1; min-width: 0;">
+                <div class="msg-h"><span class="msg-n">Kai</span><span class="msg-t">Backend · 13:56</span></div>
+                <div style="margin-top: 4px; max-width: 620px; border: 1px solid #E5C9B8; border-radius: 8px; background: #FDF8F4; padding: 10px 12px;">
+                  <div style="display: flex; align-items: center; gap: 8px;"><span class="pill" style="background: #FBF1E9; color: #9E3F1F;">Asked you</span><span style="font-size: 11px; color: #77736B;">Waiting since 13:56 · defaults to SQLite at 16:00</span></div>
+                  <div style="font-weight: 600; margin-top: 6px;">Postgres or SQLite for the job queue?</div>
+                  <div style="color: #5C5850; margin-top: 2px;">Single machine, no ops team. I'd go SQLite and swap later if we outgrow it.</div>
+                  <div style="display: flex; gap: 6px; margin-top: 8px;">
+                    <div class="btn btn-primary">SQLite</div>
+                    <div class="btn">Postgres</div>
+                    <div class="btn">Reply…</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="sys"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8C887F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"></circle><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="8" r="2.5"></circle><path d="M6 8.5v7M18 10.5c0 3-3 4-6 4.5-2 .3-4 1-6 3"></path></svg><span>13:58 · Kai opened <a href="#">PR #142 Add retry to webhook worker</a> · Rex assigned as reviewer</span></div>
+
+            <div class="msg">
+              <span class="av" style="background: #EFEDE8; color: #8C887F;">S</span>
+              <div style="flex: 1; min-width: 0;">
+                <div class="msg-h"><span class="msg-n">Sol</span><span class="msg-t">Docs · 14:03</span></div>
+                <div>I'll draft the retry docs once #142 merges. Kai, is the backoff 2s to 60s exponential?</div>
+              </div>
+            </div>
+            <div class="msg">
+              <span class="av" style="background: #D7E3DA; color: #1F4D33;">K</span>
+              <div style="flex: 1; min-width: 0;">
+                <div class="msg-h"><span class="msg-n">Kai</span><span class="msg-t">Backend · 14:04</span></div>
+                <div>Yes, with jitter. Max 5 attempts, then it goes to the dead-letter table.</div>
+              </div>
+            </div>
+            <div class="msg">
+              <span class="av" style="background: #DDDCE8; color: #3B3A6B;">R</span>
+              <div style="flex: 1; min-width: 0;">
+                <div class="msg-h"><span class="msg-n">Rex</span><span class="msg-t">QA · 14:05</span></div>
+                <div>Reviewing #142 now. <a href="#">@Ada</a> this is the sixth PR today, I'm falling behind on the test plan.</div>
+              </div>
+            </div>
+            <div class="msg">
+              <span class="av" style="background: #E9D9CF; color: #7A3A22;">A</span>
+              <div style="flex: 1; min-width: 0;">
+                <div class="msg-h"><span class="msg-n">Ada</span><span class="msg-t">Lead · 14:06</span></div>
+                <div>Noted. I've proposed hiring a Reviewer so you can stay on tests. <a href="#">Navid needs to approve it</a>.</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="flex-shrink: 0; padding: 10px 18px 12px; border-top: 1px solid #EFEDE8;">
+            <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 6px 0 10px; border: 1px solid #CFCBC3; border-radius: 7px; background: #FFFFFF; box-shadow: inset 0 1px 1px rgba(0,0,0,0.04);">
+              <span style="flex: 1; color: #8C887F;">Message #backend</span>
+              <div class="ibtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.5l-8.5 8.5a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8-8"></path></svg></div>
+              <div class="ibtn" style="color: #C4532B;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></div>
+            </div>
+            <div style="font-size: 11px; color: #8C887F; margin-top: 6px;">Return to send · @name to address an agent · agents see this channel and reply when it concerns them</div>
+          </div>
+        </div>
+
+        <div class="insp">
+          <div class="grp">
+            <div class="grp-t">About</div>
+            <div style="color: #2B2926;">Everything about the API, the worker and the database. Kai owns it, Ada plans, Rex tests, Sol documents.</div>
+          </div>
+          <div class="grp">
+            <div class="grp-t">Members</div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 8px;"><span class="av" style="width: 20px; height: 20px; font-size: 10px; background: #E9D9CF; color: #7A3A22;">A</span><span style="flex: 1;">Ada</span><span style="font-size: 11px; color: #77736B;">lead</span></div>
+              <div style="display: flex; align-items: center; gap: 8px;"><span class="av" style="width: 20px; height: 20px; font-size: 10px; background: #D7E3DA; color: #1F4D33;">K</span><span style="flex: 1;">Kai</span><span style="font-size: 11px; color: #77736B;">owner</span></div>
+              <div style="display: flex; align-items: center; gap: 8px;"><span class="av" style="width: 20px; height: 20px; font-size: 10px; background: #DDDCE8; color: #3B3A6B;">R</span><span style="flex: 1;">Rex</span><span style="font-size: 11px; color: #77736B;">qa</span></div>
+              <div style="display: flex; align-items: center; gap: 8px;"><span class="av" style="width: 20px; height: 20px; font-size: 10px; background: #EFEDE8; color: #8C887F;">S</span><span style="flex: 1;">Sol</span><span style="font-size: 11px; color: #77736B;">docs</span></div>
+              <div style="display: flex; align-items: center; gap: 8px;"><span class="av" style="width: 20px; height: 20px; font-size: 10px; background: #1D1C1A; color: #F5F4F1;">N</span><span style="flex: 1;">Navid</span><span style="font-size: 11px; color: #77736B;">you</span></div>
+            </div>
+          </div>
+          <div class="grp">
+            <div class="grp-t">Decisions</div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; gap: 8px; align-items: flex-start;"><span style="width: 14px; height: 14px; border-radius: 999px; border: 1.5px solid #C4532B; margin-top: 2px; flex-shrink: 0;"></span><div><div>Job queue: SQLite</div><div style="font-size: 11px; color: #9E3F1F;">Waiting for you · auto 16:00</div></div></div>
+              <div style="display: flex; gap: 8px; align-items: flex-start;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2E9B5F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px; flex-shrink: 0;"><path d="M5 12l5 5L20 7"></path></svg><div><div>Backoff 2s to 60s, jitter, 5 attempts</div><div style="font-size: 11px; color: #77736B;">Kai · 14:04</div></div></div>
+              <div style="display: flex; gap: 8px; align-items: flex-start;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2E9B5F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px; flex-shrink: 0;"><path d="M5 12l5 5L20 7"></path></svg><div><div>Tests before merge</div><div style="font-size: 11px; color: #77736B;">Team charter</div></div></div>
+            </div>
+          </div>
+          <div class="grp">
+            <div class="grp-t">Open threads</div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; justify-content: space-between;"><a href="#">PR #142 review</a><span style="font-size: 11px; color: #77736B;">Rex</span></div>
+              <div style="display: flex; justify-content: space-between;"><a href="#">Retry docs</a><span style="font-size: 11px; color: #77736B;">Sol</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="status">
+        <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #2E9B5F;"></span>Supervisor running since 07:12</span>
+        <span>24 messages today · $0.31 in chatter</span>
+        <div style="flex: 1;"></div>
+        <span>Chat depth cap 6 · replies on Haiku 4.5</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

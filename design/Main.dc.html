@@ -1,0 +1,268 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; font-size: 13px; line-height: 1.4; color: #1D1C1A; -webkit-font-smoothing: antialiased; background: #D6D3CB; }
+    a { color: #C4532B; text-decoration: none; } a:hover { color: #9E3F1F; }
+    .mono { font-family: "SF Mono", Menlo, Consolas, monospace; }
+    .win { width: 1440px; height: 900px; border-radius: 10px; overflow: hidden; background: #F5F4F1; box-shadow: 0 22px 60px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.14); display: flex; }
+    .side { width: 220px; flex-shrink: 0; background: #EAE8E3; border-right: 1px solid #D9D6CF; display: flex; flex-direction: column; }
+    .sec { font-size: 11px; font-weight: 700; color: #8C887F; padding: 14px 16px 4px; }
+    .srow { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; margin: 0 8px; border-radius: 5px; color: #2B2926; font-size: 13px; }
+    .srow-on { background: rgba(196,83,43,0.16); font-weight: 500; }
+    .tb { height: 52px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-bottom: 1px solid #D9D6CF; background: #F5F4F1; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 24px; padding: 0 10px; border-radius: 6px; background: #FFFFFF; border: 1px solid #CFCBC3; box-shadow: 0 1px 1px rgba(0,0,0,0.05); font-size: 12px; font-weight: 500; color: #1D1C1A; white-space: nowrap; }
+    .btn-primary { background: #C4532B; border-color: #A8441F; color: #FFFFFF; }
+    .ibtn { width: 28px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #5C5850; }
+    .th { display: flex; align-items: center; height: 26px; padding: 0 12px; font-size: 11px; font-weight: 600; color: #77736B; border-bottom: 1px solid #D9D6CF; background: #F5F4F1; }
+    .tr { display: flex; align-items: center; height: 36px; padding: 0 12px; font-size: 13px; border-bottom: 1px solid #EFEDE8; background: #FFFFFF; }
+    .tr-alt { background: #FAF9F7; }
+    .tr-sel { background: rgba(196,83,43,0.12); }
+    .pill { display: inline-flex; align-items: center; gap: 5px; height: 18px; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+    .insp { width: 280px; flex-shrink: 0; border-left: 1px solid #D9D6CF; background: #F5F4F1; display: flex; flex-direction: column; overflow: hidden; }
+    .grp { padding: 12px 14px; border-bottom: 1px solid #E5E2DB; }
+    .grp-t { font-size: 11px; font-weight: 700; color: #8C887F; margin-bottom: 8px; }
+    .kv { display: flex; align-items: center; min-height: 26px; font-size: 12px; gap: 0; }
+    .k { width: 92px; color: #77736B; text-align: right; padding-right: 10px; flex-shrink: 0; }
+    .pop { height: 22px; border: 1px solid #CFCBC3; border-radius: 5px; background: #FFFFFF; padding: 0 6px 0 8px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; box-shadow: 0 1px 1px rgba(0,0,0,0.05); }
+    .chk { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #CFCBC3; background: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .chk-on { background: #C4532B; border-color: #A8441F; }
+    .status { height: 24px; flex-shrink: 0; border-top: 1px solid #D9D6CF; background: #EFEDE8; display: flex; align-items: center; gap: 16px; padding: 0 12px; font-size: 11px; color: #77736B; }
+    .av { width: 22px; height: 22px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  </style>
+</helmet>
+<div style="width: 1520px; height: 980px; position: relative; background: linear-gradient(160deg, #DAD7CF 0%, #CFCBC2 100%); padding: 40px;">
+
+  <div class="win">
+    <!-- Sidebar -->
+    <div class="side">
+      <div style="display: flex; gap: 8px; padding: 18px 16px 10px;">
+        <span style="width: 12px; height: 12px; border-radius: 999px; background: #FF5F57; border: 1px solid rgba(0,0,0,0.12);"></span>
+        <span style="width: 12px; height: 12px; border-radius: 999px; background: #FEBC2E; border: 1px solid rgba(0,0,0,0.12);"></span>
+        <span style="width: 12px; height: 12px; border-radius: 999px; background: #28C840; border: 1px solid rgba(0,0,0,0.12);"></span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; margin: 4px 12px 0; padding: 6px 8px; border-radius: 6px; background: rgba(0,0,0,0.05);">
+        <span style="width: 20px; height: 20px; border-radius: 5px; background: #C4532B; display: inline-flex; align-items: center; justify-content: center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><circle cx="17" cy="9" r="2.5"></circle><path d="M15.5 20a5 5 0 0 1 6 0"></path></svg></span>
+        <span style="flex: 1; font-weight: 600; font-size: 12px;">Navid's dev team</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8C887F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg>
+      </div>
+
+      <div class="sec">Team</div>
+      <div class="srow srow-on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4532B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"></path><path d="M5 10v10h14V10"></path></svg><span style="flex: 1;">Home</span></div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2.5-8h13L21 13v7H3z"></path><path d="M3 13h5l2 3h4l2-3h5"></path></svg><span style="flex: 1;">Inbox</span><span class="mono" style="font-size: 10px; font-weight: 600; background: #C4532B; color: #FFFFFF; border-radius: 999px; padding: 1px 6px;">2</span></div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg><span style="flex: 1;">Runs</span></div>
+
+      <div class="sec">Channels</div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="flex: 1;">general</span></div>
+      <div class="srow" style="font-weight: 600;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="flex: 1;">backend</span><span style="width: 7px; height: 7px; border-radius: 999px; background: #C4532B;"></span></div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="flex: 1;">frontend</span></div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="flex: 1;">reviews</span></div>
+
+      <div class="sec">Agents</div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #2E9B5F;"></span><span style="flex: 1;">Ada</span><span style="font-size: 11px; color: #8C887F;">lead</span></div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #B8862B;"></span><span style="flex: 1;">Kai</span><span style="font-size: 11px; color: #8C887F;">backend</span></div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #2E9B5F;"></span><span style="flex: 1;">Rex</span><span style="font-size: 11px; color: #8C887F;">qa</span></div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #BDB9B0;"></span><span style="flex: 1;">Noor</span><span style="font-size: 11px; color: #8C887F;">frontend</span></div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #BDB9B0;"></span><span style="flex: 1;">Sol</span><span style="font-size: 11px; color: #8C887F;">docs</span></div>
+
+      <div style="flex: 1;"></div>
+      <div style="margin: 0 12px 10px; padding: 8px 10px; border-radius: 6px; background: rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #5C5850;"><span>Spend today</span><span class="mono">$3.40 / $10</span></div>
+        <div style="height: 4px; border-radius: 999px; background: rgba(0,0,0,0.08); margin-top: 6px; overflow: hidden;"><div style="width: 34%; height: 100%; background: #C4532B;"></div></div>
+      </div>
+      <div class="srow" style="margin-bottom: 10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"></path></svg><span>Settings</span></div>
+    </div>
+
+    <!-- Main pane -->
+    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+      <div class="tb">
+        <div class="ibtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg></div>
+        <div class="ibtn" style="color: #BDB9B0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></div>
+        <div style="display: flex; flex-direction: column; margin-left: 4px;">
+          <span style="font-weight: 600; font-size: 13px;">Home</span>
+          <span style="font-size: 11px; color: #77736B;">5 agents · 2 working · 1 needs you · 2 idle</span>
+        </div>
+        <div style="flex: 1;"></div>
+        <div style="display: flex; align-items: center; gap: 6px; width: 220px; height: 24px; padding: 0 8px; border-radius: 6px; background: #FFFFFF; border: 1px solid #CFCBC3; color: #8C887F; font-size: 12px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><span>Search</span>
+        </div>
+        <div class="btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M8 5v14M16 5v14"></path></svg><span>Pause All</span></div>
+        <div class="btn btn-primary"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg><span>Hire…</span></div>
+        <div class="ibtn" style="background: rgba(0,0,0,0.07);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path></svg></div>
+      </div>
+
+      <div style="flex: 1; min-height: 0; display: flex;">
+        <!-- Split: agents table + needs-you pane -->
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+          <div class="th">
+            <span style="width: 190px;">Agent</span>
+            <span style="width: 110px;">Status</span>
+            <span style="flex: 1;">Doing now</span>
+            <span style="width: 110px;">Model</span>
+            <span style="width: 64px;">Since</span>
+            <span style="width: 64px; text-align: right;">Today</span>
+          </div>
+          <div class="tr">
+            <span style="width: 190px; display: flex; align-items: center; gap: 8px;"><span class="av" style="background: #E9D9CF; color: #7A3A22;">A</span><span><span style="font-weight: 500;">Ada</span><span style="color: #77736B;"> · Lead</span></span></span>
+            <span style="width: 110px;"><span class="pill" style="background: #E3F2E9; color: #1F6B41;"><span style="width: 6px; height: 6px; border-radius: 999px; background: #2E9B5F;"></span>Working</span></span>
+            <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #2B2926;">Splitting issue #41 "rate limiting" into tasks for Kai and Noor</span>
+            <span style="width: 110px; color: #5C5850;">Opus 5</span>
+            <span class="mono" style="width: 64px; font-size: 11px; color: #77736B;">4 min</span>
+            <span class="mono" style="width: 64px; text-align: right; font-size: 11px;">$1.62</span>
+          </div>
+          <div class="tr tr-sel">
+            <span style="width: 190px; display: flex; align-items: center; gap: 8px;"><span class="av" style="background: #D7E3DA; color: #1F4D33;">K</span><span><span style="font-weight: 500;">Kai</span><span style="color: #77736B;"> · Backend</span></span></span>
+            <span style="width: 110px;"><span class="pill" style="background: #FBF1DD; color: #7A5A12;"><span style="width: 6px; height: 6px; border-radius: 999px; background: #B8862B;"></span>Needs you</span></span>
+            <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #2B2926;">Writing tests for the webhook worker while waiting on your answer</span>
+            <span style="width: 110px; color: #5C5850;">Opus 5</span>
+            <span class="mono" style="width: 64px; font-size: 11px; color: #77736B;">38 min</span>
+            <span class="mono" style="width: 64px; text-align: right; font-size: 11px;">$1.21</span>
+          </div>
+          <div class="tr">
+            <span style="width: 190px; display: flex; align-items: center; gap: 8px;"><span class="av" style="background: #DDDCE8; color: #3B3A6B;">R</span><span><span style="font-weight: 500;">Rex</span><span style="color: #77736B;"> · QA</span></span></span>
+            <span style="width: 110px;"><span class="pill" style="background: #E3F2E9; color: #1F6B41;"><span style="width: 6px; height: 6px; border-radius: 999px; background: #2E9B5F;"></span>Working</span></span>
+            <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #2B2926;">Reviewing PR #142, running the integration suite</span>
+            <span style="width: 110px; color: #5C5850;">Sonnet 5</span>
+            <span class="mono" style="width: 64px; font-size: 11px; color: #77736B;">12 min</span>
+            <span class="mono" style="width: 64px; text-align: right; font-size: 11px;">$0.52</span>
+          </div>
+          <div class="tr tr-alt">
+            <span style="width: 190px; display: flex; align-items: center; gap: 8px;"><span class="av" style="background: #EFEDE8; color: #8C887F;">N</span><span><span style="font-weight: 500;">Noor</span><span style="color: #77736B;"> · Frontend</span></span></span>
+            <span style="width: 110px;"><span class="pill" style="background: #EFEDE8; color: #77736B;"><span style="width: 6px; height: 6px; border-radius: 999px; background: #BDB9B0;"></span>Idle</span></span>
+            <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #77736B;">Next check-in 14:20</span>
+            <span style="width: 110px; color: #5C5850;">OpenRouter</span>
+            <span class="mono" style="width: 64px; font-size: 11px; color: #77736B;"></span>
+            <span class="mono" style="width: 64px; text-align: right; font-size: 11px; color: #77736B;">$0.03</span>
+          </div>
+          <div class="tr">
+            <span style="width: 190px; display: flex; align-items: center; gap: 8px;"><span class="av" style="background: #EFEDE8; color: #8C887F;">S</span><span><span style="font-weight: 500;">Sol</span><span style="color: #77736B;"> · Docs</span></span></span>
+            <span style="width: 110px;"><span class="pill" style="background: #EFEDE8; color: #77736B;"><span style="width: 6px; height: 6px; border-radius: 999px; background: #BDB9B0;"></span>Idle</span></span>
+            <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #77736B;">Wakes when a PR touches /docs, or tomorrow 09:00</span>
+            <span style="width: 110px; color: #5C5850;">Haiku 4.5</span>
+            <span class="mono" style="width: 64px; font-size: 11px; color: #77736B;"></span>
+            <span class="mono" style="width: 64px; text-align: right; font-size: 11px; color: #77736B;">$0.02</span>
+          </div>
+          <div style="flex: 1; background: #FFFFFF;"></div>
+
+          <!-- Split divider -->
+          <div style="height: 1px; background: #D9D6CF;"></div>
+          <div style="height: 300px; flex-shrink: 0; display: flex; flex-direction: column; background: #F5F4F1;">
+            <div style="display: flex; align-items: center; height: 30px; padding: 0 12px; border-bottom: 1px solid #D9D6CF; gap: 8px;">
+              <span style="font-size: 12px; font-weight: 600;">Needs you</span>
+              <span class="mono" style="font-size: 10px; font-weight: 600; background: #C4532B; color: #FFFFFF; border-radius: 999px; padding: 1px 6px;">2</span>
+              <div style="flex: 1;"></div>
+              <a href="#" style="font-size: 12px;">Open Inbox</a>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-bottom: 1px solid #E5E2DB; background: #FFFFFF;">
+              <span class="av" style="background: #D7E3DA; color: #1F4D33;">K</span>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 8px;"><span style="font-weight: 600;">Kai</span><span class="pill" style="background: #FBF1E9; color: #9E3F1F;">Question</span><span style="font-size: 11px; color: #77736B;">11 min ago in #backend</span></div>
+                <div style="margin-top: 2px;">Postgres or SQLite for the job queue? I'd go SQLite: one box, no ops. Swap later if we outgrow it.</div>
+                <div class="mono" style="font-size: 11px; color: #77736B; margin-top: 3px;">If you don't answer: SQLite at 16:00</div>
+              </div>
+              <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                <div class="btn btn-primary">SQLite</div>
+                <div class="btn">Postgres</div>
+                <div class="btn">Reply…</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-bottom: 1px solid #E5E2DB; background: #FFFFFF;">
+              <span class="av" style="background: #E9D9CF; color: #7A3A22;">A</span>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 8px;"><span style="font-weight: 600;">Ada</span><span class="pill" style="background: #E8EAF6; color: #3B4A8C;">Hire proposal</span><span style="font-size: 11px; color: #77736B;">40 min ago</span></div>
+                <div style="margin-top: 2px;">Add a Reviewer agent. We merge 6 PRs a day and Rex is busy testing. Sonnet 5, about $2/day.</div>
+              </div>
+              <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                <div class="btn btn-primary">Approve</div>
+                <div class="btn">Edit Role…</div>
+                <div class="btn">Decline</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; color: #77736B; font-size: 12px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2E9B5F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg>
+              <span>Yesterday: 3 answered · Noor's "Tailwind or plain CSS?" saved as a team decision</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inspector -->
+        <div class="insp">
+          <div class="grp" style="display: flex; align-items: center; gap: 10px; padding: 14px;">
+            <span class="av" style="width: 34px; height: 34px; font-size: 14px; background: #D7E3DA; color: #1F4D33;">K</span>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-weight: 600;">Kai</div>
+              <div style="font-size: 11px; color: #77736B;">Backend engineer · since Aug 12</div>
+            </div>
+            <div class="ibtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 5v14M16 5v14"></path></svg></div>
+          </div>
+          <div class="grp">
+            <div class="grp-t">Model</div>
+            <div class="kv"><span class="k">Provider</span><span class="pop">Anthropic <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span></div>
+            <div class="kv"><span class="k">Model</span><span class="pop">Claude Opus 5 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span></div>
+            <div class="kv"><span class="k">Check-ins on</span><span class="pop">Haiku 4.5 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span></div>
+          </div>
+          <div class="grp">
+            <div class="grp-t">Wake-ups</div>
+            <div class="kv"><span class="k">Check in every</span><span class="pop">30 min <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span></div>
+            <div class="kv"><span class="k">Work hours</span><span class="mono" style="font-size: 12px;">08:00 – 22:00</span></div>
+            <div class="kv"><span class="k">On events</span><span style="display: flex; flex-direction: column; gap: 5px; padding: 4px 0;">
+              <span style="display: flex; align-items: center; gap: 6px;"><span class="chk chk-on"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg></span>PR opened or updated</span>
+              <span style="display: flex; align-items: center; gap: 6px;"><span class="chk chk-on"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg></span>CI failed on main</span>
+              <span style="display: flex; align-items: center; gap: 6px;"><span class="chk chk-on"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg></span>Mentioned in a channel</span>
+              <span style="display: flex; align-items: center; gap: 6px;"><span class="chk"></span>New issue labeled "backend"</span>
+            </span></div>
+          </div>
+          <div class="grp">
+            <div class="grp-t">Permissions</div>
+            <div class="kv"><span class="k">Edit repo</span><span class="pop">Allow <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span></div>
+            <div class="kv"><span class="k">Run tests</span><span class="pop">Allow <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span></div>
+            <div class="kv"><span class="k">Push to main</span><span class="pop" style="border-color: #C4532B; color: #9E3F1F;">Ask me <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9E3F1F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span></div>
+            <div class="kv"><span class="k">Network</span><span class="pop">Repo hosts only <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span></div>
+          </div>
+          <div class="grp">
+            <div class="grp-t">Budget</div>
+            <div class="kv"><span class="k">Daily cap</span><span class="mono" style="font-size: 12px;">$3.00</span></div>
+            <div class="kv"><span class="k">Used today</span><span style="flex: 1; display: flex; align-items: center; gap: 8px;"><span style="flex: 1; height: 5px; border-radius: 999px; background: #E5E2DB; overflow: hidden;"><span style="display: block; width: 40%; height: 100%; background: #C4532B;"></span></span><span class="mono" style="font-size: 11px;">$1.21</span></span></div>
+          </div>
+          <div style="padding: 12px 14px; display: flex; gap: 6px;">
+            <div class="btn" style="flex: 1;">Soul &amp; Rules…</div>
+            <div class="btn" style="flex: 1;">Memory (14)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="status">
+        <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #2E9B5F;"></span>Supervisor running since 07:12</span>
+        <span>41 runs today</span>
+        <span>Next wake-up: Noor at 14:20</span>
+        <div style="flex: 1;"></div>
+        <span>Anthropic key ok · OpenRouter key ok</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- System notification -->
+  <div style="position: absolute; top: 18px; right: 40px; width: 372px; background: rgba(245,244,241,0.96); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.1); padding: 12px 14px; display: flex; gap: 12px; align-items: flex-start;">
+    <span style="width: 34px; height: 34px; border-radius: 8px; background: #C4532B; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><circle cx="17" cy="9" r="2.5"></circle><path d="M15.5 20a5 5 0 0 1 6 0"></path></svg></span>
+    <div style="flex: 1; min-width: 0;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;"><span style="font-weight: 600; font-size: 13px;">Kai · Backend</span><span style="font-size: 11px; color: #77736B;">now</span></div>
+      <div style="font-size: 13px; margin-top: 1px;">Postgres or SQLite for the job queue?</div>
+      <div style="font-size: 12px; color: #77736B; margin-top: 1px;">I'll default to SQLite at 16:00 if you're busy.</div>
+      <div style="display: flex; gap: 6px; margin-top: 8px;">
+        <div class="btn" style="height: 22px; font-size: 11px;">SQLite</div>
+        <div class="btn" style="height: 22px; font-size: 11px;">Postgres</div>
+        <div class="btn" style="height: 22px; font-size: 11px;">Reply…</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

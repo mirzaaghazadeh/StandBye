@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; font-size: 13px; line-height: 1.4; color: #1D1C1A; -webkit-font-smoothing: antialiased; background: #D6D3CB; }
+    a { color: #C4532B; text-decoration: none; } a:hover { color: #9E3F1F; }
+    .mono { font-family: "SF Mono", Menlo, Consolas, monospace; }
+    .mi { display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px; margin: 0 6px; border-radius: 5px; font-size: 13px; }
+    .sep { height: 1px; background: rgba(0,0,0,0.1); margin: 5px 12px; }
+    .av { width: 18px; height: 18px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; flex-shrink: 0; }
+  </style>
+</helmet>
+<div style="width: 480px; height: 560px; position: relative; background: linear-gradient(160deg, #DAD7CF 0%, #CFCBC2 100%); overflow: hidden;">
+  <!-- Menu bar strip -->
+  <div style="height: 24px; background: rgba(245,244,241,0.85); border-bottom: 1px solid rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: flex-end; padding: 0 12px; gap: 14px; font-size: 12px; color: #1D1C1A;">
+    <span style="display: inline-flex; align-items: center; justify-content: center; height: 20px; padding: 0 5px; border-radius: 4px; background: rgba(0,0,0,0.12);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1D1C1A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><circle cx="17" cy="9" r="2.5"></circle><path d="M15.5 20a5 5 0 0 1 6 0"></path></svg><span style="width: 6px; height: 6px; border-radius: 999px; background: #C4532B; margin-left: 3px;"></span></span>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1D1C1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0"></path><circle cx="12" cy="19.5" r="1"></circle></svg>
+    <svg width="20" height="12" viewBox="0 0 28 14" fill="none" stroke="#1D1C1A" stroke-width="1.8"><rect x="1" y="1" width="22" height="12" rx="3"></rect><rect x="3" y="3" width="14" height="8" rx="1.5" fill="#1D1C1A" stroke="none"></rect><path d="M25 5v4" stroke-linecap="round"></path></svg>
+    <span>Wed 2 Sep · 14:07</span>
+  </div>
+
+  <!-- Dropdown -->
+  <div style="position: absolute; top: 28px; right: 96px; width: 320px; background: rgba(245,244,241,0.97); border-radius: 10px; box-shadow: 0 12px 36px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.12); padding: 6px 0 6px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 16px 4px;">
+      <span style="font-weight: 600;">Navid's dev team</span>
+      <span style="font-size: 11px; color: #77736B;">2 working · 1 needs you · 2 idle</span>
+    </div>
+    <div class="mi"><span class="av" style="background: #E9D9CF; color: #7A3A22;">A</span><span style="width: 44px; font-weight: 500;">Ada</span><span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #5C5850; font-size: 12px;">Splitting issue #41</span><span style="width: 7px; height: 7px; border-radius: 999px; background: #2E9B5F;"></span></div>
+    <div class="mi"><span class="av" style="background: #D7E3DA; color: #1F4D33;">K</span><span style="width: 44px; font-weight: 500;">Kai</span><span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #5C5850; font-size: 12px;">Waiting on you, writing tests</span><span style="width: 7px; height: 7px; border-radius: 999px; background: #B8862B;"></span></div>
+    <div class="mi"><span class="av" style="background: #DDDCE8; color: #3B3A6B;">R</span><span style="width: 44px; font-weight: 500;">Rex</span><span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #5C5850; font-size: 12px;">Reviewing PR #142</span><span style="width: 7px; height: 7px; border-radius: 999px; background: #2E9B5F;"></span></div>
+    <div class="mi"><span class="av" style="background: #EFEDE8; color: #8C887F;">N</span><span style="width: 44px; font-weight: 500;">Noor</span><span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #8C887F; font-size: 12px;">Idle · 14:20</span><span style="width: 7px; height: 7px; border-radius: 999px; background: #BDB9B0;"></span></div>
+    <div class="mi"><span class="av" style="background: #EFEDE8; color: #8C887F;">S</span><span style="width: 44px; font-weight: 500;">Sol</span><span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #8C887F; font-size: 12px;">Idle · tomorrow 09:00</span><span style="width: 7px; height: 7px; border-radius: 999px; background: #BDB9B0;"></span></div>
+
+    <div class="sep"></div>
+    <div class="mi" style="background: rgba(196,83,43,0.14);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C4532B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5"></path><path d="M12 17h.01"></path></svg><span style="flex: 1;">Kai asks: Postgres or SQLite?</span><span style="font-size: 11px; color: #77736B;">auto 16:00</span></div>
+    <div class="mi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2.5-8h13L21 13v7H3z"></path><path d="M3 13h5l2 3h4l2-3h5"></path></svg><span style="flex: 1;">Inbox</span><span class="mono" style="font-size: 10px; font-weight: 600; background: #C4532B; color: #FFFFFF; border-radius: 999px; padding: 1px 6px;">2</span></div>
+
+    <div class="sep"></div>
+    <div style="padding: 4px 16px 6px;">
+      <div style="display: flex; justify-content: space-between; font-size: 11px; color: #5C5850;"><span>Spend today</span><span class="mono">$3.40 / $10</span></div>
+      <div style="height: 4px; border-radius: 999px; background: rgba(0,0,0,0.08); margin-top: 5px; overflow: hidden;"><div style="width: 34%; height: 100%; background: #C4532B;"></div></div>
+    </div>
+
+    <div class="sep"></div>
+    <div class="mi"><span style="flex: 1;">Pause All Agents</span><span class="mono" style="font-size: 11px; color: #8C887F;">⌘⇧P</span></div>
+    <div class="mi"><span style="flex: 1;">Open Team Window</span><span class="mono" style="font-size: 11px; color: #8C887F;">⌘1</span></div>
+    <div class="sep"></div>
+    <div class="mi"><span style="flex: 1;">Quit</span><span class="mono" style="font-size: 11px; color: #8C887F;">⌘Q</span></div>
+    <div style="padding: 4px 16px 4px; font-size: 11px; color: #8C887F;">Quitting stops the supervisor. Agents sleep until you reopen.</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

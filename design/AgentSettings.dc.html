@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; font-size: 13px; line-height: 1.4; color: #1D1C1A; -webkit-font-smoothing: antialiased; background: #D6D3CB; }
+    a { color: #C4532B; text-decoration: none; } a:hover { color: #9E3F1F; }
+    .mono { font-family: "SF Mono", Menlo, Consolas, monospace; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 24px; padding: 0 10px; border-radius: 6px; background: #FFFFFF; border: 1px solid #CFCBC3; box-shadow: 0 1px 1px rgba(0,0,0,0.05); font-size: 12px; font-weight: 500; color: #1D1C1A; white-space: nowrap; }
+    .btn-primary { background: #C4532B; border-color: #A8441F; color: #FFFFFF; }
+    .tab { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 72px; padding: 6px 0; border-radius: 6px; font-size: 11px; color: #5C5850; }
+    .tab-on { background: rgba(0,0,0,0.07); color: #1D1C1A; font-weight: 500; }
+    .chk { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #CFCBC3; background: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .chk-on { background: #C4532B; border-color: #A8441F; }
+    .rule { display: flex; align-items: center; gap: 10px; height: 30px; padding: 0 10px; border-bottom: 1px solid #EFEDE8; font-size: 12px; }
+    .pill { display: inline-flex; align-items: center; gap: 5px; height: 18px; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  </style>
+</helmet>
+<div style="width: 820px; height: 780px; position: relative; background: linear-gradient(160deg, #DAD7CF 0%, #CFCBC2 100%); padding: 40px;">
+  <div style="width: 740px; height: 700px; border-radius: 10px; overflow: hidden; background: #F5F4F1; box-shadow: 0 22px 60px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.14); display: flex; flex-direction: column;">
+    <!-- Titlebar with tab toolbar -->
+    <div style="flex-shrink: 0; border-bottom: 1px solid #D9D6CF; background: #EFEDE8;">
+      <div style="height: 40px; display: flex; align-items: center; padding: 0 16px; position: relative;">
+        <div style="display: flex; gap: 8px;">
+          <span style="width: 12px; height: 12px; border-radius: 999px; background: #FF5F57; border: 1px solid rgba(0,0,0,0.12);"></span>
+          <span style="width: 12px; height: 12px; border-radius: 999px; background: #FEBC2E; border: 1px solid rgba(0,0,0,0.12);"></span>
+          <span style="width: 12px; height: 12px; border-radius: 999px; background: #28C840; border: 1px solid rgba(0,0,0,0.12);"></span>
+        </div>
+        <div style="position: absolute; left: 0; right: 0; text-align: center; font-weight: 600; font-size: 13px; pointer-events: none;">Kai · Backend engineer</div>
+      </div>
+      <div style="display: flex; justify-content: center; gap: 4px; padding: 0 12px 8px;">
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg><span>General</span></div>
+        <div class="tab tab-on"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4532B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-3 4-7 6-7 11a7 7 0 0 0 14 0c0-5-4-7-7-11z"></path><path d="M12 21v-6"></path></svg><span>Soul</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"></path><path d="M9 12l2 2 4-4"></path></svg><span>Rules</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><span>Wake-ups</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg><span>Permissions</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"></path><path d="M8 13h8M8 17h5"></path></svg><span>Memory</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"></path><path d="M17 6.5C17 4.6 14.8 3 12 3S7 4.6 7 6.5 9.2 10 12 10s5 1.6 5 3.5S14.8 17 12 17s-5-1.6-5-3.5"></path></svg><span>Budget</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"></path></svg><span>Skills</span></div>
+      </div>
+    </div>
+
+    <!-- Soul tab -->
+    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 16px 20px; gap: 14px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 12px; color: #77736B;">Who Kai is and how Kai works. Plain text, in Kai's own words. Kai may propose edits here after a retrospective, you approve them.</span>
+      </div>
+      <div class="mono" style="flex: 1; min-height: 0; border: 1px solid #CFCBC3; border-radius: 6px; background: #FFFFFF; padding: 14px 16px; font-size: 12.5px; line-height: 1.6; color: #2B2926; white-space: pre-wrap; box-shadow: inset 0 1px 1px rgba(0,0,0,0.04); overflow: hidden;"># Kai, backend engineer
+
+You are the backend engineer on Navid's team. You own the API, the worker and the database in api-gateway.
+
+## How you work
+- Ship small pull requests. Tests before merge, always.
+- Prefer boring tech that runs on one box. Add a service only when there is a measured reason.
+- When a decision is Navid's to make, ask, propose a default with a deadline, and keep working on something else.
+- Leave the codebase clearer than you found it, but never refactor what you weren't asked to touch.
+
+## How you talk
+Direct and short. Say what you did, what you found, and what you need. No filler, no cheerleading.
+
+## What you care about
+Main stays green. Nothing surprising happens in production.</div>
+
+      <div style="border: 1px solid #D9D6CF; border-radius: 7px; background: #FFFFFF; overflow: hidden;">
+        <div style="display: flex; align-items: center; height: 28px; padding: 0 10px; background: #F5F4F1; border-bottom: 1px solid #D9D6CF; font-size: 11px; font-weight: 700; color: #8C887F; gap: 8px;">
+          <span style="flex: 1;">Rules Kai can't break</span>
+          <span style="font-weight: 500;">enforced by the app, not the model</span>
+        </div>
+        <div class="rule"><span class="chk chk-on"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg></span><span style="flex: 1;">Never push to main without Navid's approval</span><span class="pill" style="background: #FBEAEA; color: #9B2C2C;">Ask</span></div>
+        <div class="rule"><span class="chk chk-on"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg></span><span style="flex: 1;">Only touch files inside the repo folder</span><span class="pill" style="background: #EFEDE8; color: #5C5850;">Block</span></div>
+        <div class="rule"><span class="chk chk-on"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg></span><span style="flex: 1;">Stop and ask if a single run passes $2</span><span class="pill" style="background: #FBEAEA; color: #9B2C2C;">Ask</span></div>
+        <div class="rule" style="border-bottom: none; color: #C4532B;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg><span>Add rule…</span></div>
+      </div>
+    </div>
+
+    <div style="height: 48px; flex-shrink: 0; display: flex; align-items: center; padding: 0 20px; border-top: 1px solid #D9D6CF; gap: 10px; background: #F5F4F1;">
+      <span style="font-size: 12px; color: #77736B;">From template "Backend engineer" · changed by Kai 2 days ago, approved by you</span>
+      <div style="flex: 1;"></div>
+      <div class="btn">Reset to Template</div>
+      <div class="btn btn-primary">Save</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "pages": [
+    { "id": "screens", "name": "Screens" },
+    { "id": "components", "name": "Components" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html", "title": "Home", "x": 0, "y": 0, "w": 1520, "h": 980, "page": "screens" },
+    { "file": "Channel.dc.html", "title": "Channel #backend", "x": 1620, "y": 0, "w": 1520, "h": 980, "page": "screens" },
+    { "file": "Inbox.dc.html", "title": "Inbox", "x": 3240, "y": 0, "w": 1520, "h": 980, "page": "screens" },
+    { "file": "Builder.dc.html", "title": "Team builder sheet", "x": 0, "y": 1120, "w": 1520, "h": 980, "page": "screens" },
+    { "file": "Runs.dc.html", "title": "Runs", "x": 1620, "y": 1120, "w": 1520, "h": 980, "page": "screens" },
+    { "file": "AgentSettings.dc.html", "title": "Agent settings window", "x": 3240, "y": 1120, "w": 820, "h": 780, "page": "screens" },
+    { "file": "Components.dc.html", "title": "Component kit", "x": 0, "y": 0, "w": 1240, "h": 1000, "page": "components" },
+    { "file": "MenuBar.dc.html", "title": "Menu bar item", "x": 1340, "y": 0, "w": 480, "h": 560, "page": "components" }
+  ],
+  "annotations": [
+    { "id": "brief", "x": 0, "y": -230, "w": 640, "text": "Desktop app, native feel: source-list sidebar, toolbar, table views, inspector, sheets, status bar, menu-bar item, system notifications.\nPlaceholders to confirm: app name (none shown yet), agent names (Ada, Kai, Rex, Noor, Sol), sample repo api-gateway.\nEvery screen is built from the kit on the Components page.", "page": "screens" }
+  ],
+  "launch": { "view": "canvas", "page": "screens" }
+}

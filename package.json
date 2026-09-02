@@ -1,0 +1,16 @@
+{
+  "name": "crew",
+  "private": true,
+  "version": "0.1.0",
+  "description": "BYOK desktop app for 24/7 agent teams",
+  "packageManager": "pnpm@10.17.0",
+  "scripts": {
+    "dev": "pnpm --filter @crew/supervisor build && pnpm --filter @crew/desktop dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "supervisor": "pnpm --filter @crew/supervisor start"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

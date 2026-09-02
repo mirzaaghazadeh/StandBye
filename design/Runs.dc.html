@@ -1,0 +1,224 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; font-size: 13px; line-height: 1.4; color: #1D1C1A; -webkit-font-smoothing: antialiased; background: #D6D3CB; }
+    a { color: #C4532B; text-decoration: none; } a:hover { color: #9E3F1F; }
+    .mono { font-family: "SF Mono", Menlo, Consolas, monospace; }
+    .win { width: 1440px; height: 900px; border-radius: 10px; overflow: hidden; background: #F5F4F1; box-shadow: 0 22px 60px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.14); display: flex; }
+    .side { width: 220px; flex-shrink: 0; background: #EAE8E3; border-right: 1px solid #D9D6CF; display: flex; flex-direction: column; }
+    .sec { font-size: 11px; font-weight: 700; color: #8C887F; padding: 14px 16px 4px; }
+    .srow { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; margin: 0 8px; border-radius: 5px; color: #2B2926; font-size: 13px; }
+    .srow-on { background: rgba(196,83,43,0.16); font-weight: 500; }
+    .tb { height: 52px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-bottom: 1px solid #D9D6CF; background: #F5F4F1; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 24px; padding: 0 10px; border-radius: 6px; background: #FFFFFF; border: 1px solid #CFCBC3; box-shadow: 0 1px 1px rgba(0,0,0,0.05); font-size: 12px; font-weight: 500; color: #1D1C1A; white-space: nowrap; }
+    .ibtn { width: 28px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #5C5850; }
+    .seg { display: inline-flex; background: #E3E0D9; border-radius: 7px; padding: 2px; }
+    .seg-i { height: 22px; padding: 0 12px; border-radius: 5px; font-size: 12px; font-weight: 500; color: #5C5850; display: flex; align-items: center; }
+    .seg-on { background: #FFFFFF; color: #1D1C1A; box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+    .pop { height: 22px; border: 1px solid #CFCBC3; border-radius: 5px; background: #FFFFFF; padding: 0 6px 0 8px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; box-shadow: 0 1px 1px rgba(0,0,0,0.05); white-space: nowrap; }
+    .th { display: flex; align-items: center; height: 26px; padding: 0 12px; font-size: 11px; font-weight: 600; color: #77736B; border-bottom: 1px solid #D9D6CF; background: #F5F4F1; }
+    .tr { display: flex; align-items: center; height: 30px; padding: 0 12px; font-size: 12px; border-bottom: 1px solid #EFEDE8; background: #FFFFFF; }
+    .tr-alt { background: #FAF9F7; }
+    .tr-sel { background: rgba(196,83,43,0.12); }
+    .pill { display: inline-flex; align-items: center; gap: 5px; height: 18px; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+    .status { height: 24px; flex-shrink: 0; border-top: 1px solid #D9D6CF; background: #EFEDE8; display: flex; align-items: center; gap: 16px; padding: 0 12px; font-size: 11px; color: #77736B; }
+    .av { width: 18px; height: 18px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; flex-shrink: 0; }
+    .log { display: flex; align-items: center; gap: 10px; height: 24px; padding: 0 14px; font-size: 12px; }
+    .c1 { width: 64px; } .c2 { width: 110px; } .c3 { width: 110px; } .c5 { width: 52px; text-align: right; } .c6 { width: 72px; text-align: right; } .c7 { width: 60px; text-align: right; } .c8 { width: 96px; padding-left: 16px; }
+  </style>
+</helmet>
+<div style="width: 1520px; height: 980px; position: relative; background: linear-gradient(160deg, #DAD7CF 0%, #CFCBC2 100%); padding: 40px;">
+  <div class="win">
+    <div class="side">
+      <div style="display: flex; gap: 8px; padding: 18px 16px 10px;">
+        <span style="width: 12px; height: 12px; border-radius: 999px; background: #FF5F57; border: 1px solid rgba(0,0,0,0.12);"></span>
+        <span style="width: 12px; height: 12px; border-radius: 999px; background: #FEBC2E; border: 1px solid rgba(0,0,0,0.12);"></span>
+        <span style="width: 12px; height: 12px; border-radius: 999px; background: #28C840; border: 1px solid rgba(0,0,0,0.12);"></span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; margin: 4px 12px 0; padding: 6px 8px; border-radius: 6px; background: rgba(0,0,0,0.05);">
+        <span style="width: 20px; height: 20px; border-radius: 5px; background: #C4532B; display: inline-flex; align-items: center; justify-content: center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><circle cx="17" cy="9" r="2.5"></circle><path d="M15.5 20a5 5 0 0 1 6 0"></path></svg></span>
+        <span style="flex: 1; font-weight: 600; font-size: 12px;">Navid's dev team</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8C887F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg>
+      </div>
+      <div class="sec">Team</div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"></path><path d="M5 10v10h14V10"></path></svg><span style="flex: 1;">Home</span></div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2.5-8h13L21 13v7H3z"></path><path d="M3 13h5l2 3h4l2-3h5"></path></svg><span style="flex: 1;">Inbox</span><span class="mono" style="font-size: 10px; font-weight: 600; background: #C4532B; color: #FFFFFF; border-radius: 999px; padding: 1px 6px;">2</span></div>
+      <div class="srow srow-on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4532B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg><span style="flex: 1;">Runs</span></div>
+      <div class="sec">Channels</div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="flex: 1;">general</span></div>
+      <div class="srow" style="font-weight: 600;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="flex: 1;">backend</span><span style="width: 7px; height: 7px; border-radius: 999px; background: #C4532B;"></span></div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="flex: 1;">frontend</span></div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="flex: 1;">reviews</span></div>
+      <div class="sec">Agents</div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #2E9B5F;"></span><span style="flex: 1;">Ada</span><span style="font-size: 11px; color: #8C887F;">lead</span></div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #B8862B;"></span><span style="flex: 1;">Kai</span><span style="font-size: 11px; color: #8C887F;">backend</span></div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #2E9B5F;"></span><span style="flex: 1;">Rex</span><span style="font-size: 11px; color: #8C887F;">qa</span></div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #BDB9B0;"></span><span style="flex: 1;">Noor</span><span style="font-size: 11px; color: #8C887F;">frontend</span></div>
+      <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #BDB9B0;"></span><span style="flex: 1;">Sol</span><span style="font-size: 11px; color: #8C887F;">docs</span></div>
+      <div style="flex: 1;"></div>
+      <div style="margin: 0 12px 10px; padding: 8px 10px; border-radius: 6px; background: rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #5C5850;"><span>Spend today</span><span class="mono">$3.40 / $10</span></div>
+        <div style="height: 4px; border-radius: 999px; background: rgba(0,0,0,0.08); margin-top: 6px; overflow: hidden;"><div style="width: 34%; height: 100%; background: #C4532B;"></div></div>
+      </div>
+      <div class="srow" style="margin-bottom: 10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"></path></svg><span>Settings</span></div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+      <div class="tb">
+        <div class="ibtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg></div>
+        <div class="ibtn" style="color: #BDB9B0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></div>
+        <span style="font-weight: 600; font-size: 13px; margin-left: 4px;">Runs</span>
+        <div class="seg" style="margin-left: 12px;">
+          <div class="seg-i seg-on">Today</div>
+          <div class="seg-i">This Week</div>
+          <div class="seg-i">All</div>
+        </div>
+        <span class="pop" style="margin-left: 8px;">Agent: All <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span>
+        <span class="pop">Trigger: All <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span>
+        <span class="pop">Status: All <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span>
+        <div style="flex: 1;"></div>
+        <span style="font-size: 12px; color: #77736B;">41 runs · <span class="mono">$3.40</span> · 1 failed</span>
+        <div style="display: flex; align-items: center; gap: 6px; width: 180px; height: 24px; padding: 0 8px; border-radius: 6px; background: #FFFFFF; border: 1px solid #CFCBC3; color: #8C887F; font-size: 12px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><span>Search</span>
+        </div>
+      </div>
+
+      <div style="flex: 1; min-height: 0; display: flex; flex-direction: column;">
+        <div class="th">
+          <span class="c1">Time</span><span class="c2">Agent</span><span class="c3">Trigger</span><span style="flex: 1;">Summary</span><span class="c5">Steps</span><span class="c6">Duration</span><span class="c7">Cost</span><span class="c8">Status</span>
+        </div>
+        <div class="tr">
+          <span class="c1 mono" style="font-size: 11px; color: #77736B;">14:05</span>
+          <span class="c2" style="display: flex; align-items: center; gap: 6px;"><span class="av" style="background: #DDDCE8; color: #3B3A6B;">R</span>Rex</span>
+          <span class="c3" style="color: #5C5850;">Event · PR #142</span>
+          <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Reviewing PR #142, running integration suite</span>
+          <span class="c5 mono" style="font-size: 11px;">9</span><span class="c6 mono" style="font-size: 11px; color: #77736B;">12m…</span><span class="c7 mono" style="font-size: 11px;">$0.31</span>
+          <span class="c8"><span class="pill" style="background: #E3F2E9; color: #1F6B41;">Running</span></span>
+        </div>
+        <div class="tr tr-alt">
+          <span class="c1 mono" style="font-size: 11px; color: #77736B;">14:03</span>
+          <span class="c2" style="display: flex; align-items: center; gap: 6px;"><span class="av" style="background: #E9D9CF; color: #7A3A22;">A</span>Ada</span>
+          <span class="c3" style="color: #5C5850;">Check-in</span>
+          <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Splitting issue #41 into tasks</span>
+          <span class="c5 mono" style="font-size: 11px;">6</span><span class="c6 mono" style="font-size: 11px; color: #77736B;">4m…</span><span class="c7 mono" style="font-size: 11px;">$0.22</span>
+          <span class="c8"><span class="pill" style="background: #E3F2E9; color: #1F6B41;">Running</span></span>
+        </div>
+        <div class="tr tr-sel">
+          <span class="c1 mono" style="font-size: 11px; color: #77736B;">13:21</span>
+          <span class="c2" style="display: flex; align-items: center; gap: 6px;"><span class="av" style="background: #D7E3DA; color: #1F4D33;">K</span>Kai</span>
+          <span class="c3" style="color: #5C5850;">Event · CI failed</span>
+          <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Fixed test_webhook_signature, opened PR #142 with retry worker</span>
+          <span class="c5 mono" style="font-size: 11px;">23</span><span class="c6 mono" style="font-size: 11px; color: #77736B;">37m</span><span class="c7 mono" style="font-size: 11px;">$0.94</span>
+          <span class="c8"><span class="pill" style="background: #EFEDE8; color: #5C5850;">Done</span></span>
+        </div>
+        <div class="tr tr-alt">
+          <span class="c1 mono" style="font-size: 11px; color: #77736B;">13:00</span>
+          <span class="c2" style="display: flex; align-items: center; gap: 6px;"><span class="av" style="background: #EFEDE8; color: #8C887F;">N</span>Noor</span>
+          <span class="c3" style="color: #5C5850;">Check-in</span>
+          <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #77736B;">Nothing new for me. Back to sleep.</span>
+          <span class="c5 mono" style="font-size: 11px;">1</span><span class="c6 mono" style="font-size: 11px; color: #77736B;">4s</span><span class="c7 mono" style="font-size: 11px; color: #77736B;">$0.01</span>
+          <span class="c8"><span class="pill" style="background: #EFEDE8; color: #8C887F;">No-op</span></span>
+        </div>
+        <div class="tr">
+          <span class="c1 mono" style="font-size: 11px; color: #77736B;">12:31</span>
+          <span class="c2" style="display: flex; align-items: center; gap: 6px;"><span class="av" style="background: #D7E3DA; color: #1F4D33;">K</span>Kai</span>
+          <span class="c3" style="color: #5C5850;">Mention · Rex</span>
+          <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Hotfix for webhook signature, push to main blocked by rule</span>
+          <span class="c5 mono" style="font-size: 11px;">11</span><span class="c6 mono" style="font-size: 11px; color: #77736B;">9m</span><span class="c7 mono" style="font-size: 11px;">$0.28</span>
+          <span class="c8"><span class="pill" style="background: #FBF1DD; color: #7A5A12;">Needs you</span></span>
+        </div>
+        <div class="tr tr-alt">
+          <span class="c1 mono" style="font-size: 11px; color: #77736B;">12:04</span>
+          <span class="c2" style="display: flex; align-items: center; gap: 6px;"><span class="av" style="background: #E9D9CF; color: #7A3A22;">A</span>Ada</span>
+          <span class="c3" style="color: #5C5850;">Check-in</span>
+          <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Started queue design thread with Kai in #backend</span>
+          <span class="c5 mono" style="font-size: 11px;">4</span><span class="c6 mono" style="font-size: 11px; color: #77736B;">2m</span><span class="c7 mono" style="font-size: 11px;">$0.09</span>
+          <span class="c8"><span class="pill" style="background: #EFEDE8; color: #5C5850;">Done</span></span>
+        </div>
+        <div class="tr">
+          <span class="c1 mono" style="font-size: 11px; color: #77736B;">11:30</span>
+          <span class="c2" style="display: flex; align-items: center; gap: 6px;"><span class="av" style="background: #EFEDE8; color: #8C887F;">S</span>Sol</span>
+          <span class="c3" style="color: #5C5850;">Event · PR merged</span>
+          <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Docs build failed: broken link in docs/auth.md</span>
+          <span class="c5 mono" style="font-size: 11px;">7</span><span class="c6 mono" style="font-size: 11px; color: #77736B;">3m</span><span class="c7 mono" style="font-size: 11px;">$0.04</span>
+          <span class="c8"><span class="pill" style="background: #FBEAEA; color: #9B2C2C;">Failed</span></span>
+        </div>
+        <div class="tr tr-alt">
+          <span class="c1 mono" style="font-size: 11px; color: #77736B;">09:00</span>
+          <span class="c2" style="display: flex; align-items: center; gap: 6px;"><span class="av" style="background: #E9D9CF; color: #7A3A22;">A</span>Ada</span>
+          <span class="c3" style="color: #5C5850;">Schedule · standup</span>
+          <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Daily plan posted, 3 tasks assigned</span>
+          <span class="c5 mono" style="font-size: 11px;">8</span><span class="c6 mono" style="font-size: 11px; color: #77736B;">5m</span><span class="c7 mono" style="font-size: 11px;">$0.18</span>
+          <span class="c8"><span class="pill" style="background: #EFEDE8; color: #5C5850;">Done</span></span>
+        </div>
+        <div class="tr">
+          <span class="c1 mono" style="font-size: 11px; color: #77736B;">08:30</span>
+          <span class="c2" style="display: flex; align-items: center; gap: 6px;"><span class="av" style="background: #EFEDE8; color: #8C887F;">S</span>Sol</span>
+          <span class="c3" style="color: #5C5850;">Check-in</span>
+          <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #77736B;">Nothing new for me. Back to sleep.</span>
+          <span class="c5 mono" style="font-size: 11px;">1</span><span class="c6 mono" style="font-size: 11px; color: #77736B;">3s</span><span class="c7 mono" style="font-size: 11px; color: #77736B;">$0.01</span>
+          <span class="c8"><span class="pill" style="background: #EFEDE8; color: #8C887F;">No-op</span></span>
+        </div>
+        <div style="flex: 1; background: #FFFFFF;"></div>
+
+        <!-- Detail pane -->
+        <div style="height: 1px; background: #D9D6CF;"></div>
+        <div style="height: 330px; flex-shrink: 0; display: flex; background: #F5F4F1;">
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+            <div style="display: flex; align-items: center; height: 32px; padding: 0 14px; border-bottom: 1px solid #D9D6CF; gap: 10px;">
+              <span style="font-weight: 600; font-size: 12px;">Run 1281</span>
+              <span style="font-size: 12px; color: #77736B;">Kai · triggered by CI failure on main · 13:21 to 13:58</span>
+              <div style="flex: 1;"></div>
+              <span class="mono" style="font-size: 11px; color: #77736B;">Opus 5 · 48k in / 6k out · $0.94</span>
+            </div>
+            <div style="flex: 1; overflow: hidden; padding: 6px 0; background: #FFFFFF;">
+              <div class="log"><span class="mono" style="width: 40px; font-size: 11px; color: #77736B;">13:21</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path></svg><span style="width: 44px; color: #77736B;">read</span><span class="mono" style="font-size: 12px;">.github/ci.log · tests/test_webhook.py · src/webhook/verify.py</span></div>
+              <div class="log"><span class="mono" style="width: 40px; font-size: 11px; color: #77736B;">13:24</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg><span style="width: 44px; color: #77736B;">edit</span><span class="mono" style="font-size: 12px;">src/webhook/verify.py <span style="color: #1F6B41;">+4</span> <span style="color: #9B2C2C;">-1</span></span></div>
+              <div class="log"><span class="mono" style="width: 40px; font-size: 11px; color: #77736B;">13:25</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-5-6-5"></path><path d="M12 19h8"></path></svg><span style="width: 44px; color: #77736B;">run</span><span class="mono" style="font-size: 12px;">pytest -x tests/test_webhook.py <span style="color: #1F6B41;">· 14 passed</span></span></div>
+              <div class="log"><span class="mono" style="width: 40px; font-size: 11px; color: #77736B;">13:31</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg><span style="width: 44px; color: #77736B;">edit</span><span class="mono" style="font-size: 12px;">src/worker/retry.py <span style="color: #1F6B41;">+88</span> · tests/test_retry.py <span style="color: #1F6B41;">+61</span></span></div>
+              <div class="log"><span class="mono" style="width: 40px; font-size: 11px; color: #77736B;">13:49</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-5-6-5"></path><path d="M12 19h8"></path></svg><span style="width: 44px; color: #77736B;">run</span><span class="mono" style="font-size: 12px;">pytest -x <span style="color: #1F6B41;">· 212 passed</span></span></div>
+              <div class="log"><span class="mono" style="width: 40px; font-size: 11px; color: #77736B;">13:56</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C4532B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5"></path><path d="M12 17h.01"></path></svg><span style="width: 44px; color: #77736B;">ask</span><span>Asked you: Postgres or SQLite for the job queue? <span style="color: #77736B;">· default SQLite at 16:00</span></span></div>
+              <div class="log"><span class="mono" style="width: 40px; font-size: 11px; color: #77736B;">13:58</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"></circle><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="8" r="2.5"></circle><path d="M6 8.5v7M18 10.5c0 3-3 4-6 4.5-2 .3-4 1-6 3"></path></svg><span style="width: 44px; color: #77736B;">git</span><span class="mono" style="font-size: 12px;">branch kai/retry-worker · pushed · opened PR #142 · reviewer Rex</span></div>
+              <div class="log"><span class="mono" style="width: 40px; font-size: 11px; color: #77736B;">13:58</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="width: 44px; color: #77736B;">post</span><span>#backend: "Mine. Fixing it in the retry PR." and the PR link</span></div>
+              <div class="log"><span class="mono" style="width: 40px; font-size: 11px; color: #77736B;">13:58</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"></path></svg><span style="width: 44px; color: #77736B;">memory</span><span>Saved: "CI runs pytest with -x, so the first failure hides the rest. Run the full suite locally first."</span></div>
+            </div>
+          </div>
+          <div style="width: 300px; flex-shrink: 0; border-left: 1px solid #D9D6CF; padding: 12px 14px; display: flex; flex-direction: column; gap: 12px;">
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #8C887F; margin-bottom: 6px;">Outcome</div>
+              <div style="display: flex; align-items: flex-start; gap: 8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2E9B5F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px; flex-shrink: 0;"><path d="M5 12l5 5L20 7"></path></svg><span>PR #142 opened. Main is green again. One question left for you.</span></div>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #8C887F; margin-bottom: 6px;">Permissions used</div>
+              <div style="font-size: 12px; color: #5C5850; display: flex; flex-direction: column; gap: 3px;"><span>Edit repo · allowed</span><span>Run tests · allowed</span><span>Push branch · allowed</span><span style="color: #9E3F1F;">Push to main · not attempted</span></div>
+            </div>
+            <div style="flex: 1;"></div>
+            <div style="display: flex; gap: 6px;">
+              <div class="btn" style="flex: 1;">Open PR</div>
+              <div class="btn" style="flex: 1;">Replay…</div>
+              <div class="btn" style="flex: 1;">Flag</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="status">
+        <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #2E9B5F;"></span>Supervisor running since 07:12</span>
+        <span>2 running · 39 finished · 1 failed</span>
+        <div style="flex: 1;"></div>
+        <span>Check-ins today: 28 runs, $0.19 total</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,196 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; font-size: 13px; line-height: 1.4; color: #1D1C1A; -webkit-font-smoothing: antialiased; background: #F5F4F1; }
+    a { color: #C4532B; text-decoration: none; } a:hover { color: #9E3F1F; }
+    .mono { font-family: "SF Mono", Menlo, Consolas, monospace; }
+    .h { font-size: 11px; font-weight: 700; color: #8C887F; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 10px; }
+    .blk { display: flex; flex-direction: column; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 24px; padding: 0 10px; border-radius: 6px; background: #FFFFFF; border: 1px solid #CFCBC3; box-shadow: 0 1px 1px rgba(0,0,0,0.05); font-size: 12px; font-weight: 500; color: #1D1C1A; white-space: nowrap; }
+    .btn-primary { background: #C4532B; border-color: #A8441F; color: #FFFFFF; }
+    .btn-danger { color: #9B2C2C; }
+    .btn-off { color: #BDB9B0; box-shadow: none; }
+    .ibtn { width: 28px; height: 24px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; color: #5C5850; }
+    .seg { display: inline-flex; background: #E3E0D9; border-radius: 7px; padding: 2px; }
+    .seg-i { height: 22px; padding: 0 10px; border-radius: 5px; font-size: 12px; font-weight: 500; color: #5C5850; display: flex; align-items: center; }
+    .seg-on { background: #FFFFFF; color: #1D1C1A; box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+    .pop { height: 22px; border: 1px solid #CFCBC3; border-radius: 5px; background: #FFFFFF; padding: 0 6px 0 8px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; box-shadow: 0 1px 1px rgba(0,0,0,0.05); white-space: nowrap; }
+    .field { height: 22px; border: 1px solid #CFCBC3; border-radius: 5px; background: #FFFFFF; padding: 0 7px; display: inline-flex; align-items: center; font-size: 12px; width: 180px; box-shadow: inset 0 1px 1px rgba(0,0,0,0.04); }
+    .chk { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #CFCBC3; background: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .chk-on { background: #C4532B; border-color: #A8441F; }
+    .rad { width: 15px; height: 15px; border-radius: 999px; border: 1px solid #CFCBC3; background: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; }
+    .sw { width: 26px; height: 15px; border-radius: 999px; background: #2E9B5F; position: relative; display: inline-block; }
+    .sw::after { content: ""; position: absolute; top: 1px; left: 12px; width: 13px; height: 13px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+    .sw-off { background: #CFCBC3; } .sw-off::after { left: 1px; }
+    .srow { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border-radius: 5px; color: #2B2926; font-size: 13px; width: 200px; }
+    .srow-on { background: rgba(196,83,43,0.16); font-weight: 500; }
+    .th { display: flex; align-items: center; height: 26px; padding: 0 12px; font-size: 11px; font-weight: 600; color: #77736B; border-bottom: 1px solid #D9D6CF; background: #F5F4F1; }
+    .tr { display: flex; align-items: center; height: 32px; padding: 0 12px; font-size: 13px; border-bottom: 1px solid #EFEDE8; background: #FFFFFF; }
+    .tr-alt { background: #FAF9F7; }
+    .tr-sel { background: rgba(196,83,43,0.12); }
+    .pill { display: inline-flex; align-items: center; gap: 5px; height: 18px; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+    .av { border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0; }
+    .kv { display: flex; align-items: center; min-height: 26px; font-size: 12px; }
+    .k { width: 92px; color: #77736B; text-align: right; padding-right: 10px; flex-shrink: 0; }
+    .sw-lbl { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  </style>
+</helmet>
+<div style="width: 1240px; height: 1000px; padding: 32px 36px; display: flex; flex-direction: column; gap: 26px; background: #F5F4F1;">
+  <div style="display: flex; align-items: baseline; gap: 14px;">
+    <span style="font-size: 18px; font-weight: 600;">Desktop components</span>
+    <span style="font-size: 12px; color: #77736B;">System font · 13px body · 11px secondary · 24px controls · 28px sidebar rows · 6px radii · ember #C4532B accent · warm neutrals</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px 32px;">
+
+    <div class="blk">
+      <div class="h">Buttons</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+        <div class="btn btn-primary">Create Team</div>
+        <div class="btn">Cancel</div>
+        <div class="btn btn-danger">Decline</div>
+        <div class="btn btn-off">Disabled</div>
+        <div class="btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Hire…</div>
+        <div class="ibtn" style="background: rgba(0,0,0,0.07);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path></svg></div>
+        <div class="ibtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 5v14M16 5v14"></path></svg></div>
+      </div>
+    </div>
+
+    <div class="blk">
+      <div class="h">Segmented, popup, fields</div>
+      <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-start;">
+        <div class="seg"><div class="seg-i seg-on">All</div><div class="seg-i">Questions</div><div class="seg-i">Approvals</div></div>
+        <div style="display: flex; gap: 8px;"><span class="pop">Claude Opus 5 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span><span class="pop" style="border-color: #C4532B; color: #9E3F1F;">Ask me <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9E3F1F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span></div>
+        <div style="display: flex; gap: 8px;"><span class="field">Navid's dev team</span><span class="field" style="color: #8C887F; gap: 6px; border-radius: 11px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>Search</span></div>
+      </div>
+    </div>
+
+    <div class="blk">
+      <div class="h">Toggles</div>
+      <div style="display: flex; flex-direction: column; gap: 9px;">
+        <div style="display: flex; gap: 18px;">
+          <span class="sw-lbl"><span class="chk chk-on"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg></span>PR opened</span>
+          <span class="sw-lbl"><span class="chk"></span>New issue</span>
+        </div>
+        <div style="display: flex; gap: 18px;">
+          <span class="sw-lbl"><span class="rad" style="border-color: #C4532B;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #C4532B;"></span></span>SQLite</span>
+          <span class="sw-lbl"><span class="rad"></span>Postgres</span>
+        </div>
+        <div style="display: flex; gap: 18px;">
+          <span class="sw-lbl"><span class="sw"></span>Work 24/7</span>
+          <span class="sw-lbl"><span class="sw sw-off"></span>Auto-hire</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blk">
+      <div class="h">Sidebar rows</div>
+      <div style="display: flex; flex-direction: column; gap: 2px; background: #EAE8E3; padding: 8px; border-radius: 8px; border: 1px solid #D9D6CF; width: 216px;">
+        <div class="srow srow-on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4532B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"></path><path d="M5 10v10h14V10"></path></svg><span style="flex: 1;">Home</span></div>
+        <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2.5-8h13L21 13v7H3z"></path><path d="M3 13h5l2 3h4l2-3h5"></path></svg><span style="flex: 1;">Inbox</span><span class="mono" style="font-size: 10px; font-weight: 600; background: #C4532B; color: #FFFFFF; border-radius: 999px; padding: 1px 6px;">2</span></div>
+        <div class="srow" style="font-weight: 600;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"></path></svg><span style="flex: 1;">backend</span><span style="width: 7px; height: 7px; border-radius: 999px; background: #C4532B;"></span></div>
+        <div class="srow"><span style="width: 8px; height: 8px; border-radius: 999px; background: #2E9B5F;"></span><span style="flex: 1;">Ada</span><span style="font-size: 11px; color: #8C887F;">lead</span></div>
+      </div>
+    </div>
+
+    <div class="blk">
+      <div class="h">Status</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <span class="pill" style="background: #E3F2E9; color: #1F6B41;"><span style="width: 6px; height: 6px; border-radius: 999px; background: #2E9B5F;"></span>Working</span>
+        <span class="pill" style="background: #FBF1DD; color: #7A5A12;"><span style="width: 6px; height: 6px; border-radius: 999px; background: #B8862B;"></span>Needs you</span>
+        <span class="pill" style="background: #EFEDE8; color: #77736B;"><span style="width: 6px; height: 6px; border-radius: 999px; background: #BDB9B0;"></span>Idle</span>
+        <span class="pill" style="background: #EFEDE8; color: #5C5850;">Paused</span>
+        <span class="pill" style="background: #FBEAEA; color: #9B2C2C;">Failed</span>
+        <span class="pill" style="background: #EFEDE8; color: #8C887F;">No-op</span>
+        <span class="pill" style="background: #FBF1E9; color: #9E3F1F;">Question</span>
+        <span class="pill" style="background: #E8EAF6; color: #3B4A8C;">Hire</span>
+        <span class="pill" style="background: #FBEAEA; color: #9B2C2C;">Approval</span>
+        <span class="pill" style="background: #EFEDE8; color: #5C5850;">Report</span>
+      </div>
+      <div style="display: flex; gap: 14px; align-items: center; margin-top: 12px;">
+        <span class="av" style="width: 34px; height: 34px; font-size: 14px; background: #D7E3DA; color: #1F4D33;">K</span>
+        <span class="av" style="width: 24px; height: 24px; font-size: 11px; background: #E9D9CF; color: #7A3A22;">A</span>
+        <span class="av" style="width: 18px; height: 18px; font-size: 10px; background: #DDDCE8; color: #3B3A6B;">R</span>
+        <span class="av" style="width: 18px; height: 18px; font-size: 10px; background: #1D1C1A; color: #F5F4F1;">N</span>
+        <span style="font-size: 12px; color: #77736B;">agent 34 / 24 / 18 · you in ink</span>
+      </div>
+    </div>
+
+    <div class="blk">
+      <div class="h">Inspector group</div>
+      <div style="border: 1px solid #D9D6CF; border-radius: 7px; background: #F5F4F1; padding: 10px 12px;">
+        <div style="font-size: 11px; font-weight: 700; color: #8C887F; margin-bottom: 6px;">Wake-ups</div>
+        <div class="kv"><span class="k">Check in every</span><span class="pop">30 min <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span></div>
+        <div class="kv"><span class="k">Work hours</span><span class="mono" style="font-size: 12px;">08:00 – 22:00</span></div>
+        <div class="kv"><span class="k">Daily cap</span><span style="flex: 1; display: flex; align-items: center; gap: 8px;"><span style="flex: 1; height: 5px; border-radius: 999px; background: #E5E2DB; overflow: hidden;"><span style="display: block; width: 40%; height: 100%; background: #C4532B;"></span></span><span class="mono" style="font-size: 11px;">$1.21 / $3</span></span></div>
+      </div>
+    </div>
+
+    <div class="blk" style="grid-column: span 2;">
+      <div class="h">Table view</div>
+      <div style="border: 1px solid #D9D6CF; border-radius: 7px; overflow: hidden;">
+        <div class="th"><span style="width: 180px;">Agent</span><span style="width: 110px;">Status</span><span style="flex: 1;">Doing now</span><span style="width: 64px; text-align: right;">Today</span></div>
+        <div class="tr"><span style="width: 180px; display: flex; align-items: center; gap: 8px;"><span class="av" style="width: 22px; height: 22px; font-size: 11px; background: #E9D9CF; color: #7A3A22;">A</span><span><span style="font-weight: 500;">Ada</span><span style="color: #77736B;"> · Lead</span></span></span><span style="width: 110px;"><span class="pill" style="background: #E3F2E9; color: #1F6B41;"><span style="width: 6px; height: 6px; border-radius: 999px; background: #2E9B5F;"></span>Working</span></span><span style="flex: 1; color: #2B2926;">Splitting issue #41 into tasks</span><span class="mono" style="width: 64px; text-align: right; font-size: 11px;">$1.62</span></div>
+        <div class="tr tr-sel"><span style="width: 180px; display: flex; align-items: center; gap: 8px;"><span class="av" style="width: 22px; height: 22px; font-size: 11px; background: #D7E3DA; color: #1F4D33;">K</span><span><span style="font-weight: 500;">Kai</span><span style="color: #77736B;"> · Backend</span></span></span><span style="width: 110px;"><span class="pill" style="background: #FBF1DD; color: #7A5A12;"><span style="width: 6px; height: 6px; border-radius: 999px; background: #B8862B;"></span>Needs you</span></span><span style="flex: 1; color: #2B2926;">Selected row</span><span class="mono" style="width: 64px; text-align: right; font-size: 11px;">$1.21</span></div>
+        <div class="tr tr-alt"><span style="width: 180px; display: flex; align-items: center; gap: 8px;"><span class="av" style="width: 22px; height: 22px; font-size: 11px; background: #EFEDE8; color: #8C887F;">N</span><span><span style="font-weight: 500;">Noor</span><span style="color: #77736B;"> · Frontend</span></span></span><span style="width: 110px;"><span class="pill" style="background: #EFEDE8; color: #77736B;"><span style="width: 6px; height: 6px; border-radius: 999px; background: #BDB9B0;"></span>Idle</span></span><span style="flex: 1; color: #77736B;">Alternate row</span><span class="mono" style="width: 64px; text-align: right; font-size: 11px; color: #77736B;">$0.03</span></div>
+      </div>
+    </div>
+
+    <div class="blk">
+      <div class="h">Question card</div>
+      <div style="border: 1px solid #E5C9B8; border-radius: 8px; background: #FDF8F4; padding: 10px 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;"><span class="pill" style="background: #FBF1E9; color: #9E3F1F;">Asked you</span><span style="font-size: 11px; color: #77736B;">defaults to SQLite at 16:00</span></div>
+        <div style="font-weight: 600; margin-top: 6px;">Postgres or SQLite for the job queue?</div>
+        <div style="display: flex; gap: 6px; margin-top: 8px;"><div class="btn btn-primary">SQLite</div><div class="btn">Postgres</div><div class="btn">Reply…</div></div>
+      </div>
+    </div>
+
+    <div class="blk">
+      <div class="h">Message rows</div>
+      <div style="background: #FFFFFF; border: 1px solid #D9D6CF; border-radius: 7px; padding: 6px 0;">
+        <div style="display: flex; gap: 10px; padding: 6px 12px;"><span class="av" style="width: 24px; height: 24px; font-size: 11px; background: #E9D9CF; color: #7A3A22;">A</span><div style="flex: 1;"><div style="display: flex; align-items: baseline; gap: 8px;"><span style="font-weight: 600;">Ada</span><span style="font-size: 11px; color: #77736B;">Lead · 12:04</span></div><div><a href="#">@Kai</a> the worker needs a durable queue first.</div></div></div>
+        <div style="display: flex; align-items: center; gap: 8px; padding: 4px 12px 4px 46px; font-size: 12px; color: #77736B;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8C887F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><span>13:58 · Kai opened PR #142</span></div>
+      </div>
+    </div>
+
+    <div class="blk">
+      <div class="h">Notification and toast</div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="background: rgba(245,244,241,0.98); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.1); padding: 10px 12px; display: flex; gap: 10px;">
+          <span style="width: 30px; height: 30px; border-radius: 8px; background: #C4532B; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><circle cx="17" cy="9" r="2.5"></circle><path d="M15.5 20a5 5 0 0 1 6 0"></path></svg></span>
+          <div style="flex: 1; min-width: 0;"><div style="display: flex; justify-content: space-between;"><span style="font-weight: 600; font-size: 12px;">Ada · Lead</span><span style="font-size: 11px; color: #77736B;">now</span></div><div style="font-size: 12px;">End of day: 4 PRs merged, 1 blocked on you.</div></div>
+        </div>
+        <div style="display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; background: #1D1C1A; color: #F5F4F1; border-radius: 8px; padding: 7px 12px; font-size: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.25);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2E9B5F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg>Answer sent to Kai. Saved as a team decision.</div>
+      </div>
+    </div>
+
+    <div class="blk">
+      <div class="h">Outline row</div>
+      <div style="background: #FFFFFF; border: 1px solid #D9D6CF; border-radius: 7px; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-bottom: 1px solid #EFEDE8;"><svg width="10" height="10" viewBox="0 0 24 24" fill="#5C5850"><path d="M6 8l6 8 6-8z"></path></svg><span class="av" style="width: 22px; height: 22px; font-size: 11px; background: #E9D9CF; color: #7A3A22;">A</span><span style="flex: 1;"><span style="font-weight: 600;">Ada</span><span style="color: #77736B;"> · Lead</span></span><span class="mono" style="font-size: 12px;">$4.00</span></div>
+        <div style="padding: 4px 10px 6px 50px; font-size: 12px; color: #5C5850; border-bottom: 1px solid #F3F1EC;">Plans work, runs standup 09:00, reports 18:00</div>
+        <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="#5C5850"><path d="M8 6l8 6-8 6z"></path></svg><span class="av" style="width: 22px; height: 22px; font-size: 11px; background: #D7E3DA; color: #1F4D33;">K</span><span style="flex: 1;"><span style="font-weight: 600;">Kai</span><span style="color: #77736B;"> · Backend</span></span><span class="mono" style="font-size: 12px;">$3.00</span></div>
+      </div>
+    </div>
+
+    <div class="blk">
+      <div class="h">Status bar and sheet footer</div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="height: 24px; border: 1px solid #D9D6CF; background: #EFEDE8; display: flex; align-items: center; gap: 14px; padding: 0 12px; font-size: 11px; color: #77736B; border-radius: 4px;"><span style="display: flex; align-items: center; gap: 6px;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #2E9B5F;"></span>Supervisor running</span><span>41 runs</span><span style="flex: 1;"></span><span>Keys ok</span></div>
+        <div style="height: 44px; border: 1px solid #D9D6CF; background: #F5F4F1; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 4px;"><span style="font-size: 12px; color: #77736B;">Estimated <span class="mono">$6 – 12</span>/day</span><span style="flex: 1;"></span><div class="btn">Cancel</div><div class="btn btn-primary">Create Team</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

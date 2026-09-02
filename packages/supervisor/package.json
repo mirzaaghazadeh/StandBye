@@ -1,0 +1,35 @@
+{
+  "name": "@crew/supervisor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "crew-supervisor": "./dist/index.js",
+    "crew-team-mcp": "./dist/mcp/stdio.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/index.js",
+    "dev": "tsc -p tsconfig.json --watch"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.258",
+    "@anthropic-ai/sdk": "^0.123.0",
+    "@crew/shared": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@openrouter/ai-sdk-provider": "^3.0.0",
+    "ai": "^7.0.90",
+    "better-sqlite3": "^13.0.3",
+    "croner": "^10.0.0",
+    "nanoid": "^5.1.5",
+    "ws": "^8.18.3",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.5.2",
+    "@types/ws": "^8.18.1"
+  }
+}

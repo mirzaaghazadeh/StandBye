@@ -1,0 +1,185 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; font-size: 13px; line-height: 1.4; color: #1D1C1A; -webkit-font-smoothing: antialiased; background: #D6D3CB; }
+    a { color: #C4532B; text-decoration: none; } a:hover { color: #9E3F1F; }
+    .mono { font-family: "SF Mono", Menlo, Consolas, monospace; }
+    .win { width: 1440px; height: 900px; border-radius: 10px; overflow: hidden; background: #F5F4F1; box-shadow: 0 22px 60px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.14); display: flex; position: relative; }
+    .side { width: 220px; flex-shrink: 0; background: #EAE8E3; border-right: 1px solid #D9D6CF; display: flex; flex-direction: column; }
+    .sec { font-size: 11px; font-weight: 700; color: #8C887F; padding: 14px 16px 4px; }
+    .srow { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; margin: 0 8px; border-radius: 5px; color: #2B2926; font-size: 13px; }
+    .srow-on { background: rgba(196,83,43,0.16); font-weight: 500; }
+    .tb { height: 52px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-bottom: 1px solid #D9D6CF; background: #F5F4F1; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 24px; padding: 0 10px; border-radius: 6px; background: #FFFFFF; border: 1px solid #CFCBC3; box-shadow: 0 1px 1px rgba(0,0,0,0.05); font-size: 12px; font-weight: 500; color: #1D1C1A; white-space: nowrap; }
+    .btn-primary { background: #C4532B; border-color: #A8441F; color: #FFFFFF; }
+    .seg { display: inline-flex; background: #E3E0D9; border-radius: 7px; padding: 2px; }
+    .seg-i { height: 22px; padding: 0 12px; border-radius: 5px; font-size: 12px; font-weight: 500; color: #5C5850; display: flex; align-items: center; }
+    .seg-on { background: #FFFFFF; color: #1D1C1A; box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+    .pill { display: inline-flex; align-items: center; gap: 5px; height: 18px; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+    .pop { height: 22px; border: 1px solid #CFCBC3; border-radius: 5px; background: #FFFFFF; padding: 0 6px 0 8px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; box-shadow: 0 1px 1px rgba(0,0,0,0.05); white-space: nowrap; }
+    .chk { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #CFCBC3; background: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .chk-on { background: #C4532B; border-color: #A8441F; }
+    .av { width: 24px; height: 24px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+    .orow { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-bottom: 1px solid #EFEDE8; }
+    .ochild { display: flex; align-items: center; gap: 8px; min-height: 26px; padding: 3px 10px 3px 52px; font-size: 12px; color: #5C5850; border-bottom: 1px solid #F3F1EC; }
+    .tri { width: 12px; display: inline-flex; justify-content: center; flex-shrink: 0; }
+  </style>
+</helmet>
+<div style="width: 1520px; height: 980px; position: relative; background: linear-gradient(160deg, #DAD7CF 0%, #CFCBC2 100%); padding: 40px;">
+  <div class="win">
+    <div class="side">
+      <div style="display: flex; gap: 8px; padding: 18px 16px 10px;">
+        <span style="width: 12px; height: 12px; border-radius: 999px; background: #D9D6CF; border: 1px solid rgba(0,0,0,0.12);"></span>
+        <span style="width: 12px; height: 12px; border-radius: 999px; background: #D9D6CF; border: 1px solid rgba(0,0,0,0.12);"></span>
+        <span style="width: 12px; height: 12px; border-radius: 999px; background: #D9D6CF; border: 1px solid rgba(0,0,0,0.12);"></span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; margin: 4px 12px 0; padding: 6px 8px; border-radius: 6px; background: rgba(0,0,0,0.05);">
+        <span style="width: 20px; height: 20px; border-radius: 5px; background: #C4532B; display: inline-flex; align-items: center; justify-content: center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><circle cx="17" cy="9" r="2.5"></circle><path d="M15.5 20a5 5 0 0 1 6 0"></path></svg></span>
+        <span style="flex: 1; font-weight: 600; font-size: 12px;">Navid's dev team</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8C887F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg>
+      </div>
+      <div class="sec">Team</div>
+      <div class="srow srow-on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4532B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"></path><path d="M5 10v10h14V10"></path></svg><span style="flex: 1;">Home</span></div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2.5-8h13L21 13v7H3z"></path><path d="M3 13h5l2 3h4l2-3h5"></path></svg><span style="flex: 1;">Inbox</span></div>
+      <div class="srow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg><span style="flex: 1;">Runs</span></div>
+      <div class="sec">Channels</div>
+      <div class="srow" style="color: #8C887F;"><span>No channels yet</span></div>
+      <div class="sec">Agents</div>
+      <div class="srow" style="color: #8C887F;"><span>No agents yet</span></div>
+      <div style="flex: 1;"></div>
+      <div class="srow" style="margin-bottom: 10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"></path></svg><span>Settings</span></div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+      <div class="tb">
+        <span style="font-weight: 600; font-size: 13px; margin-left: 4px;">Home</span>
+        <div style="flex: 1;"></div>
+      </div>
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #8C887F; flex-direction: column; gap: 6px;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#BDB9B0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><circle cx="17" cy="9" r="2.5"></circle><path d="M15.5 20a5 5 0 0 1 6 0"></path></svg>
+        <span>No team yet</span>
+      </div>
+    </div>
+
+    <!-- Dim -->
+    <div style="position: absolute; inset: 0; background: rgba(40,36,30,0.28);"></div>
+
+    <!-- Sheet -->
+    <div style="position: absolute; top: 0; left: 290px; width: 860px; height: 700px; background: #F5F4F1; border-radius: 0 0 12px 12px; box-shadow: 0 18px 50px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.12); display: flex; flex-direction: column; overflow: hidden;">
+      <div style="height: 52px; flex-shrink: 0; display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid #D9D6CF; gap: 12px;">
+        <span style="font-weight: 600; font-size: 14px;">New Team</span>
+        <div class="seg">
+          <div class="seg-i seg-on">Describe</div>
+          <div class="seg-i">From Template</div>
+          <div class="seg-i">Import Folder</div>
+        </div>
+        <div style="flex: 1;"></div>
+        <span style="font-size: 12px; color: #77736B;">Step 2 of 2 · Review the draft</span>
+      </div>
+
+      <div style="flex: 1; min-height: 0; display: grid; grid-template-columns: 330px minmax(0, 1fr);">
+        <!-- Left: description -->
+        <div style="border-right: 1px solid #D9D6CF; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; background: #F5F4F1;">
+          <div>
+            <div style="font-size: 11px; font-weight: 700; color: #8C887F; margin-bottom: 6px;">What do you need?</div>
+            <div style="min-height: 190px; border: 1px solid #CFCBC3; border-radius: 6px; background: #FFFFFF; padding: 10px 12px; color: #2B2926; box-shadow: inset 0 1px 1px rgba(0,0,0,0.04);">I'm building a Python API (FastAPI + SQLite) on my own. I want a small dev team that keeps shipping while I sleep: someone to plan the work, someone to write backend code, someone to review and test everything, and someone to keep the docs current. Ask me before anything risky like pushing to main or spending real money.</div>
+          </div>
+          <div>
+            <div style="font-size: 11px; font-weight: 700; color: #8C887F; margin-bottom: 6px;">Connect</div>
+            <div style="display: flex; flex-direction: column; gap: 7px; font-size: 12px;">
+              <div style="display: flex; align-items: center; gap: 8px;"><span class="chk chk-on"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg></span><span>GitHub</span><span class="mono" style="color: #77736B;">navid/api-gateway</span></div>
+              <div style="display: flex; align-items: center; gap: 8px;"><span class="chk chk-on"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg></span><span>Local folder</span><span class="mono" style="color: #77736B;">~/code/api-gateway</span></div>
+              <div style="display: flex; align-items: center; gap: 8px;"><span class="chk"></span><span>Slack</span><span style="color: #77736B;">not connected</span></div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size: 11px; font-weight: 700; color: #8C887F; margin-bottom: 6px;">Keys</div>
+            <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+              <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #2E9B5F;"></span><span>Anthropic</span><span class="mono" style="color: #77736B;">sk-ant-…4f2a</span></div>
+              <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #2E9B5F;"></span><span>OpenRouter</span><span class="mono" style="color: #77736B;">sk-or-…91cc</span></div>
+            </div>
+          </div>
+          <div style="flex: 1;"></div>
+          <div class="btn" style="align-self: flex-start;">Redraft</div>
+        </div>
+
+        <!-- Right: proposed team outline -->
+        <div style="display: flex; flex-direction: column; background: #FFFFFF; overflow: hidden;">
+          <div style="display: flex; align-items: center; height: 30px; padding: 0 12px; border-bottom: 1px solid #D9D6CF; background: #F5F4F1; font-size: 11px; font-weight: 600; color: #77736B; gap: 8px;">
+            <span style="flex: 1;">Proposed team</span><span style="width: 120px;">Model</span><span style="width: 64px; text-align: right;">Per day</span>
+          </div>
+
+          <div class="orow">
+            <span class="tri"><svg width="10" height="10" viewBox="0 0 24 24" fill="#5C5850"><path d="M6 8l6 8 6-8z"></path></svg></span>
+            <span class="av" style="background: #E9D9CF; color: #7A3A22;">A</span>
+            <span style="flex: 1;"><span style="font-weight: 600;">Ada</span><span style="color: #77736B;"> · Lead</span></span>
+            <span class="pop" style="width: 120px;">Opus 5 <span style="flex: 1;"></span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span>
+            <span class="mono" style="width: 64px; text-align: right; font-size: 12px;">$4.00</span>
+          </div>
+          <div class="ochild">Plans work from your issues, runs standup at 09:00, reports to you at 18:00. Can propose hires.</div>
+          <div class="ochild">Wakes: every 30 min · new issue · CI failed · @mention</div>
+
+          <div class="orow">
+            <span class="tri"><svg width="10" height="10" viewBox="0 0 24 24" fill="#5C5850"><path d="M8 6l8 6-8 6z"></path></svg></span>
+            <span class="av" style="background: #D7E3DA; color: #1F4D33;">K</span>
+            <span style="flex: 1;"><span style="font-weight: 600;">Kai</span><span style="color: #77736B;"> · Backend engineer</span></span>
+            <span class="pop" style="width: 120px;">Opus 5 <span style="flex: 1;"></span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span>
+            <span class="mono" style="width: 64px; text-align: right; font-size: 12px;">$3.00</span>
+          </div>
+          <div class="orow">
+            <span class="tri"><svg width="10" height="10" viewBox="0 0 24 24" fill="#5C5850"><path d="M8 6l8 6-8 6z"></path></svg></span>
+            <span class="av" style="background: #DDDCE8; color: #3B3A6B;">R</span>
+            <span style="flex: 1;"><span style="font-weight: 600;">Rex</span><span style="color: #77736B;"> · QA and review</span></span>
+            <span class="pop" style="width: 120px;">Sonnet 5 <span style="flex: 1;"></span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span>
+            <span class="mono" style="width: 64px; text-align: right; font-size: 12px;">$2.00</span>
+          </div>
+          <div class="orow">
+            <span class="tri"><svg width="10" height="10" viewBox="0 0 24 24" fill="#5C5850"><path d="M8 6l8 6-8 6z"></path></svg></span>
+            <span class="av" style="background: #EFEDE8; color: #8C887F;">S</span>
+            <span style="flex: 1;"><span style="font-weight: 600;">Sol</span><span style="color: #77736B;"> · Docs</span></span>
+            <span class="pop" style="width: 120px;">Haiku 4.5 <span style="flex: 1;"></span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5C5850" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></span>
+            <span class="mono" style="width: 64px; text-align: right; font-size: 12px;">$0.50</span>
+          </div>
+
+          <div class="orow" style="margin-top: 6px;">
+            <span class="tri"><svg width="10" height="10" viewBox="0 0 24 24" fill="#5C5850"><path d="M6 8l6 8 6-8z"></path></svg></span>
+            <span style="flex: 1; font-weight: 600;">Channels</span>
+          </div>
+          <div class="ochild" style="padding-left: 30px;"><span class="mono" style="font-size: 12px;">#general</span><span>everyone</span><span style="color: #BDB9B0;">·</span><span class="mono" style="font-size: 12px;">#backend</span><span>Kai, Rex, Sol, Ada</span><span style="color: #BDB9B0;">·</span><span class="mono" style="font-size: 12px;">#reviews</span><span>Rex, Kai</span></div>
+
+          <div class="orow">
+            <span class="tri"><svg width="10" height="10" viewBox="0 0 24 24" fill="#5C5850"><path d="M6 8l6 8 6-8z"></path></svg></span>
+            <span style="flex: 1; font-weight: 600;">Guardrails</span>
+          </div>
+          <div class="ochild" style="padding-left: 30px;"><span class="pill" style="background: #FBEAEA; color: #9B2C2C;">Ask you</span><span>push to main · spend over $2 in one run · anything outside the repo</span></div>
+          <div class="ochild" style="padding-left: 30px;"><span class="pill" style="background: #EFEDE8; color: #5C5850;">Cap</span><span>$10/day for the team · agents pause when reached</span></div>
+
+          <div style="margin: 14px 12px 0; padding: 10px 12px; border: 1px solid #E5C9B8; border-radius: 7px; background: #FDF8F4; display: flex; align-items: center; gap: 10px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C4532B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5"></path><path d="M12 17h.01"></path></svg>
+            <span style="flex: 1; font-size: 12px;">I left out a frontend engineer because you didn't mention a UI. Add one?</span>
+            <div class="btn" style="height: 22px; font-size: 11px;">Add Noor</div>
+            <div class="btn" style="height: 22px; font-size: 11px;">No</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height: 56px; flex-shrink: 0; display: flex; align-items: center; padding: 0 20px; border-top: 1px solid #D9D6CF; gap: 10px; background: #F5F4F1;">
+        <span style="font-size: 12px; color: #77736B;">Estimated <span class="mono">$5 – 9</span> per day at normal activity. Sleeping is free.</span>
+        <div style="flex: 1;"></div>
+        <div class="btn" style="height: 28px; padding: 0 14px;">Cancel</div>
+        <div class="btn btn-primary" style="height: 28px; padding: 0 16px;">Create Team</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
