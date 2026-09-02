@@ -9,6 +9,10 @@ interface Decision { id: string; title: string; answer: string; by: string; crea
 // Selectors must return a stable reference while data is loading, or useSyncExternalStore re-renders forever.
 const EMPTY_MESSAGES: Message[] = [];
 
+export function short(s: string, n: number): string {
+  return s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s;
+}
+
 export function ChannelScreen({ channelId }: { channelId: string }) {
   const channel = useStore((s) => s.channels.find((c) => c.id === channelId));
   const agents = useStore((s) => s.agents);
@@ -88,18 +92,18 @@ function QuestionCard({ q }: { q: Question }) {
   const quick = q.options.length ? q.options.slice(0, 3) : q.kind === "approval" || q.kind === "hire" ? ["Approve", "Decline"] : [];
   return (
     <div className="qcard">
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
         <KindPill kind={q.kind} />
-        <span style={{ fontSize: 11, color: "var(--ink-4)" }}>
+        <span className="cell" style={{ fontSize: 11, color: "var(--ink-4)", flex: 1 }} title={open && q.defaultAt ? `Defaults to "${q.defaultAnswer}" at ${hhmm(q.defaultAt)}` : undefined}>
           {q.toId === "user" ? "Asked you" : `Asked ${target?.name ?? q.toId}`} · {hhmm(q.createdAt)}
-          {open && q.defaultAt ? ` · defaults to ${q.defaultAnswer} at ${hhmm(q.defaultAt)}` : ""}
+          {open && q.defaultAt ? ` · defaults to "${short(q.defaultAnswer ?? "", 28)}" at ${hhmm(q.defaultAt)}` : ""}
         </span>
       </div>
       <div style={{ fontWeight: 600, marginTop: 6 }}>{q.title}</div>
       {q.body && q.body !== q.title && <div style={{ color: "var(--ink-3)", marginTop: 2 }} className="sel">{q.body}</div>}
       {open && q.toId === "user" ? (
-        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-          {quick.map((o, i) => <Button key={o} primary={o === q.recommended || (!q.recommended && i === 0)} onClick={() => void store.answerQuestion(q.id, o, q.kind === "question")}>{o}</Button>)}
+        <div className="actions" style={{ marginTop: 8 }}>
+          {quick.map((o, i) => <Button key={o} title={o} primary={o === q.recommended || (!q.recommended && i === 0)} onClick={() => void store.answerQuestion(q.id, o, q.kind === "question")}>{short(o, 48)}</Button>)}
           <Button onClick={() => store.navigate({ name: "inbox", questionId: q.id })}>Reply…</Button>
         </div>
       ) : (

@@ -132,14 +132,14 @@ export function NeedRow({ q, agent }: { q: Question; agent?: Agent }) {
           <span style={{ fontSize: 11, color: "var(--ink-4)" }}>{ago(q.createdAt)} ago{q.channelId ? ` in #${q.channelId}` : ""}</span>
         </div>
         <div style={{ marginTop: 2 }}><b style={{ fontWeight: 500 }}>{q.title}</b>{q.body && q.body !== q.title ? ` ${q.body}` : ""}</div>
-        <div className="mono" style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 3, display: "flex", gap: 12 }}>
-          {q.defaultAt && <span>If you don't answer: {q.defaultAnswer} at {new Date(q.defaultAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>}
+        <div className="mono" style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 3, display: "flex", gap: 12, minWidth: 0 }}>
+          {q.defaultAt && <span className="cell" title={q.defaultAnswer ?? undefined}>If you don't answer: {(q.defaultAnswer ?? "").length > 40 ? (q.defaultAnswer ?? "").slice(0, 39) + "…" : q.defaultAnswer} at {new Date(q.defaultAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>}
           {q.kind === "question" && <Checkbox checked={remember} onChange={setRemember} label={<span style={{ fontFamily: "inherit" }}>remember as a decision</span>} />}
         </div>
       </div>
-      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+      <div className="actions" style={{ flexShrink: 0, maxWidth: 380, justifyContent: "flex-end" }}>
         {quick.map((o, i) => (
-          <Button key={o} primary={i === 0 && (o === q.recommended || (!q.recommended && i === 0))} onClick={() => void store.answerQuestion(q.id, o, remember)}>{o}</Button>
+          <Button key={o} title={o} primary={i === 0 && (o === q.recommended || (!q.recommended && i === 0))} onClick={() => void store.answerQuestion(q.id, o, remember)}>{o.length > 32 ? o.slice(0, 31).trimEnd() + "…" : o}</Button>
         ))}
         <Button onClick={() => store.navigate({ name: "inbox", questionId: q.id })}>Reply…</Button>
       </div>
