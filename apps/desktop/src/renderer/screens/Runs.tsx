@@ -154,9 +154,11 @@ const STEP_ICON: Record<RunStepKind, (p: { size?: number; stroke?: string }) => 
 };
 
 const MONO_KINDS: RunStepKind[] = ["read", "edit", "run", "git"];
+// Stable empty reference: a selector returning a fresh array each render makes useSyncExternalStore loop.
+const EMPTY_STEPS: RunStep[] = [];
 
 function RunDetail({ run, agents, owner }: { run: Run | undefined; agents: Agent[]; owner: string }) {
-  const steps = useStore((s) => (run ? s.steps[run.id] ?? [] : []));
+  const steps = useStore((s) => (run ? s.steps[run.id] ?? EMPTY_STEPS : EMPTY_STEPS));
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const agent = run ? agents.find((a) => a.id === run.agentId) : undefined;
 

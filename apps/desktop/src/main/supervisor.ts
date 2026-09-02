@@ -16,9 +16,11 @@ export class SupervisorHost {
   private nextId = 1;
   private readonly pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
   private readonly listeners = new Set<(e: PushEvent) => void>();
-  readonly port: number;
-  readonly token: string;
+  port: number;
+  token: string;
   connected = false;
+  /** true when we connected to a supervisor that was already running (we must not kill it) */
+  attached = false;
 
   constructor(private readonly dataDir: string, private readonly onLog: (line: string) => void) {
     this.port = 47300 + Math.floor(Math.random() * 600);
@@ -26,6 +28,7 @@ export class SupervisorHost {
   }
 
   async start(script: string): Promise<void> {
+    if (await this.tryAttach()) return;
     const node = findNode();
     if (!node) throw new Error("Could not find a Node.js binary to run the supervisor. Install Node 22+ or set CREW_NODE.");
     fs.mkdirSync(this.dataDir, { recursive: true });
@@ -39,8 +42,25 @@ export class SupervisorHost {
     await this.connect();
   }
 
-  private async connect(): Promise<void> {
-    for (let attempt = 0; attempt < 40; attempt++) {
+  /** A supervisor already serving this data dir (started from a terminal, or a previous app instance) advertises itself in supervisor.json. */
+  private async tryAttach(): Promise<boolean> {
+    const lock = path.join(this.dataDir, "supervisor.json");
+    try {
+      const info = JSON.parse(fs.readFileSync(lock, "utf8")) as { pid: number; port: number; token: string };
+      try { process.kill(info.pid, 0); } catch { return false; }
+      this.port = info.port;
+      this.token = info.token;
+      await this.connect(8);
+      this.attached = true;
+      this.onLog(`[supervisor] attached to running supervisor pid ${info.pid} on port ${info.port}`);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private async connect(attempts = 40): Promise<void> {
+    for (let attempt = 0; attempt < attempts; attempt++) {
       try {
         await new Promise<void>((resolve, reject) => {
           const ws = new WebSocket(`ws://127.0.0.1:${this.port}/?token=${this.token}`);
@@ -88,7 +108,7 @@ export class SupervisorHost {
 
   stop(): void {
     this.ws?.close();
-    this.proc?.kill("SIGTERM");
+    if (!this.attached) this.proc?.kill("SIGTERM");
   }
 }
 

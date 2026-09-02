@@ -6,11 +6,14 @@ import { Avatar, Button, Group, IconButton, KindPill, Toolbar, UserAvatar, hhmm,
 
 interface Decision { id: string; title: string; answer: string; by: string; createdAt: string }
 
+// Selectors must return a stable reference while data is loading, or useSyncExternalStore re-renders forever.
+const EMPTY_MESSAGES: Message[] = [];
+
 export function ChannelScreen({ channelId }: { channelId: string }) {
   const channel = useStore((s) => s.channels.find((c) => c.id === channelId));
   const agents = useStore((s) => s.agents);
   const team = useStore((s) => s.team);
-  const messages = useStore((s) => s.messages[channelId] ?? []);
+  const messages = useStore((s) => s.messages[channelId] ?? EMPTY_MESSAGES);
   const [showInspector, setShowInspector] = useState(true);
   const [text, setText] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
