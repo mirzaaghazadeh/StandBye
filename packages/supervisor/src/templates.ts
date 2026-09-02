@@ -1,10 +1,13 @@
-import type { TeamDraft } from "@crew/shared";
-import { DEFAULT_MODELS } from "@crew/shared";
+import type { ProviderSettings, TeamDraft } from "@crew/shared";
 
 /** Starter team used when no model is available to draft one, and as the base the builder edits. */
-export function soloDevTeam(ownerName: string, projectHint: string): TeamDraft {
+export function soloDevTeam(providers: ProviderSettings, ownerName: string, projectHint: string): TeamDraft {
   const owner = ownerName || "the owner";
   const project = projectHint || "the project";
+  const DEFAULT_MODELS = {
+    anthropic: { main: providers.anthropic.defaultModel, checkin: providers.anthropic.checkinModel },
+    openrouter: { main: providers.openrouter.defaultModel, checkin: providers.openrouter.checkinModel },
+  };
   return {
     name: `${ownerName ? ownerName + "'s" : "My"} dev team`,
     charter: `Keep ${project} shipping while ${owner} is away: plan the work, build it in small tested pull requests, review everything, keep the docs current. Ask before anything risky.`,

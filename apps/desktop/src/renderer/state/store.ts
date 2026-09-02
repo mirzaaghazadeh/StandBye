@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type {
-  Agent, AgentFiles, Channel, KeyStatus, Message, ModelInfo, Provider, ProviderSettings, ProviderStatus, PushEvent, Question, Run, RunStep, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft,
+  Agent, AgentFiles, Channel, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunStep, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft,
 } from "@crew/shared";
 
 export type Route =
@@ -94,7 +94,7 @@ class Store {
       this.toast(`Could not load models: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
-  async setProviders(patch: Partial<ProviderSettings>): Promise<void> {
+  async setProviders(patch: { anthropic?: Partial<ProviderConfig>; openrouter?: Partial<ProviderConfig> }): Promise<void> {
     const providers = await this.rpc<ProviderStatus>("providers.set", patch);
     this.set({ providers, keys: { anthropic: providers.anthropic.ready, openrouter: providers.openrouter.ready } });
   }
@@ -176,10 +176,10 @@ class Store {
     this.toast(Object.values(patch).some(Boolean) ? "Key saved." : "Key removed.");
     void this.loadModels(true);
   }
-  async draftTeam(description: string, ownerName: string, workspaceRoot: string | null): Promise<void> {
+  async draftTeam(description: string, ownerName: string, workspaceRoot: string | null, provider?: Provider, mode: "describe" | "template" = "describe"): Promise<void> {
     this.set({ builderBusy: true });
     try {
-      const draft = await this.rpc<TeamDraft>("builder.draft", { description, ownerName, workspaceRoot });
+      const draft = await this.rpc<TeamDraft>("builder.draft", { description, ownerName, workspaceRoot, provider, mode });
       this.set({ builderDraft: draft });
     } catch (e) {
       this.toast(`Draft failed: ${e instanceof Error ? e.message : String(e)}`);

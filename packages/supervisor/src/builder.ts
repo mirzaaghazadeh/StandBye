@@ -1,6 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { TeamDraftSchema, DEFAULT_MODELS, type TeamDraft } from "@crew/shared";
+import { query } from "@anthropic-ai/claude-agent-sdk";
+import { generateText, Output } from "ai";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { z } from "zod";
+import { TeamDraftSchema, type Provider, type TeamDraft } from "@crew/shared";
 import type { Crew } from "./crew.js";
 import { soloDevTeam } from "./templates.js";
 
@@ -10,37 +14,58 @@ export interface BuilderInput {
   workspaceRoot: string | null;
   /** short summary of the workspace (file listing, README head) gathered by the caller */
   workspaceSummary?: string;
+  /** which provider drafts the team; defaults to the preferred ready provider */
+  provider?: Provider;
+  /** "template" returns the built-in team adapted to the configured providers, no model call */
+  mode?: "describe" | "template";
 }
 
 /**
- * Natural-language team builder: the owner describes what they need, Claude returns a
- * structured team draft (souls, rules, channels, budgets) the owner can edit before creating.
- * Falls back to the built-in solo dev team when no Anthropic key is present.
+ * Natural-language team builder. The owner describes what they need; a model returns a
+ * structured team draft (souls, rules, channels, budgets) the owner edits before creating.
+ *
+ * Three backends, chosen by what is ready:
+ *  - Anthropic API key   → Messages API with a JSON schema output
+ *  - Claude Code login   → Agent SDK query() with a JSON schema output (no tools)
+ *  - OpenRouter          → AI SDK generateText with Output.object on the provider's default model
  */
 export async function draftTeam(crew: Crew, input: BuilderInput): Promise<TeamDraft> {
-  const template = soloDevTeam(input.ownerName, input.workspaceRoot ? input.workspaceRoot.split("/").pop() ?? "" : "");
   const status = crew.providerStatus();
-  if (!status.anthropic.ready) {
-    // No Claude at all: keep the template but move everyone to OpenRouter.
-    return { ...template, agents: template.agents.map((a) => ({ ...a, provider: "openrouter", model: DEFAULT_MODELS.openrouter.main })) };
-  }
-  if (!crew.keys.anthropic) return template; // The Messages API needs a key; the Claude login only covers the Claude runner.
+  const template = soloDevTeam(crew.providers, input.ownerName, input.workspaceRoot ? input.workspaceRoot.split("/").pop() ?? "" : "");
+  const provider = input.provider ?? crew.preferredProvider();
+  if (input.mode === "template" || !provider) return adaptToProviders(template, status);
 
-  const client = new Anthropic({ apiKey: crew.keys.anthropic });
-  const hasOpenRouter = status.openrouter.ready;
-  const system = [
+  const system = systemPrompt(crew, status);
+  const user = userPrompt(input, template);
+
+  let draft: TeamDraft;
+  if (provider === "anthropic" && crew.keys.anthropic) draft = await viaAnthropicApi(crew.keys.anthropic, status.anthropic.defaultModel, system, user);
+  else if (provider === "anthropic" && status.anthropic.hasLogin) draft = await viaClaudeLogin(status.anthropic.defaultModel, system, user);
+  else if (provider === "openrouter" && crew.keys.openrouter) draft = await viaOpenRouter(crew.keys.openrouter, status.openrouter.defaultModel, system, user);
+  else throw new Error(`${provider} is not ready. Turn it on and add a key in Settings.`);
+  return adaptToProviders(draft, status);
+}
+
+function systemPrompt(crew: Crew, status: ReturnType<Crew["providerStatus"]>): string {
+  const providers: string[] = [];
+  if (status.anthropic.ready) providers.push(`"anthropic": default model ${status.anthropic.defaultModel} for real work, ${status.anthropic.checkinModel} for light roles`);
+  if (status.openrouter.ready) providers.push(`"openrouter": default model ${status.openrouter.defaultModel} (use it for review, test and docs roles when both providers are available; the only choice when Claude is off)`);
+  return [
     "You design small teams of AI agents that work autonomously, 24/7, for one person. Each agent is a folder with a SOUL.md (persona and working style), RULES.md, and a budget.",
-    "Design principles: few agents with clear ownership beat many; every agent has 2-4 standing responsibilities; the lead plans and reports; a reviewer/tester is almost always worth it; docs agent only if the project has docs.",
-    `Providers: "anthropic" (models ${DEFAULT_MODELS.anthropic.main} for real work, ${DEFAULT_MODELS.anthropic.checkin} for light roles)${hasOpenRouter ? ` and "openrouter" (model ${DEFAULT_MODELS.openrouter.main}, cheaper, good for review/test/docs roles).` : ". OpenRouter is not configured; use anthropic only."}`,
+    "Design principles: few agents with clear ownership beat many; every agent has 2-4 standing responsibilities; the lead plans and reports; a reviewer/tester is almost always worth it; a docs agent only if the project has docs.",
+    `Available providers and the ONLY model ids you may use: ${providers.join("; ")}.`,
     "Souls are written in second person, markdown, with sections: who they are, how they work (3-5 bullets), how they talk. Specific to the owner's project. No filler.",
     "Rules are hard constraints the app enforces or the agent must never break. Always include: never push to main without approval; only touch files inside the repo.",
-    "Budgets: lead $3-5/day, engineers $2-4, review/docs $0.5-2. Team cap around the sum. Estimate a realistic daily range.",
-    "Channels: #general is created automatically. Add 1-3 more only if they carry different conversations.",
+    "Budgets in USD per day: lead 3-5, engineers 2-4, review/docs 0.5-2. Team cap around the sum. Estimate a realistic daily range.",
+    "Channels: #general is created automatically. Add 1-3 more only if they carry different conversations. Members are agent names.",
     "questionsForOwner: 1-3 yes/no questions about things you deliberately left out or assumed.",
-    "Agent names: short, human first names, distinct first letters. Colors: soft pastel hex backgrounds.",
+    "Agent names: short human first names with distinct first letters. Colors: soft pastel hex backgrounds like #E9D9CF, #D7E3DA, #DDDCE8, #F3E4C8, #D9E6EE.",
+    "Return only the JSON object.",
   ].join("\n");
+}
 
-  const user = [
+function userPrompt(input: BuilderInput, template: TeamDraft): string {
+  return [
     `Owner: ${input.ownerName || "unknown"}`,
     `Workspace: ${input.workspaceRoot ?? "none connected"}`,
     input.workspaceSummary ? `Workspace summary:\n${input.workspaceSummary}` : "",
@@ -48,19 +73,78 @@ export async function draftTeam(crew: Crew, input: BuilderInput): Promise<TeamDr
     "What the owner asked for:",
     input.description,
     "",
-    "Here is a reference team for a solo developer, to adapt (not copy):",
+    "Reference team for a solo developer, to adapt (not copy):",
     JSON.stringify(template, null, 1).slice(0, 6000),
   ].join("\n");
+}
 
+async function viaAnthropicApi(apiKey: string, model: string, system: string, user: string): Promise<TeamDraft> {
+  const client = new Anthropic({ apiKey });
   const response = await client.messages.parse({
-    model: "claude-opus-5",
-    max_tokens: 16000,
-    thinking: { type: "adaptive" },
-    system,
+    model, max_tokens: 16000, thinking: { type: "adaptive" }, system,
     messages: [{ role: "user", content: user }],
     output_config: { format: zodOutputFormat(TeamDraftSchema) },
   });
-  const draft = response.parsed_output;
-  if (!draft) throw new Error("The builder returned no usable draft. Try again or start from the template.");
-  return draft;
+  if (!response.parsed_output) throw new Error("The builder returned no usable draft. Try again or start from the template.");
+  return response.parsed_output;
+}
+
+async function viaClaudeLogin(model: string, system: string, user: string): Promise<TeamDraft> {
+  let out: unknown;
+  let error: string | undefined;
+  const q = query({
+    prompt: user,
+    options: {
+      model, systemPrompt: { type: "custom", prompt: system }, maxTurns: 3, settingSources: [],
+      disallowedTools: ["Bash", "Edit", "Write", "MultiEdit", "NotebookEdit", "WebFetch", "WebSearch", "Task", "Read", "Glob", "Grep"],
+      outputFormat: { type: "json_schema", schema: draftJsonSchema() },
+      env: { ...process.env, CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1" },
+    },
+  });
+  for await (const msg of q) {
+    if (msg.type === "result") {
+      if (msg.subtype === "success") out = msg.structured_output ?? tryJson(msg.result);
+      else error = msg.subtype;
+    }
+  }
+  if (error) throw new Error(`Claude could not draft the team (${error}).`);
+  const parsed = TeamDraftSchema.safeParse(out);
+  if (!parsed.success) throw new Error("Claude returned a draft the app could not read. Try again.");
+  return parsed.data;
+}
+
+async function viaOpenRouter(apiKey: string, model: string, system: string, user: string): Promise<TeamDraft> {
+  const openrouter = createOpenRouter({ apiKey });
+  const { output } = await generateText({
+    model: openrouter(model),
+    system,
+    prompt: user,
+    output: Output.object({ schema: TeamDraftSchema }),
+  });
+  if (!output) throw new Error("The model returned no usable draft. Try again or pick another model.");
+  return output;
+}
+
+/** JSON schema for the draft without the `$schema` header, which the Claude Code validator rejects. */
+function draftJsonSchema(): Record<string, unknown> {
+  const { $schema: _drop, ...schema } = z.toJSONSchema(TeamDraftSchema, { target: "draft-7" }) as Record<string, unknown> & { $schema?: string };
+  return schema;
+}
+
+function tryJson(text: string): unknown {
+  try { return JSON.parse(text); } catch { const m = /\{[\s\S]*\}/.exec(text); if (m) { try { return JSON.parse(m[0]); } catch { /* fall through */ } } return undefined; }
+}
+
+/** Make sure every agent lands on a provider that is ready, with that provider's configured model when the model is unknown. */
+function adaptToProviders(draft: TeamDraft, status: ReturnType<Crew["providerStatus"]>): TeamDraft {
+  const fallback: Provider | null = status.anthropic.ready ? "anthropic" : status.openrouter.ready ? "openrouter" : null;
+  return {
+    ...draft,
+    agents: draft.agents.map((a) => {
+      const provider = status[a.provider].ready ? a.provider : fallback ?? a.provider;
+      const cfg = status[provider];
+      const model = provider === a.provider && a.model ? a.model : cfg.defaultModel;
+      return { ...a, provider, model };
+    }),
+  };
 }

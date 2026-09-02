@@ -24,14 +24,22 @@ export interface ModelInfo {
   tags: string[];
 }
 
+export interface ProviderConfig {
+  enabled: boolean;
+  /** Model new agents and the team builder use on this provider */
+  defaultModel: string;
+  /** Cheap model for check-ins on this provider */
+  checkinModel: string;
+}
+
 export interface ProviderSettings {
-  anthropic: { enabled: boolean };
-  openrouter: { enabled: boolean };
+  anthropic: ProviderConfig;
+  openrouter: ProviderConfig;
 }
 
 export interface ProviderStatus {
-  anthropic: { enabled: boolean; hasKey: boolean; hasLogin: boolean; ready: boolean };
-  openrouter: { enabled: boolean; hasKey: boolean; ready: boolean };
+  anthropic: ProviderConfig & { hasKey: boolean; hasLogin: boolean; ready: boolean };
+  openrouter: ProviderConfig & { hasKey: boolean; ready: boolean };
 }
 
 export type BudgetCap = "day" | "hour" | "run";

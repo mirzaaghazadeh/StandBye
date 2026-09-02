@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { nanoid } from "nanoid";
 import type {
-  Agent, AgentConfig, AgentDraft, AgentStatus, Channel, KeyStatus, Message, MessageKind, ProviderSettings, ProviderStatus, Question, QuestionKind,
+  Agent, AgentConfig, AgentDraft, AgentStatus, Channel, KeyStatus, Message, MessageKind, Provider, ProviderConfig, ProviderSettings, ProviderStatus, Question, QuestionKind,
   Run, RunStatus, RunStep, RunStepKind, RunTrigger, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft,
 } from "@crew/shared";
 import { DEFAULT_MODELS } from "@crew/shared";
@@ -62,26 +62,41 @@ export class Crew {
   get providers(): ProviderSettings {
     return this.readProviders();
   }
-  setProviders(patch: Partial<ProviderSettings>): ProviderStatus {
-    const next: ProviderSettings = { ...this.readProviders(), ...patch };
+  setProviders(patch: { anthropic?: Partial<ProviderConfig>; openrouter?: Partial<ProviderConfig> }): ProviderStatus {
+    const cur = this.readProviders();
+    const next: ProviderSettings = {
+      anthropic: { ...cur.anthropic, ...(patch.anthropic ?? {}) },
+      openrouter: { ...cur.openrouter, ...(patch.openrouter ?? {}) },
+    };
     fs.writeFileSync(path.join(this.opts.dataDir, "providers.json"), JSON.stringify(next, null, 2));
     this.bus.emit("supervisor.status", this.status());
     return this.providerStatus();
   }
   private readProviders(): ProviderSettings {
+    const base: ProviderSettings = {
+      anthropic: { enabled: true, defaultModel: DEFAULT_MODELS.anthropic.main, checkinModel: DEFAULT_MODELS.anthropic.checkin },
+      openrouter: { enabled: true, defaultModel: DEFAULT_MODELS.openrouter.main, checkinModel: DEFAULT_MODELS.openrouter.checkin },
+    };
     const p = path.join(this.opts.dataDir, "providers.json");
-    if (!fs.existsSync(p)) return { anthropic: { enabled: true }, openrouter: { enabled: true } };
-    try { return { anthropic: { enabled: true }, openrouter: { enabled: true }, ...(JSON.parse(fs.readFileSync(p, "utf8")) as Partial<ProviderSettings>) }; }
-    catch { return { anthropic: { enabled: true }, openrouter: { enabled: true } }; }
+    if (!fs.existsSync(p)) return base;
+    try {
+      const saved = JSON.parse(fs.readFileSync(p, "utf8")) as { anthropic?: Partial<ProviderConfig>; openrouter?: Partial<ProviderConfig> };
+      return { anthropic: { ...base.anthropic, ...(saved.anthropic ?? {}) }, openrouter: { ...base.openrouter, ...(saved.openrouter ?? {}) } };
+    } catch { return base; }
   }
   providerStatus(): ProviderStatus {
     const s = this.readProviders();
     const hasKey = Boolean(this.keys.anthropic);
     const hasLogin = this.hasClaudeLogin();
     return {
-      anthropic: { enabled: s.anthropic.enabled, hasKey, hasLogin, ready: s.anthropic.enabled && (hasKey || hasLogin) },
-      openrouter: { enabled: s.openrouter.enabled, hasKey: Boolean(this.keys.openrouter), ready: s.openrouter.enabled && Boolean(this.keys.openrouter) },
+      anthropic: { ...s.anthropic, hasKey, hasLogin, ready: s.anthropic.enabled && (hasKey || hasLogin) },
+      openrouter: { ...s.openrouter, hasKey: Boolean(this.keys.openrouter), ready: s.openrouter.enabled && Boolean(this.keys.openrouter) },
     };
+  }
+  /** The provider to prefer for new work: Claude when ready, else OpenRouter. */
+  preferredProvider(): Provider | null {
+    const s = this.providerStatus();
+    return s.anthropic.ready ? "anthropic" : s.openrouter.ready ? "openrouter" : null;
   }
   /** True when Claude Code is signed in on this machine, so the Claude runner works without an API key. */
   hasClaudeLogin(): boolean {
@@ -141,13 +156,14 @@ export class Crew {
   createAgent(draft: AgentDraft, channels: Channel[] = this.db.listChannels()): Agent {
     const id = slug(draft.name);
     const memberOf = channels.filter((c) => c.id === "general" || c.members.includes(id) || draft.channels.map((n) => n.replace(/^#/, "").toLowerCase()).includes(c.id)).map((c) => c.id);
+    const pc = this.providers[draft.provider];
     const cfg: AgentConfig = {
       id,
       name: draft.name,
       role: draft.role,
       provider: draft.provider,
-      model: draft.model || DEFAULT_MODELS[draft.provider].main,
-      checkinModel: DEFAULT_MODELS[draft.provider].checkin,
+      model: draft.model || pc.defaultModel,
+      checkinModel: pc.checkinModel,
       heartbeat: { everyMinutes: draft.heartbeatMinutes || DEFAULTS.heartbeatMinutes, workHours: DEFAULTS.workHours },
       triggers: { onMention: true, cron: [] },
       permissions: DEFAULT_DEV_RULES,

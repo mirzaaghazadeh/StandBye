@@ -17,11 +17,15 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
   const [ownerName, setOwnerName] = useState(team?.ownerName ?? "");
   const [workspace, setWorkspace] = useState<string | null>(team?.workspaceRoot ?? null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const providers = useStore((s) => s.providers);
+  const ready = (["anthropic", "openrouter"] as const).filter((p) => providers?.[p].ready);
+  const [drafter, setDrafter] = useState<"anthropic" | "openrouter">(ready[0] ?? "anthropic");
   useEffect(() => { if (initialMode === "template" && !draft && !busy) doTemplate(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const canDraft = description.trim().length > 10 && !busy;
-  const doDraft = () => void store.draftTeam(description.trim(), ownerName.trim() || "Owner", workspace);
-  const doTemplate = () => void store.draftTeam("Use the reference solo developer team as-is, adapted to the workspace.", ownerName.trim() || "Owner", workspace);
+  const canDraft = description.trim().length > 10 && !busy && ready.length > 0;
+  const doDraft = () => void store.draftTeam(description.trim(), ownerName.trim() || "Owner", workspace, drafter, "describe");
+  const doTemplate = () => void store.draftTeam("", ownerName.trim() || "Owner", workspace, undefined, "template");
+  const drafterModel = providers?.[drafter]?.defaultModel ?? "";
   const create = () => draft && void store.createTeam(draft, workspace, ownerName.trim() || "Owner");
   const updateAgent = (i: number, patch: Partial<AgentDraft>) => draft && store.setDraft({ ...draft, agents: draft.agents.map((a, j) => (j === i ? { ...a, ...patch } : a)) });
   const removeAgent = (i: number) => draft && store.setDraft({ ...draft, agents: draft.agents.filter((_, j) => j !== i) });
@@ -66,11 +70,17 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
               <span style={{ display: "flex", alignItems: "center", gap: 8 }}><span className="dot" style={{ width: 7, height: 7, background: keys.anthropic ? "var(--green)" : "var(--ink-6)" }} />Anthropic {keys.anthropic ? "" : <a onClick={() => store.openSheet({ kind: "keys" })}>add</a>}</span>
               <span style={{ display: "flex", alignItems: "center", gap: 8 }}><span className="dot" style={{ width: 7, height: 7, background: keys.openrouter ? "var(--green)" : "var(--ink-6)" }} />OpenRouter {keys.openrouter ? "" : <a onClick={() => store.openSheet({ kind: "keys" })}>add</a>}</span>
             </div>
-            {!keys.anthropic && <div style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 6 }}>Without an Anthropic key the builder uses the template instead of drafting from your description.</div>}
           </div>
+          {mode === "describe" && ready.length > 0 && (
+            <div>
+              <div className="grp-t">Draft with</div>
+              <Segmented value={drafter} onChange={setDrafter} options={ready.map((p) => ({ value: p, label: p === "anthropic" ? "Claude" : "OpenRouter" }))} />
+              <div className="mono" style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 6 }}>{drafterModel}</div>
+            </div>
+          )}
           <div style={{ marginTop: "auto" }}>
             {mode === "describe"
-              ? <Button primary onClick={doDraft} disabled={!canDraft}>{busy ? "Drafting…" : draft ? "Redraft" : "Draft Team"}</Button>
+              ? <Button primary onClick={doDraft} disabled={!canDraft}>{busy ? "Drafting… (20–60 s)" : draft ? "Redraft" : "Draft Team"}</Button>
               : <Button primary onClick={doTemplate} disabled={busy}>{busy ? "Loading…" : "Use Template"}</Button>}
           </div>
         </div>
@@ -90,7 +100,7 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
                     <div className="orow">
                       <button className="tri" onClick={() => setExpanded({ ...expanded, [a.name]: !open })}>{open ? <Ic.TriDown /> : <Ic.TriRight />}</button>
                       <Avatar name={a.name} color={a.color} size={24} />
-                      <span style={{ flex: 1, minWidth: 0 }} className="cell"><input className="field" style={{ width: 90, display: "inline-block", marginRight: 6, height: 20 }} value={a.name} onChange={(e) => updateAgent(i, { name: e.target.value })} /><span style={{ color: "var(--ink-4)" }}>· </span><input className="field" style={{ width: 150, display: "inline-block", height: 20 }} value={a.role} onChange={(e) => updateAgent(i, { role: e.target.value })} /></span>
+                      <span style={{ flex: 1, minWidth: 0, display: "flex", gap: 6 }}><input className="field" style={{ width: 84, flexShrink: 0, height: 20 }} value={a.name} onChange={(e) => updateAgent(i, { name: e.target.value })} /><input className="field" style={{ flex: 1, minWidth: 40, height: 20 }} value={a.role} onChange={(e) => updateAgent(i, { role: e.target.value })} /></span>
                       <span style={{ width: 200 }}>
                         <ModelPicker value={a.model} provider={a.provider} onChange={(model, provider) => updateAgent(i, { model, provider })} width={196} small />
                       </span>

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import type { AgentDraft, Provider, TeamDraft } from "@crew/shared";
-import { DEFAULT_MODELS } from "@crew/shared";
 import { store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
 import { Avatar, Button, Popup } from "../ui/kit";
@@ -42,7 +41,7 @@ export function ManualTeamSheet() {
     const p = PRESETS.find((x) => x.role === preset) ?? PRESETS[0]!;
     const name = p.name && !agents.some((a) => a.name === p.name) ? p.name : `Agent ${agents.length + 1}`;
     const a: AgentDraft = {
-      name, role: p.role === "Custom" ? "Teammate" : p.role, provider: defaultProvider, model: DEFAULT_MODELS[defaultProvider].main,
+      name, role: p.role === "Custom" ? "Teammate" : p.role, provider: defaultProvider, model: providers?.[defaultProvider].defaultModel ?? "",
       soul: p.soul(ownerName || "the owner", name), rules: ["Never push to main without approval", "Only touch files inside the repo folder"],
       responsibilities: p.responsibilities, heartbeatMinutes: p.heartbeat, dailyBudgetUsd: p.daily, perRunBudgetUsd: 2, hourlyBudgetUsd: null, capBy: "day",
       channels: ["general"], color: SWATCHES[agents.length % SWATCHES.length]!,

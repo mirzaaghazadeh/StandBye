@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from "ws";
 import fs from "node:fs";
 import path from "node:path";
-import type { AgentConfig, AgentFiles, ProviderSettings, PushEvent, RpcRequest, RpcResponse, TeamDraft } from "@crew/shared";
+import type { AgentConfig, AgentFiles, Provider, ProviderConfig, PushEvent, RpcRequest, RpcResponse, TeamDraft } from "@crew/shared";
 import { TeamDraftSchema } from "@crew/shared";
 import { draftTeam } from "./builder.js";
 import { listModels } from "./models.js";
@@ -64,7 +64,7 @@ export class Api {
       "keys.set": (p: { anthropic?: string; openrouter?: string }) => { crew.setKeys(p); return crew.keyStatus(); },
       "keys.get": () => crew.keyStatus(),
       "providers.get": () => crew.providerStatus(),
-      "providers.set": (p: Partial<ProviderSettings>) => crew.setProviders(p),
+      "providers.set": (p: { anthropic?: Partial<ProviderConfig>; openrouter?: Partial<ProviderConfig> }) => crew.setProviders(p),
       "models.list": (p: { force?: boolean }) => listModels(crew, p.force ?? false),
       "supervisor.pauseAll": () => { crew.pausedAll = true; q.cancelAll(); crew.bus.emit("agents.updated", crew.listAgents()); return crew.status(); },
       "supervisor.resumeAll": () => { crew.pausedAll = false; crew.bus.emit("agents.updated", crew.listAgents()); scheduler.tick(); return crew.status(); },
@@ -80,7 +80,7 @@ export class Api {
         return team;
       },
       "team.delete": () => { q.cancelAll(); crew.store.deleteTeam(); crew.db.deleteAllChannels(); crew.team = null; crew.bus.emit("team.updated", null); crew.bus.emit("agents.updated", []); return null; },
-      "builder.draft": async (p: { description: string; ownerName: string; workspaceRoot: string | null }) =>
+      "builder.draft": async (p: { description: string; ownerName: string; workspaceRoot: string | null; provider?: Provider; mode?: "describe" | "template" }) =>
         draftTeam(crew, { ...p, workspaceSummary: p.workspaceRoot ? summarizeWorkspace(p.workspaceRoot) : undefined }),
 
       // ----- agents -----
