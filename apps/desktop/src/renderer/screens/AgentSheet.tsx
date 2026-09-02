@@ -1,12 +1,12 @@
 import { useEffect, useState, type ReactElement } from "react";
-import type { Agent, AgentFiles, CronTrigger, PermissionBehavior, PermissionRule, Provider } from "@crew/shared";
+import type { Agent, AgentFiles, CronTrigger, PermissionBehavior, PermissionRule, Provider, Skill } from "@crew/shared";
 import { store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
 import { Avatar, Button, Checkbox, IconButton, KV, Popup, Switch } from "../ui/kit";
 import { ModelPicker } from "../components/ModelPicker";
 import { BudgetEditor, workHoursOf } from "../components/BudgetEditor";
 
-type Tab = "general" | "soul" | "rules" | "wakeups" | "permissions" | "memory" | "budget";
+type Tab = "general" | "soul" | "rules" | "wakeups" | "permissions" | "memory" | "skills" | "budget";
 
 const TABS: { id: Tab; label: string; icon: (p: { size?: number; stroke?: string }) => ReactElement }[] = [
   { id: "general", label: "General", icon: (p) => <Ic.Person {...p} /> },
@@ -15,6 +15,7 @@ const TABS: { id: Tab; label: string; icon: (p: { size?: number; stroke?: string
   { id: "wakeups", label: "Wake-ups", icon: (p) => <Ic.Clock {...p} /> },
   { id: "permissions", label: "Permissions", icon: (p) => <Ic.Lock {...p} /> },
   { id: "memory", label: "Memory", icon: (p) => <Ic.Note {...p} /> },
+  { id: "skills", label: "Skills", icon: (p) => <Ic.Sparkle {...p} /> },
   { id: "budget", label: "Budget", icon: (p) => <Ic.Dollar {...p} /> },
 ];
 
@@ -71,6 +72,7 @@ export function AgentSheet({ agentId, tab }: { agentId: string; tab?: string }) 
         {active === "wakeups" && <WakeupsTab agent={agent} />}
         {active === "permissions" && <RulesEditor agent={agent} />}
         {active === "memory" && <FileTab agent={agent} files={files} file="memory" intro="Agents append here with the remember tool. Delete lines you don't want them to keep." />}
+        {active === "skills" && <SkillsTab agent={agent} />}
         {active === "budget" && <BudgetTab agent={agent} />}
       </div>
 
@@ -246,6 +248,60 @@ function WakeupsTab({ agent }: { agent: Agent }) {
         ))}
         <div className="rule" style={{ borderBottom: "none", color: "var(--accent)" }}>
           <Button sm icon={<Ic.Plus size={11} />} onClick={() => setCron([...agent.triggers.cron, { name: "Daily standup", expr: "0 9 * * 1-5", prompt: "Post today's plan in #general." }])}>Add schedule</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Skills ----------
+
+function SkillsTab({ agent }: { agent: Agent }) {
+  const [skills, setSkills] = useState<Skill[] | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [text, setText] = useState("");
+  const [newName, setNewName] = useState("");
+  const load = () => store.rpc<Skill[]>("agent.skills.list", { id: agent.id }).then((s) => { setSkills(s); if (selected && !s.some((x) => x.name === selected)) setSelected(null); });
+  useEffect(() => { void load(); }, [agent.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const s = skills?.find((x) => x.name === selected); setText(s?.content ?? ""); }, [selected, skills]);
+
+  const save = async () => { if (!selected) return; await store.rpc("agent.skills.set", { id: agent.id, name: selected, content: text }); store.toast("Skill saved."); await load(); };
+  const add = async () => { const name = newName.trim(); if (!name) return; const s = await store.rpc<Skill>("agent.skills.set", { id: agent.id, name, content: `# ${name}\n\nWhen to use it:\n\nSteps:\n1. \n` }); setNewName(""); await load(); setSelected(s.name); };
+  const remove = async () => { if (!selected || !confirm(`Delete skill "${selected}"?`)) return; await store.rpc("agent.skills.delete", { id: agent.id, name: selected }); setSelected(null); await load(); };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1, minHeight: 0 }}>
+      <div style={{ fontSize: 12, color: "var(--ink-4)" }}>Skills are how-tos {agent.name} saves with the learn_skill tool (a checklist, a command sequence, a pattern for this codebase). Every skill is loaded into {agent.name}'s context on each run. Write your own here too.</div>
+      <div style={{ display: "grid", gridTemplateColumns: "220px minmax(0, 1fr)", gap: 12, flex: 1, minHeight: 0 }}>
+        <div style={{ border: "1px solid var(--border)", borderRadius: 7, background: "var(--surface)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div className="scroll" style={{ flex: 1 }}>
+            {skills === null && <div style={{ padding: 10, fontSize: 12, color: "var(--ink-4)" }}>Loading…</div>}
+            {skills?.length === 0 && <div style={{ padding: 10, fontSize: 12, color: "var(--ink-4)" }}>No skills yet.</div>}
+            {skills?.map((s) => (
+              <button key={s.name} className={"li" + (selected === s.name ? " li-sel" : "")} style={{ padding: "7px 10px", flexDirection: "column", gap: 1 }} onClick={() => setSelected(s.name)}>
+                <span className="mono" style={{ fontSize: 12, fontWeight: 500 }}>{s.name}</span>
+                <span style={{ fontSize: 10.5, color: "var(--ink-5)" }}>{new Date(s.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" })} · {s.content.split("\n").length} lines</span>
+              </button>
+            ))}
+          </div>
+          <div style={{ borderTop: "1px solid var(--border-faint)", padding: 6, display: "flex", gap: 4 }}>
+            <input className="field" placeholder="new-skill-name" value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void add()} />
+            <Button onClick={() => void add()} disabled={!newName.trim()}>Add</Button>
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, minHeight: 0 }}>
+          {selected ? (
+            <>
+              <textarea className="field mono" style={{ flex: 1, minHeight: 260, width: "100%" }} value={text} onChange={(e) => setText(e.target.value)} />
+              <div style={{ display: "flex", gap: 6 }}>
+                <Button danger onClick={() => void remove()}>Delete</Button>
+                <span className="grow" />
+                <Button primary onClick={() => void save()}>Save</Button>
+              </div>
+            </>
+          ) : (
+            <div className="empty" style={{ fontSize: 12, border: "1px dashed var(--border)", borderRadius: 7 }}>Select a skill or add one.</div>
+          )}
         </div>
       </div>
     </div>

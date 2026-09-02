@@ -59,6 +59,7 @@ function systemPrompt(crew: Crew, status: ReturnType<Crew["providerStatus"]>): s
     "Budgets in USD per day: lead 3-5, engineers 2-4, review/docs 0.5-2. Team cap around the sum. Estimate a realistic daily range.",
     "Channels: #general is created automatically. Add 1-3 more only if they carry different conversations. Members are agent names.",
     "questionsForOwner: 1-3 yes/no questions about things you deliberately left out or assumed.",
+    "schedules: give the lead a weekday 09:00 standup, a weekday 18:00 end-of-day report to the owner, and a Friday 17:00 retrospective (5-field cron; prompts say exactly what to read and post). Other agents get schedules only when a duty is truly periodic (e.g. docs release notes weekly).",
     "Agent names: short human first names with distinct first letters. Colors: soft pastel hex backgrounds like #E9D9CF, #D7E3DA, #DDDCE8, #F3E4C8, #D9E6EE.",
     "Return only the JSON object.",
   ].join("\n");

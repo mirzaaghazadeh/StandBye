@@ -1,0 +1,26 @@
+appId: com.standbye.app
+productName: Standbye
+copyright: Standbye
+directories:
+  buildResources: build
+  output: release
+files:
+  - out/**
+  - package.json
+  - "!**/*.map"
+afterPack: scripts/after-pack.cjs
+asarUnpack:
+  - "**/*.node"
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - dmg
+    - zip
+  icon: build/icon.icns
+  darkModeSupport: true
+  hardenedRuntime: false
+  identity: null
+dmg:
+  artifactName: Standbye-${version}-${arch}.${ext}
+npmRebuild: false
+nodeGypRebuild: false

@@ -8,9 +8,14 @@
     "dev": "pnpm --filter @crew/supervisor build && pnpm --filter @crew/desktop dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
-    "supervisor": "pnpm --filter @crew/supervisor start"
+    "supervisor": "pnpm --filter @crew/supervisor start",
+    "smoke": "pnpm --filter @crew/shared build && pnpm --filter @crew/supervisor build && node scripts/smoke.mjs",
+    "package": "pnpm build && pnpm --filter @crew/desktop package"
   },
   "devDependencies": {
     "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "ws": "^8.21.3"
   }
 }

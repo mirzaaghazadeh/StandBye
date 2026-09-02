@@ -83,16 +83,22 @@ export const TEAM_TOOLS = [
       "Ask the owner something only they can decide, or request approval. Give options, say which you recommend, and give a sensible default so work is not blocked forever. The owner answers in their own time; this call returns immediately unless wait is true. Keep working on something else meanwhile.",
     schema: {
       title: z.string().max(140).describe("The question in one line"),
-      body: z.string().max(2000).describe("Why you're asking and what you recommend"),
+      body: z.string().max(4000).describe("Why you're asking and what you recommend; for a report, the report itself"),
       options: z.array(z.string()).max(6).optional(),
       recommended: z.string().optional(),
       default_answer: z.string().optional().describe("Used automatically if the owner doesn't answer in time"),
       default_in_minutes: z.number().int().min(5).max(1440).optional(),
       wait: z.boolean().optional().describe("Block until answered (max 20 min). Only when you truly cannot continue."),
+      kind: z.enum(["question", "report"]).optional().describe("report = an update that needs no decision; it lands in the owner's inbox without blocking anything"),
     },
     handler: async (args, ctx) => {
       const agent = ctx.crew.getAgent(ctx.agentId);
       const channel = agent.channels.find((c) => c !== "general") ?? "general";
+      if (args.kind === "report") {
+        const r = ctx.crew.askQuestion({ kind: "report", fromAgentId: ctx.agentId, toId: "user", channel: null, title: args.title, body: args.body, options: ["Got it"], runId: ctx.run.id });
+        ctx.crew.addStep(ctx.run.id, "post", `Report to ${ctx.crew.team?.ownerName ?? "the owner"}: ${args.title}`);
+        return `Report ${r.id} delivered to the owner's inbox.`;
+      }
       const q = ctx.crew.askQuestion({
         kind: "question", fromAgentId: ctx.agentId, toId: "user", channel, title: args.title, body: args.body,
         options: args.options, recommended: args.recommended ?? null, defaultAnswer: args.default_answer ?? null,
@@ -179,6 +185,18 @@ export const TEAM_TOOLS = [
       ctx.crew.addStep(ctx.run.id, "memory", note);
       ctx.crew.setAgentRuntime(ctx.agentId, {});
       return `Remembered (${n} notes).`;
+    },
+  }),
+  def({
+    name: "learn_skill",
+    description:
+      "Save a reusable how-to you worked out, so next time (and teammates) can follow it without rediscovering it: a checklist, a command sequence, a pattern for this codebase. Markdown, under 60 lines. Use a short kebab-case name; saving the same name replaces it.",
+    schema: { name: z.string().min(2).max(60), content: z.string().min(20).max(6000) },
+    handler: async ({ name, content }, ctx) => {
+      const s = ctx.crew.store.writeSkill(ctx.agentId, name, content);
+      ctx.crew.addStep(ctx.run.id, "memory", `Learned skill: ${s.name}`);
+      ctx.crew.bus.emit("agent.updated", ctx.crew.getAgent(ctx.agentId));
+      return `Skill "${s.name}" saved. It is loaded into your context on every run.`;
     },
   }),
   def({

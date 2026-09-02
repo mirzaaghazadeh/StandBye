@@ -25,8 +25,7 @@ export class SupervisorHost {
     this.token = randomBytes(16).toString("hex");
   }
 
-  async start(): Promise<void> {
-    const script = path.join(path.dirname(require.resolve("@crew/supervisor/package.json")), "dist", "index.js");
+  async start(script: string): Promise<void> {
     const node = findNode();
     if (!node) throw new Error("Could not find a Node.js binary to run the supervisor. Install Node 22+ or set CREW_NODE.");
     fs.mkdirSync(this.dataDir, { recursive: true });

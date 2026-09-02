@@ -130,7 +130,7 @@ export class Scheduler {
       const asker = crew.findAgent(q.fromAgentId);
       if (!asker) return;
       if (asker.currentRunId && asker.currentRunId === q.runId) return;
-      if (q.kind === "approval") return; // approvals only matter to the run that asked
+      if (q.kind === "approval" || q.kind === "report") return; // approvals only matter to the run that asked; reports need no follow-up
       queue.enqueue(asker.id, { kind: "answer", questionId: q.id });
     });
 

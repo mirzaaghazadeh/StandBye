@@ -67,7 +67,7 @@ export async function executeRun(crew: Crew, runId: string, signal: AbortSignal)
     finished = crew.finishRun(run, "done", summary || out.text.slice(0, 200) || "Finished", base);
   }
 
-  const stillWaiting = crew.db.listQuestions({ status: "open" }).some((q) => q.fromAgentId === agent.id && q.toId === "user");
+  const stillWaiting = crew.db.listQuestions({ status: "open" }).some((q) => q.fromAgentId === agent.id && q.toId === "user" && q.kind !== "report");
   crew.setAgentRuntime(agent.id, {
     status: out.error ? "failed" : stillWaiting ? "needs_you" : "idle",
     statusText: out.error ? out.error.slice(0, 120) : stillWaiting ? "Waiting for you" : "",

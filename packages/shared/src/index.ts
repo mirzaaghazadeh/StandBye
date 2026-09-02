@@ -256,6 +256,10 @@ export const AgentDraftSchema = z.object({
   capBy: z.enum(["day", "hour", "run"]).optional(),
   channels: z.array(z.string()),
   color: z.string().describe("hex background color for the avatar"),
+  schedules: z
+    .array(z.object({ name: z.string(), expr: z.string().describe("5-field cron, e.g. '0 9 * * 1-5'"), prompt: z.string() }))
+    .optional()
+    .describe("Recurring duties, e.g. a 09:00 standup for the lead"),
 });
 
 export const TeamDraftSchema = z.object({
@@ -318,4 +322,10 @@ export interface AgentFiles {
   soul: string;
   rules: string;
   memory: string;
+}
+
+export interface Skill {
+  name: string;
+  content: string;
+  updatedAt: string;
 }

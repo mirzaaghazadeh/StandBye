@@ -27,11 +27,21 @@ Edit them by hand any time; the next run picks up the change.
 ```bash
 pnpm install
 pnpm dev          # builds shared + supervisor, starts Electron with hot reload
+pnpm smoke        # no-key end-to-end test of the supervisor (team, tools, hire flow)
+pnpm package      # icon + bundled supervisor + macOS .dmg/.zip in apps/desktop/release
 ```
 
-Requires Node 22+ on the machine (the app launches the supervisor with your `node`; bundling a runtime is a packaging task, see PLAN.md).
+Requires Node 22+ on the machine: the app launches its bundled supervisor with your `node` (it looks in PATH, Homebrew and nvm). Bundling a runtime is the remaining packaging task.
 
-Add your Anthropic and/or OpenRouter key in Settings, then describe the team you want in the New Team sheet.
+First open walks you through providers (Claude via your Claude Code login or an API key, OpenRouter with a key), the default and check-in model per provider, then how to make the team: describe it, build it by hand, or start from the solo dev team template.
+
+## How a team runs
+
+- **Check-ins**: every N minutes inside work hours an agent glances at its channels, questions and tasks on the cheap check-in model. Nothing new costs about a cent; real work escalates to the default model.
+- **Events**: mentions, questions from teammates, assigned tasks and your answers wake the right agent immediately.
+- **Schedules**: the lead gets a weekday standup, an end-of-day report and a Friday retrospective; any agent can have cron duties.
+- **Guardrails**: allow / ask / block rules per tool, a workspace fence for file tools, per-agent budgets by day, hour or run, a team daily cap, and a chat-depth cap so agents don't loop.
+- **Growth**: `remember` appends to MEMORY.md, `learn_skill` writes reusable how-tos into `skills/`, decisions you mark "remember" are shown to every agent so nobody asks twice.
 
 ## Join a team from Claude Code
 

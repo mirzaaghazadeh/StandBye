@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { AgentConfig, AgentFiles, TeamConfig } from "@crew/shared";
+import type { AgentConfig, AgentFiles, Skill, TeamConfig } from "@crew/shared";
 
 /**
  * Agents are folders. Everything a person would want to read or edit by hand
@@ -87,12 +87,24 @@ export class Store {
     if (!fs.existsSync(p)) return 0;
     return fs.readFileSync(p, "utf8").split("\n").filter((l) => l.startsWith("- ")).length;
   }
-  listSkills(id: string): { name: string; content: string }[] {
+  listSkills(id: string): Skill[] {
     const dir = path.join(this.agentDir(id), "skills");
     if (!fs.existsSync(dir)) return [];
     return fs
       .readdirSync(dir)
       .filter((f) => f.endsWith(".md"))
-      .map((f) => ({ name: f.replace(/\.md$/, ""), content: fs.readFileSync(path.join(dir, f), "utf8") }));
+      .sort()
+      .map((f) => ({ name: f.replace(/\.md$/, ""), content: fs.readFileSync(path.join(dir, f), "utf8"), updatedAt: fs.statSync(path.join(dir, f)).mtime.toISOString() }));
+  }
+  writeSkill(id: string, name: string, content: string): Skill {
+    const dir = path.join(this.agentDir(id), "skills");
+    fs.mkdirSync(dir, { recursive: true });
+    const safe = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "skill";
+    fs.writeFileSync(path.join(dir, safe + ".md"), content.trim() + "\n");
+    return { name: safe, content: content.trim() + "\n", updatedAt: new Date().toISOString() };
+  }
+  deleteSkill(id: string, name: string): void {
+    const p = path.join(this.agentDir(id), "skills", name + ".md");
+    if (fs.existsSync(p)) fs.rmSync(p);
   }
 }

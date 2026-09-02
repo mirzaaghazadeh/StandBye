@@ -28,12 +28,19 @@ packages/shared         Types + zod schemas shared by daemon and UI
 
 ## Milestones
 
-1. Scaffold monorepo, shared types, SQLite schema, supervisor boots and serves WS API. ✅ when `pnpm dev` shows Home.
-2. Anthropic runner + team MCP tools + heartbeat scheduler. Agents post in channels, ask questions, remember.
-3. OpenRouter runner (GLM 5.3) with same tools. Mixed-provider team talks to itself.
-4. UI screens from the design: Home, Channel, Inbox, Runs, Agent settings, Team builder sheet, menu-bar item, notifications.
-5. Team builder (NL → team). Budgets, permissions, approvals wired end to end.
-6. Polish: keys in keychain, crash recovery, pause all, retrospectives.
+1. ✅ Monorepo, shared types, SQLite schema, supervisor boots and serves the WS API.
+2. ✅ Claude runner + team tools over MCP + heartbeat scheduler. Verified live: mention → read workspace → post → ask teammate.
+3. ✅ OpenRouter runner (GLM 5.3) with the same tools. Verified live: a GLM agent reviewed code and posted a verdict.
+4. ✅ UI from the design: Home, Channel, Inbox, Runs, Agent sheet (incl. Skills), Team builder, manual builder, wizard, menu-bar item, notifications.
+5. ✅ Team builder on Anthropic key / Claude login / OpenRouter. Budgets (day/hour/run), permissions, approvals, hire flow, reports.
+6. ✅ Keys in keychain, crash recovery, pause all, schedules (standup, report, retro), learn_skill, packaging (.dmg with bundled supervisor).
+
+## Next
+
+- Bundle a Node runtime (or run the supervisor under Electron's utilityProcess with a rebuilt better-sqlite3) so Node isn't required.
+- More providers: any OpenAI-compatible base URL (Ollama, LM Studio).
+- Inbound events: GitHub webhooks / CI status, file watcher on the workspace.
+- Code signing and notarization for distribution.
 
 ## Defaults
 

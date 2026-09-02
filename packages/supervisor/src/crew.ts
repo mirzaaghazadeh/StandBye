@@ -100,6 +100,7 @@ export class Crew {
   }
   /** True when Claude Code is signed in on this machine, so the Claude runner works without an API key. */
   hasClaudeLogin(): boolean {
+    if (process.env.CREW_DISABLE_CLAUDE_LOGIN === "1") return false; // tests must never spend
     try {
       if (fs.existsSync(path.join(os.homedir(), ".claude", ".credentials.json"))) return true; // Linux/Windows
       const cfg = path.join(os.homedir(), ".claude.json"); // macOS keeps the token in the Keychain; the account marker lives here
@@ -165,7 +166,7 @@ export class Crew {
       model: draft.model || pc.defaultModel,
       checkinModel: pc.checkinModel,
       heartbeat: { everyMinutes: draft.heartbeatMinutes || DEFAULTS.heartbeatMinutes, workHours: DEFAULTS.workHours },
-      triggers: { onMention: true, cron: [] },
+      triggers: { onMention: true, cron: (draft.schedules ?? []).map((s) => ({ name: s.name, expr: s.expr, prompt: s.prompt })) },
       permissions: DEFAULT_DEV_RULES,
       budget: { dailyUsd: draft.dailyBudgetUsd || DEFAULTS.agentDailyUsd, perRunUsd: draft.perRunBudgetUsd ?? DEFAULTS.agentPerRunUsd, hourlyUsd: draft.hourlyBudgetUsd ?? null, capBy: draft.capBy ?? "day" },
       channels: memberOf,
@@ -312,7 +313,7 @@ export class Crew {
     if (q.toId === "user") {
       const from = this.findAgent(q.fromAgentId);
       this.bus.emit("notify", { title: `${from?.name ?? q.fromAgentId} · ${from?.role ?? ""}`.trim(), body: q.title, questionId: q.id });
-      this.setAgentRuntime(q.fromAgentId, { status: "needs_you", statusText: q.title });
+      if (q.kind !== "report") this.setAgentRuntime(q.fromAgentId, { status: "needs_you", statusText: q.title });
     }
     return q;
   }

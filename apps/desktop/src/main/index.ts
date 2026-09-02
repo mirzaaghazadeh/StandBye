@@ -148,7 +148,10 @@ ipcMain.handle("crew:dataDir", () => dataDir);
 app.setName("Standbye");
 void app.whenReady().then(async () => {
   try {
-    await host.start();
+    const script = app.isPackaged
+      ? path.join(process.resourcesPath, "supervisor", "dist", "index.js")
+      : path.join(path.dirname(require.resolve("@crew/supervisor/package.json")), "dist", "index.js");
+    await host.start(script);
     const keys = loadKeys();
     if (Object.keys(keys).length) await host.rpc("keys.set", keys);
     agents = await host.rpc<Agent[]>("agents.list");

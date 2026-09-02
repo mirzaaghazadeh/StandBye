@@ -4,4 +4,6 @@ out/
 *.log
 .DS_Store
 design/dev-team-desktop.html
-.env
+.envapps/desktop/resources/
+apps/desktop/release/
+apps/desktop/build/icon.png
