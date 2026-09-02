@@ -166,6 +166,16 @@ textarea.field.mono { font-family: var(--mono); font-size: 12.5px; line-height: 
 .day i { flex: 1; height: 1px; background: var(--border-faint); }
 .day b { font-size: 11px; font-weight: 600; color: var(--ink-5); }
 
+/* ---- typing / working indicator ---- */
+.typing { display: flex; align-items: center; gap: 10px; padding: 6px 18px; font-size: 12px; color: var(--ink-4); min-width: 0; }
+.typing .who { font-weight: 600; color: var(--ink-3); }
+.typing .what { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); font-size: 11px; }
+.dots { display: inline-flex; gap: 3px; align-items: center; }
+.dots i { width: 5px; height: 5px; border-radius: 999px; background: var(--ink-5); animation: blink 1.2s infinite ease-in-out; }
+.dots i:nth-child(2) { animation-delay: 0.2s; } .dots i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: 0.25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
+.mention-pop { position: fixed; width: 260px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18); z-index: 100; padding: 4px 0; }
+
 /* ---- option rows (inbox answers) ---- */
 .opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); width: 100%; text-align: left; }
 .opt-on { border-color: var(--accent); background: var(--q-card); }

@@ -44,6 +44,8 @@ export class Db {
     this.sqlite = new Database(path.join(dataDir, "crew.db"));
     this.sqlite.pragma("journal_mode = WAL");
     this.sqlite.exec(SCHEMA);
+    const cols = (this.sqlite.prepare("PRAGMA table_info(channels)").all() as { name: string }[]).map((c) => c.name);
+    if (!cols.includes("kind")) this.sqlite.exec("ALTER TABLE channels ADD COLUMN kind TEXT NOT NULL DEFAULT 'group'; ALTER TABLE channels ADD COLUMN dm_agent_id TEXT;");
   }
 
   // ---- channels ----
@@ -56,8 +58,11 @@ export class Db {
   }
   upsertChannel(c: Channel): void {
     this.sqlite
-      .prepare("INSERT INTO channels (id, name, purpose, members) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name, purpose=excluded.purpose, members=excluded.members")
-      .run(c.id, c.name, c.purpose, JSON.stringify(c.members));
+      .prepare("INSERT INTO channels (id, name, purpose, members, kind, dm_agent_id) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name, purpose=excluded.purpose, members=excluded.members, kind=excluded.kind, dm_agent_id=excluded.dm_agent_id")
+      .run(c.id, c.name, c.purpose, JSON.stringify(c.members), c.kind, c.dmAgentId);
+  }
+  deleteChannel(id: string): void {
+    this.sqlite.prepare("DELETE FROM channels WHERE id = ?").run(id);
   }
   deleteAllChannels(): void {
     this.sqlite.exec("DELETE FROM channels; DELETE FROM messages;");
@@ -225,7 +230,7 @@ export function startOfToday(): string {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function rowToChannel(r: any): Channel {
-  return { id: r.id, name: r.name, purpose: r.purpose, members: JSON.parse(r.members) };
+  return { id: r.id, name: r.name, purpose: r.purpose, members: JSON.parse(r.members), kind: r.kind === "dm" ? "dm" : "group", dmAgentId: r.dm_agent_id ?? null };
 }
 function rowToMessage(r: any): Message {
   return {

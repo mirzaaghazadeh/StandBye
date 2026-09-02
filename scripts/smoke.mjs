@@ -50,7 +50,12 @@ try {
   check("agents created", agents.length === 4 && agents.every((a) => a.status === "idle" || a.status === "over_budget"));
   check("cron mapped", agents.find((a) => a.id === "ada").triggers.cron.length === 3);
   const channels = await rpc("channels.list");
-  check("channels", channels.map((c) => c.name).sort().join(",") === "backend,general,reviews");
+  check("channels", channels.filter((c) => c.kind === "group").map((c) => c.name).sort().join(",") === "backend,general,reviews");
+  check("direct chats exist", channels.filter((c) => c.kind === "dm").length === 4 && channels.some((c) => c.id === "dm-kai" && c.dmAgentId === "kai"));
+  const dmMsg = await rpc("messages.send", { channelId: "dm-rex", text: "how are the tests looking?" });
+  check("dm message addresses the agent without @", dmMsg.mentions.includes("rex"));
+  await new Promise((r) => setTimeout(r, 800));
+  check("dm wakes the agent", (await rpc("runs.list")).some((r) => r.agentId === "rex" && r.trigger.kind === "mention" && r.trigger.by === "user"));
   const files = await rpc("agent.files.get", { id: "kai" });
   check("agent files", files.soul.startsWith("# Kai") && files.rules.includes("Rules"));
 

@@ -11,7 +11,11 @@ export function systemPrompt(crew: Crew, agent: Agent, mode: "full" | "checkin")
     .filter((a) => a.id !== agent.id)
     .map((a) => `- ${a.name}, ${a.role}`)
     .join("\n");
-  const channels = crew.listChannels().filter((c) => agent.channels.includes(c.id)).map((c) => `- #${c.name}: ${c.purpose}`).join("\n");
+  const channels = crew
+    .listChannels()
+    .filter((c) => agent.channels.includes(c.id))
+    .map((c) => (c.kind === "dm" ? `- #${c.name}: your direct chat with ${owner}. Only the two of you see it. When ${owner} writes to you there, answer there.` : `- #${c.name}: ${c.purpose}`))
+    .join("\n");
   const skills = crew.store.listSkills(agent.id);
   const decisions = crew.db.listDecisions(15);
 

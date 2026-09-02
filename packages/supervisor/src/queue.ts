@@ -5,7 +5,9 @@ import { executeRun } from "./runner.js";
 
 /**
  * One run at a time per agent, a few in parallel across the team.
- * Duplicate wake-ups (two heartbeats, the same mention twice) are collapsed.
+ * Wake-ups from the owner go to the front. Duplicate wake-ups collapse: a run already sees
+ * every new message and open question, so a second queued mention adds nothing.
+ * Every run has a hard timeout.
  */
 export class Queue {
   private readonly pending: Run[] = [];
@@ -19,7 +21,8 @@ export class Queue {
     if (agent.paused || this.crew.pausedAll) return null;
     if (this.isDuplicate(agentId, trigger)) return null;
     const run = this.crew.createRun(agentId, trigger, agent.model);
-    this.pending.push(run);
+    if (fromOwner(trigger)) this.pending.unshift(run);
+    else this.pending.push(run);
     void this.pump();
     return run;
   }
@@ -38,27 +41,34 @@ export class Queue {
       return true;
     }
     const ac = this.active.get(runId);
-    if (ac) { ac.abort(); return true; }
+    if (ac) { ac.abort("cancelled"); return true; }
     return false;
   }
   cancelAll(): void {
     for (const run of this.pending.splice(0)) this.crew.finishRun(run, "cancelled", "Paused");
-    for (const ac of this.active.values()) ac.abort();
+    for (const ac of this.active.values()) ac.abort("cancelled");
   }
 
   private isDuplicate(agentId: string, trigger: RunTrigger): boolean {
-    const same = (t: RunTrigger) => {
-      if (t.kind !== trigger.kind) return false;
-      if (t.kind === "heartbeat") return true;
-      if (t.kind === "mention" && trigger.kind === "mention") return t.messageId === trigger.messageId;
-      if (t.kind === "answer" && trigger.kind === "answer") return t.questionId === trigger.questionId;
-      if (t.kind === "question" && trigger.kind === "question") return t.questionId === trigger.questionId;
-      return false;
-    };
-    if (this.pending.some((r) => r.agentId === agentId && same(r.trigger))) return true;
-    // A heartbeat is pointless while the agent is already doing something.
-    if (trigger.kind === "heartbeat" && this.busyAgents.has(agentId)) return true;
-    return false;
+    const queued = this.pending.filter((r) => r.agentId === agentId);
+    const busy = this.busyAgents.has(agentId);
+    switch (trigger.kind) {
+      case "heartbeat":
+        return busy || queued.length > 0; // anything else already wakes the agent
+      case "mention":
+        // The owner's message must not be swallowed by a queued agent-to-agent mention: promote instead of skip.
+        if (fromOwner(trigger)) {
+          const i = this.pending.findIndex((r) => r.agentId === agentId && r.trigger.kind === "mention" && !fromOwner(r.trigger));
+          if (i >= 0) { const [r] = this.pending.splice(i, 1); this.crew.finishRun(r!, "cancelled", "Folded into a newer wake-up"); }
+          return queued.some((r) => r.trigger.kind === "mention" && fromOwner(r.trigger));
+        }
+        return queued.some((r) => r.trigger.kind === "mention" || r.trigger.kind === "heartbeat");
+      case "question":
+      case "answer":
+        return queued.some((r) => r.trigger.kind === trigger.kind);
+      default:
+        return false;
+    }
   }
 
   private async pump(): Promise<void> {
@@ -70,6 +80,8 @@ export class Queue {
       this.busyAgents.add(run.agentId);
       const ac = new AbortController();
       this.active.set(run.id, ac);
+      const minutes = run.trigger.kind === "heartbeat" ? DEFAULTS.checkinTimeoutMinutes : DEFAULTS.runTimeoutMinutes;
+      const timer = setTimeout(() => ac.abort(`timeout:${minutes}`), minutes * 60_000);
       void executeRun(this.crew, run.id, ac.signal)
         .then((res) => {
           if (res.escalate) this.onEscalate(run.agentId, res.escalate);
@@ -80,10 +92,15 @@ export class Queue {
           this.crew.setAgentRuntime(run.agentId, { status: "failed", statusText: String(e).slice(0, 120), currentRunId: null });
         })
         .finally(() => {
+          clearTimeout(timer);
           this.active.delete(run.id);
           this.busyAgents.delete(run.agentId);
           void this.pump();
         });
     }
   }
+}
+
+function fromOwner(t: RunTrigger): boolean {
+  return t.kind === "manual" || (t.kind === "mention" && t.by === "user") || (t.kind === "task" && t.from === "user");
 }

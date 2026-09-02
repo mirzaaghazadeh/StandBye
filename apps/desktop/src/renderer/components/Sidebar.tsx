@@ -1,11 +1,12 @@
 import { store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
-import { StatusDot } from "../ui/kit";
+import { Avatar, STATUS_COLOR } from "../ui/kit";
 import { TeamSwitcher } from "./TeamSwitcher";
 
 export function Sidebar() {
   const route = useStore((s) => s.route);
   const agents = useStore((s) => s.agents);
+  const seen = useStore((s) => s.seen);
   const channels = useStore((s) => s.channels);
   const questions = useStore((s) => s.questions);
   const spend = useStore((s) => s.spend);
@@ -35,8 +36,8 @@ export function Sidebar() {
       </button>
 
       <div className="sec">Channels</div>
-      {channels.length === 0 && <div className="srow" style={{ color: "var(--ink-5)" }}>No channels yet</div>}
-      {channels.map((c) => {
+      {channels.filter((c) => c.kind !== "dm").length === 0 && <div className="srow" style={{ color: "var(--ink-5)" }}>No channels yet</div>}
+      {channels.filter((c) => c.kind !== "dm").map((c) => {
         const on = is("channel", c.id);
         const unread = !on && (messages[c.id]?.some((m) => m.kind === "question" && questions.find((q) => q.id === m.questionId)?.status === "open") ?? false);
         return (
@@ -48,15 +49,23 @@ export function Sidebar() {
         );
       })}
 
-      <div className="sec">Agents</div>
+      <div className="sec">Direct chats</div>
       {agents.length === 0 && <div className="srow" style={{ color: "var(--ink-5)" }}>No agents yet</div>}
-      {agents.map((a) => (
-        <button key={a.id} className={"srow" + (route.name === "agent" && route.agentId === a.id ? " srow-on" : "")} onClick={() => { store.navigate({ name: "agent", agentId: a.id }); }}>
-          <StatusDot status={a.status} />
-          <span className="grow">{a.name}</span>
-          <span className="hint">{a.role.split(" ")[0]?.toLowerCase()}</span>
-        </button>
-      ))}
+      {agents.map((a) => {
+        const dm = messages[`dm-${a.id}`];
+        const last = dm?.[dm.length - 1];
+        const unread = Boolean(last && last.authorId === a.id && !(route.name === "dm" && route.agentId === a.id) && last.createdAt > (seen[`dm-${a.id}`] ?? ""));
+        return (
+          <button key={a.id} className={"srow" + (route.name === "dm" && route.agentId === a.id ? " srow-on" : "")} onClick={() => { store.navigate({ name: "dm", agentId: a.id }); }} title={`${a.name} · ${a.role}`}>
+            <span style={{ position: "relative", display: "inline-flex", flexShrink: 0 }}>
+              <Avatar agent={a} size={18} />
+              <span className="dot" style={{ position: "absolute", right: -2, bottom: -1, width: 7, height: 7, background: STATUS_COLOR[a.status], boxShadow: "0 0 0 1.5px var(--side-solid)" }} />
+            </span>
+            <span className="grow" style={{ fontWeight: unread ? 600 : undefined }}>{a.name}</span>
+            {unread ? <span className="dot" style={{ width: 7, height: 7, background: "var(--accent)" }} /> : <span className="hint">{a.role.split(" ")[0]?.toLowerCase()}</span>}
+          </button>
+        );
+      })}
 
       <div className="grow" />
       {spend && (

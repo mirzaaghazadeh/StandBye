@@ -6,7 +6,7 @@ import type {
   Agent, AgentConfig, AgentDraft, AgentStatus, Channel, KeyStatus, Message, MessageKind, Provider, ProviderConfig, ProviderSettings, ProviderStatus, Question, QuestionKind,
   Run, RunStatus, RunStep, RunStepKind, RunTrigger, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft,
 } from "@crew/shared";
-import { DEFAULT_MODELS } from "@crew/shared";
+import { DEFAULT_MODELS, dmChannelId } from "@crew/shared";
 import { Bus } from "./bus.js";
 import { Db } from "./db.js";
 import { Store } from "./store.js";
@@ -58,6 +58,7 @@ export class Crew {
     this.team = this.store.readTeam();
     const stale = this.db.recoverStaleRuns();
     if (stale > 0) console.error(`[crew] marked ${stale} stale run(s) as failed after restart`);
+    for (const a of this.store.listAgentConfigs()) this.ensureDm(a.id); // teams created before direct chats existed
   }
 
   get id(): string | null {
@@ -149,11 +150,11 @@ export class Crew {
     const nameToId = new Map<string, string>();
     for (const a of draft.agents) nameToId.set(a.name.toLowerCase(), slug(a.name));
 
-    const channels: Channel[] = [{ id: "general", name: "general", purpose: "Everyone. Announcements, standups, anything cross-cutting.", members: [...nameToId.values()] }];
+    const channels: Channel[] = [{ id: "general", name: "general", purpose: "Everyone. Announcements, standups, anything cross-cutting.", members: [...nameToId.values()], kind: "group", dmAgentId: null }];
     for (const c of draft.channels) {
       const name = c.name.replace(/^#/, "").toLowerCase();
-      if (name === "general") continue;
-      channels.push({ id: name, name, purpose: c.purpose, members: c.members.map((n) => nameToId.get(n.toLowerCase())).filter((x): x is string => Boolean(x)) });
+      if (name === "general" || name.startsWith("dm-")) continue;
+      channels.push({ id: name, name, purpose: c.purpose, members: c.members.map((n) => nameToId.get(n.toLowerCase())).filter((x): x is string => Boolean(x)), kind: "group", dmAgentId: null });
     }
     for (const c of channels) this.db.upsertChannel(c);
 
@@ -200,7 +201,22 @@ export class Crew {
     for (const c of channels) {
       if (memberOf.includes(c.id) && !c.members.includes(id)) this.db.upsertChannel({ ...c, members: [...c.members, id] });
     }
+    this.ensureDm(id);
     return this.getAgent(id);
+  }
+
+  /** Every agent has a direct chat with the owner. It is a channel the agent is always a member of. */
+  ensureDm(agentId: string): Channel {
+    const id = dmChannelId(agentId);
+    let c = this.db.getChannel(id);
+    if (!c) {
+      const cfg = this.store.readAgentConfig(agentId);
+      c = { id, name: id, purpose: `Direct messages between ${this.team?.ownerName ?? "the owner"} and ${cfg?.name ?? agentId}.`, members: [agentId], kind: "dm", dmAgentId: agentId };
+      this.db.upsertChannel(c);
+    }
+    const cfg = this.store.readAgentConfig(agentId);
+    if (cfg && !cfg.channels.includes(id)) this.store.writeAgentConfig({ ...cfg, channels: [...cfg.channels, id] });
+    return c;
   }
 
   // ---------------- agents ----------------
@@ -266,7 +282,7 @@ export class Crew {
     const existing = this.db.getChannel(name);
     if (existing) return existing;
     const id = name.replace(/^#/, "").toLowerCase();
-    const c: Channel = { id, name: id, purpose, members };
+    const c: Channel = { id, name: id, purpose, members, kind: "group", dmAgentId: null };
     this.db.upsertChannel(c);
     return c;
   }
@@ -282,7 +298,8 @@ export class Crew {
       authorName,
       kind: input.kind ?? "message",
       text: input.text,
-      mentions: this.parseMentions(input.text),
+      // In a direct chat, anything the owner writes is addressed to that agent.
+      mentions: channel.kind === "dm" && input.authorId === "user" && channel.dmAgentId ? [...new Set([...this.parseMentions(input.text), channel.dmAgentId])] : this.parseMentions(input.text),
       depth: input.depth ?? 0,
       runId: input.runId ?? null,
       questionId: input.questionId ?? null,

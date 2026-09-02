@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { dmChannelId } from "@crew/shared";
 import type {
   Agent, AgentFiles, Channel, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunStep, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft, TeamSummary,
 } from "@crew/shared";
@@ -8,6 +9,7 @@ export type Route =
   | { name: "inbox"; questionId?: string }
   | { name: "runs"; runId?: string }
   | { name: "channel"; channelId: string }
+  | { name: "dm"; agentId: string }
   | { name: "agent"; agentId: string };
 
 export type Sheet =
@@ -39,6 +41,8 @@ export interface State {
   steps: Record<string, RunStep[]>;
   spend: SpendSummary | null;
   selectedAgentId: string | null;
+  /** channelId -> ISO time of the newest message the owner has looked at */
+  seen: Record<string, string>;
   builderDraft: TeamDraft | null;
   builderBusy: boolean;
   toast: string | null;
@@ -47,7 +51,7 @@ export interface State {
 const initial: State = {
   ready: false, error: null, route: { name: "home" }, sheet: { kind: "none" }, status: null,
   keys: { anthropic: false, openrouter: false }, providers: null, models: null, teams: [], activeTeamId: null, team: null, agents: [], channels: [], messages: {}, questions: [], runs: [], steps: {},
-  spend: null, selectedAgentId: null, builderDraft: null, builderBusy: false, toast: null,
+  spend: null, selectedAgentId: null, seen: {}, builderDraft: null, builderBusy: false, toast: null,
 };
 
 type Listener = () => void;
@@ -117,6 +121,7 @@ class Store {
 
   private onEvent(e: PushEvent): void {
     if (e.event === "teams.updated") { this.set({ teams: e.data }); return; }
+    if (e.event === "supervisor.reconnected") { this.toast("Reconnected to the supervisor."); void this.refreshAll(); return; }
     if (e.teamId && e.teamId !== this.state.activeTeamId) return; // another team's event; the switcher shows its counters
     switch (e.event) {
       case "agents.updated": this.set({ agents: e.data, selectedAgentId: this.state.selectedAgentId && e.data.some((a) => a.id === this.state.selectedAgentId) ? this.state.selectedAgentId : e.data[0]?.id ?? null }); break;
@@ -125,7 +130,7 @@ class Store {
       case "question.created": this.set((s) => ({ questions: [e.data, ...s.questions] })); break;
       case "question.updated": this.set((s) => ({ questions: s.questions.map((q) => (q.id === e.data.id ? e.data : q)) })); break;
       case "run.updated": this.set((s) => ({ runs: s.runs.some((r) => r.id === e.data.id) ? s.runs.map((r) => (r.id === e.data.id ? e.data : r)) : [e.data, ...s.runs] })); break;
-      case "run.step": this.set((s) => ({ steps: s.steps[e.data.runId] ? { ...s.steps, [e.data.runId]: [...s.steps[e.data.runId]!, e.data] } : s.steps })); break;
+      case "run.step": this.set((s) => ({ steps: { ...s.steps, [e.data.runId]: [...(s.steps[e.data.runId] ?? []), e.data].slice(-300) } })); break;
       case "team.updated": this.set({ team: e.data }); if (e.data) void this.rpc<Channel[]>("channels.list").then((channels) => this.set({ channels })); break;
       case "spend.updated": this.set({ spend: e.data }); break;
       case "supervisor.status": this.set({ status: e.data }); break;
@@ -138,15 +143,20 @@ class Store {
   navigate(route: Route): void {
     this.set({ route });
     if (route.name === "channel") void this.loadMessages(route.channelId);
+    if (route.name === "dm") { void this.loadMessages(dmChannelId(route.agentId)); this.set({ selectedAgentId: route.agentId }); }
     if (route.name === "runs" && route.runId) void this.loadSteps(route.runId);
     if (route.name === "agent") this.set({ selectedAgentId: route.agentId });
   }
   navigateByPath(p: string): void {
     const [, a, b] = p.split("/");
     if (a === "inbox") this.navigate({ name: "inbox", questionId: b });
-    else if (a === "agent" && b) this.navigate({ name: "agent", agentId: b });
+    else if (a === "agent" && b) this.navigate({ name: "dm", agentId: b });
     else if (a === "runs") this.navigate({ name: "runs", runId: b });
     else this.navigate({ name: "home" });
+  }
+  markSeen(channelId: string): void {
+    const last = this.state.messages[channelId]?.at(-1)?.createdAt;
+    if (last && last !== this.state.seen[channelId]) this.set((s) => ({ seen: { ...s.seen, [channelId]: last } }));
   }
   openSheet(sheet: Sheet): void { this.set({ sheet }); }
   closeSheet(): void { this.set({ sheet: { kind: "none" } }); }

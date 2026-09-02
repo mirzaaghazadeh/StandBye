@@ -55,7 +55,11 @@ export async function executeRun(crew: Crew, runId: string, signal: AbortSignal)
   const stepCount = crew.db.listSteps(run.id).length;
   const base: Partial<Run> = { costUsd: out.costUsd, inputTokens: out.inputTokens, outputTokens: out.outputTokens, stepCount };
   let finished: Run;
-  if (out.error) {
+  if (signal.aborted) {
+    const reason = String(signal.reason ?? "");
+    const why = reason.startsWith("timeout:") ? `Stopped after ${reason.slice(8)} minutes (run timeout)` : "Cancelled";
+    finished = crew.finishRun(run, reason.startsWith("timeout:") ? "failed" : "cancelled", summary || why, { ...base, error: reason.startsWith("timeout:") ? why : null });
+  } else if (out.error) {
     finished = crew.finishRun(run, "failed", summary || out.text.slice(0, 200) || out.error, { ...base, error: out.error });
   } else if (escalate) {
     finished = crew.finishRun(run, "done", `Escalated: ${escalate}`, base);
@@ -68,9 +72,10 @@ export async function executeRun(crew: Crew, runId: string, signal: AbortSignal)
   }
 
   const stillWaiting = crew.db.listQuestions({ status: "open" }).some((q) => q.fromAgentId === agent.id && q.toId === "user" && q.kind !== "report");
+  const failed = finished.status === "failed";
   crew.setAgentRuntime(agent.id, {
-    status: out.error ? "failed" : stillWaiting ? "needs_you" : "idle",
-    statusText: out.error ? out.error.slice(0, 120) : stillWaiting ? "Waiting for you" : "",
+    status: failed ? "failed" : stillWaiting ? "needs_you" : "idle",
+    statusText: failed ? (finished.error ?? "").slice(0, 120) : stillWaiting ? "Waiting for you" : "",
     currentRunId: null,
   });
   return { run: finished, escalate };

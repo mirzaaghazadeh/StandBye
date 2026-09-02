@@ -30,6 +30,7 @@ export function App() {
         {route.name === "home" && <HomeScreen />}
         {route.name === "agent" && <HomeScreen />}
         {route.name === "channel" && <ChannelScreen channelId={route.channelId} />}
+        {route.name === "dm" && <ChannelScreen key={route.agentId} channelId={`dm-${route.agentId}`} dmAgentId={route.agentId} />}
         {route.name === "inbox" && <InboxScreen questionId={route.questionId} />}
         {route.name === "runs" && <RunsScreen runId={route.runId} />}
         <StatusBar />

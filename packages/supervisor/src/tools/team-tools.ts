@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Run } from "@crew/shared";
+import { dmChannelId } from "@crew/shared";
 import type { Crew } from "../crew.js";
 import { DEFAULTS } from "../config.js";
 
@@ -63,7 +64,9 @@ export const TEAM_TOOLS = [
     schema: { channel: z.string(), text: z.string().min(1).max(4000) },
     handler: async ({ channel, text }, ctx) => {
       const agent = ctx.crew.getAgent(ctx.agentId);
-      if (!agent.channels.includes(channel.replace(/^#/, "").toLowerCase())) {
+      const target = ctx.crew.db.getChannel(channel);
+      if (target?.kind === "dm" && target.dmAgentId !== ctx.agentId) return `#${target.name} is ${ctx.crew.findAgent(target.dmAgentId ?? "")?.name ?? "someone else"}'s private chat with the owner. Use your own direct chat (#${dmChannelId(ctx.agentId)}) or a team channel.`;
+      if (!target && !agent.channels.includes(channel.replace(/^#/, "").toLowerCase())) {
         ctx.crew.ensureChannel(channel, "", [ctx.agentId]);
       }
       const mentions = ctx.crew.parseMentions(text);
@@ -93,7 +96,7 @@ export const TEAM_TOOLS = [
     },
     handler: async (args, ctx) => {
       const agent = ctx.crew.getAgent(ctx.agentId);
-      const channel = agent.channels.find((c) => c !== "general") ?? "general";
+      const channel = agent.channels.find((c) => c !== "general" && !c.startsWith("dm-")) ?? "general";
       if (args.kind === "report") {
         const r = ctx.crew.askQuestion({ kind: "report", fromAgentId: ctx.agentId, toId: "user", channel: null, title: args.title, body: args.body, options: ["Got it"], runId: ctx.run.id });
         ctx.crew.addStep(ctx.run.id, "post", `Report to ${ctx.crew.team?.ownerName ?? "the owner"}: ${args.title}`);

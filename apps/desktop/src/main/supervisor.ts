@@ -50,7 +50,7 @@ export class SupervisorHost {
       try { process.kill(info.pid, 0); } catch { return false; }
       this.port = info.port;
       this.token = info.token;
-      await this.connect(8);
+      await this.connect(4);
       this.attached = true;
       this.onLog(`[supervisor] attached to running supervisor pid ${info.pid} on port ${info.port}`);
       return true;
@@ -67,7 +67,7 @@ export class SupervisorHost {
           ws.once("open", () => { this.ws = ws; resolve(); });
           ws.once("error", reject);
           ws.on("message", (raw) => this.onMessage(raw.toString()));
-          ws.on("close", () => { this.connected = false; this.ws = null; });
+          ws.on("close", () => { this.connected = false; this.ws = null; this.failPending(); void this.reconnect(); });
         });
         this.connected = true;
         return;
@@ -77,6 +77,33 @@ export class SupervisorHost {
     }
     throw new Error("Supervisor did not come up");
   }
+
+  private failPending(): void {
+    for (const p of this.pending.values()) p.reject(new Error("Supervisor connection lost"));
+    this.pending.clear();
+  }
+
+  /** The supervisor went away (restart, crash, terminal closed). Keep trying to get back: same port first, then whatever is advertised. */
+  private reconnecting = false;
+  private async reconnect(): Promise<void> {
+    if (this.reconnecting || this.stopping) return;
+    this.reconnecting = true;
+    this.onLog("[supervisor] connection lost; reconnecting");
+    try {
+      for (let i = 0; i < 150 && !this.stopping; i++) {
+        if (await this.tryAttach()) break;
+        try { await this.connect(1); break; } catch { /* keep trying */ }
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+      if (this.connected) {
+        this.onLog("[supervisor] reconnected");
+        for (const l of this.listeners) l({ event: "supervisor.reconnected", data: null });
+      }
+    } finally {
+      this.reconnecting = false;
+    }
+  }
+  private stopping = false;
 
   private onMessage(raw: string): void {
     let msg: { id?: number; result?: unknown; error?: { message: string }; event?: string; data?: unknown };
@@ -107,6 +134,7 @@ export class SupervisorHost {
   }
 
   stop(): void {
+    this.stopping = true;
     this.ws?.close();
     if (!this.attached) this.proc?.kill("SIGTERM");
   }

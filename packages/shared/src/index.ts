@@ -147,6 +147,13 @@ export interface Channel {
   name: string;
   purpose: string;
   members: string[];
+  /** group = a room everyone listed can post in; dm = the owner's direct chat with one agent (id `dm-<agentId>`) */
+  kind: "group" | "dm";
+  dmAgentId: string | null;
+}
+
+export function dmChannelId(agentId: string): string {
+  return `dm-${agentId}`;
 }
 
 export type MessageKind = "message" | "system" | "question";
@@ -323,6 +330,7 @@ export type PushEvent = (
   | { event: "spend.updated"; data: SpendSummary }
   | { event: "notify"; data: { title: string; body: string; questionId?: string } }
   | { event: "supervisor.status"; data: SupervisorStatus }
+  | { event: "supervisor.reconnected"; data: null }
 ) & {
   /** Which team the event belongs to; absent for global events (teams.updated) */
   teamId?: string;

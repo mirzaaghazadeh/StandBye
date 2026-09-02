@@ -32,7 +32,7 @@ export async function gate(ctx: ToolContext, rules: PermissionRule[], toolName: 
   const owner = ctx.crew.team?.ownerName ?? "the owner";
   const q = ctx.crew.askQuestion({
     kind: "approval", fromAgentId: ctx.agentId, toId: "user",
-    channel: ctx.crew.getAgent(ctx.agentId).channels.find((c) => c !== "general") ?? "general",
+    channel: ctx.crew.getAgent(ctx.agentId).channels.find((c) => c !== "general" && !c.startsWith("dm-")) ?? "general",
     title: `${rule?.label ?? "Approve"}: ${sig.length > 90 ? sig.slice(0, 90) + "…" : sig}`,
     body: `${ctx.crew.getAgent(ctx.agentId).name} wants to run ${sig}. Rule: ${rule?.pattern}.`,
     options: ["Approve", "Deny"], recommended: null, payload: { tool: toolName, input }, runId: ctx.run.id,

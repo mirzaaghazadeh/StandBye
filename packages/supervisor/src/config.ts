@@ -41,4 +41,7 @@ export const DEFAULTS = {
   approvalTimeoutMinutes: 20,
   questionDefaultMinutes: 120,
   maxConcurrentRuns: 3,
+  /** A full run is stopped after this long; check-ins much sooner. */
+  runTimeoutMinutes: 20,
+  checkinTimeoutMinutes: 4,
 };
