@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { dmChannelId } from "@crew/shared";
 import type {
-  Agent, AgentFiles, Channel, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunStep, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft, TeamSummary,
+  Agent, AgentFiles, Channel, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunStep, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft, TeamSummary,
 } from "@crew/shared";
 
 export type Route =
@@ -18,6 +18,7 @@ export type Sheet =
   | { kind: "builder"; mode?: "describe" | "template" }
   | { kind: "manual" }
   | { kind: "keys" }
+  | { kind: "channel"; channelId?: string }
   | { kind: "agent"; agentId: string; tab?: string }
   | { kind: "wake"; agentId: string };
 
@@ -158,6 +159,7 @@ class Store {
     const last = this.state.messages[channelId]?.at(-1)?.createdAt;
     if (last && last !== this.state.seen[channelId]) this.set((s) => ({ seen: { ...s.seen, [channelId]: last } }));
   }
+  setChannels(channels: Channel[]): void { this.set({ channels }); }
   openSheet(sheet: Sheet): void { this.set({ sheet }); }
   closeSheet(): void { this.set({ sheet: { kind: "none" } }); }
   selectAgent(id: string | null): void { this.set({ selectedAgentId: id }); }
@@ -216,8 +218,8 @@ class Store {
     }
   }
   setDraft(draft: TeamDraft | null): void { this.set({ builderDraft: draft }); }
-  async createTeam(draft: TeamDraft, workspaceRoot: string | null, ownerName: string): Promise<void> {
-    const team = await this.rpc<TeamConfig>("teams.create", { draft, workspaceRoot, ownerName });
+  async createTeam(draft: TeamDraft, workspaceRoot: string | null, ownerName: string, git: GitSettings | null = null): Promise<void> {
+    const team = await this.rpc<TeamConfig>("teams.create", { draft, workspaceRoot, ownerName, git });
     this.set({ activeTeamId: team.id, sheet: { kind: "none" }, builderDraft: null, route: { name: "home" } });
     await this.refreshAll();
     this.toast(`Team "${team.name}" created. First check-ins in about a minute.`);

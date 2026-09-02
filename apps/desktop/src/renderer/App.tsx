@@ -10,6 +10,7 @@ import { KeysSheet } from "./screens/KeysSheet";
 import { WakeSheet } from "./screens/WakeSheet";
 import { OnboardingSheet } from "./screens/OnboardingSheet";
 import { ManualTeamSheet } from "./screens/ManualTeamSheet";
+import { ChannelSheet } from "./screens/ChannelSheet";
 import { StatusBar } from "./components/StatusBar";
 import { Ic } from "./ui/icons";
 
@@ -36,7 +37,8 @@ export function App() {
         <StatusBar />
       </div>
 
-      {sheet.kind !== "none" && <div className="dim" onClick={() => ["keys", "agent", "wake"].includes(sheet.kind) && store.closeSheet()} />}
+      {sheet.kind !== "none" && <div className="dim" onClick={() => ["keys", "agent", "wake", "channel"].includes(sheet.kind) && store.closeSheet()} />}
+      {sheet.kind === "channel" && <ChannelSheet key={sheet.channelId ?? "new"} channelId={sheet.channelId} />}
       {sheet.kind === "onboarding" && <OnboardingSheet />}
       {sheet.kind === "manual" && <ManualTeamSheet />}
       {sheet.kind === "builder" && <BuilderSheet mode={sheet.mode} />}

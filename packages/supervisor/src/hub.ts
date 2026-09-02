@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { nanoid } from "nanoid";
-import type { Agent, PushEvent, TeamDraft, TeamSummary } from "@crew/shared";
+import type { Agent, GitSettings, PushEvent, TeamDraft, TeamSummary } from "@crew/shared";
 import { Crew, type Keys } from "./crew.js";
 import { Scheduler } from "./scheduler.js";
 import type { SupervisorOptions } from "./config.js";
@@ -95,7 +95,7 @@ export class Hub {
       })
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
-  createTeam(draft: TeamDraft, opts: { workspaceRoot: string | null; ownerName: string }): TeamRuntime {
+  createTeam(draft: TeamDraft, opts: { workspaceRoot: string | null; ownerName: string; git?: GitSettings | null }): TeamRuntime {
     const id = nanoid(8);
     const dir = path.join(this.teamsDir, id);
     fs.mkdirSync(dir, { recursive: true });

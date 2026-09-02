@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { nanoid } from "nanoid";
 import type {
-  Agent, AgentConfig, AgentDraft, AgentStatus, Channel, KeyStatus, Message, MessageKind, Provider, ProviderConfig, ProviderSettings, ProviderStatus, Question, QuestionKind,
+  Agent, AgentConfig, AgentDraft, AgentStatus, Channel, GitSettings, KeyStatus, Message, MessageKind, Provider, ProviderConfig, ProviderSettings, ProviderStatus, Question, QuestionKind,
   Run, RunStatus, RunStep, RunStepKind, RunTrigger, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft,
 } from "@crew/shared";
 import { DEFAULT_MODELS, dmChannelId } from "@crew/shared";
@@ -131,13 +131,14 @@ export class Crew {
 
   // ---------------- team ----------------
 
-  createTeamFromDraft(draft: TeamDraft, opts: { workspaceRoot: string | null; ownerName: string; id?: string }): TeamConfig {
+  createTeamFromDraft(draft: TeamDraft, opts: { workspaceRoot: string | null; ownerName: string; id?: string; git?: GitSettings | null }): TeamConfig {
     this.store.deleteTeam();
     this.db.deleteAllChannels();
     const team: TeamConfig = {
       id: opts.id ?? nanoid(8),
       name: draft.name,
       charter: draft.charter,
+      git: opts.git ?? null,
       dailyCapUsd: draft.dailyCapUsd || DEFAULTS.teamDailyCapUsd,
       chatDepthCap: DEFAULTS.chatDepthCap,
       workspaceRoot: opts.workspaceRoot,
@@ -281,10 +282,37 @@ export class Crew {
   ensureChannel(name: string, purpose = "", members: string[] = []): Channel {
     const existing = this.db.getChannel(name);
     if (existing) return existing;
-    const id = name.replace(/^#/, "").toLowerCase();
+    const id = name.replace(/^#/, "").toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-|-$/g, "");
+    if (!id || id.startsWith("dm-")) throw new Error("Pick another channel name");
     const c: Channel = { id, name: id, purpose, members, kind: "group", dmAgentId: null };
     this.db.upsertChannel(c);
+    for (const a of members) {
+      const cfg = this.store.readAgentConfig(a);
+      if (cfg && !cfg.channels.includes(id)) this.store.writeAgentConfig({ ...cfg, channels: [...cfg.channels, id] });
+    }
+    this.bus.emit("team.updated", this.team);
     return c;
+  }
+  updateChannel(id: string, patch: { purpose?: string; members?: string[] }): Channel {
+    const c = this.db.getChannel(id);
+    if (!c || c.kind === "dm") throw new Error(`Unknown channel ${id}`);
+    const next: Channel = { ...c, purpose: patch.purpose ?? c.purpose, members: patch.members ?? c.members };
+    this.db.upsertChannel(next);
+    for (const a of this.store.listAgentConfigs()) {
+      const inChannel = next.members.includes(a.id);
+      const listed = a.channels.includes(id);
+      if (inChannel && !listed) this.store.writeAgentConfig({ ...a, channels: [...a.channels, id] });
+      if (!inChannel && listed) this.store.writeAgentConfig({ ...a, channels: a.channels.filter((x) => x !== id) });
+    }
+    this.bus.emit("team.updated", this.team);
+    return next;
+  }
+  deleteChannel(id: string): void {
+    const c = this.db.getChannel(id);
+    if (!c || c.kind === "dm" || c.id === "general") throw new Error("That channel can't be deleted");
+    this.db.deleteChannel(id);
+    for (const a of this.store.listAgentConfigs()) if (a.channels.includes(id)) this.store.writeAgentConfig({ ...a, channels: a.channels.filter((x) => x !== id) });
+    this.bus.emit("team.updated", this.team);
   }
 
   postMessage(input: { channel: string; authorId: string; text: string; kind?: MessageKind; runId?: string | null; depth?: number; questionId?: string | null }): Message {

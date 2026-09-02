@@ -96,6 +96,16 @@ try {
   const rex = (await rpc("agents.list")).find((a) => a.id === "ada");
   check("report does not block the agent", rex.status !== "needs_you");
 
+  const ch = await rpc("channels.create", { name: "Frontend Work", purpose: "UI", members: ["kai"] });
+  check("channel created", ch.id === "frontend-work" && (await rpc("agent.get", { id: "kai" })).channels.includes("frontend-work"));
+  await rpc("channels.update", { id: "frontend-work", members: [] });
+  check("channel members updated", !(await rpc("agent.get", { id: "kai" })).channels.includes("frontend-work"));
+  await rpc("channels.delete", { id: "frontend-work" });
+  check("channel deleted", !(await rpc("channels.list")).some((c) => c.id === "frontend-work"));
+  const gi = await rpc("git.info", { path: root });
+  check("git info on this repo", gi.isRepo && gi.branches.includes("main"));
+  const gd = await rpc("git.defaults", { path: root });
+  check("git defaults", gd && gd.workBranch === "main" && ["pr", "push"].includes(gd.mode));
   await rpc("supervisor.pauseAll");
   check("pause all", (await rpc("agents.list")).every((a) => a.status === "paused"));
   await rpc("supervisor.resumeAll");

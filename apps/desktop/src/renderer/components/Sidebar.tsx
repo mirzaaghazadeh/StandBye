@@ -35,13 +35,16 @@ export function Sidebar() {
         <span className="grow">Runs</span>
       </button>
 
-      <div className="sec">Channels</div>
+      <div className="sec" style={{ display: "flex", alignItems: "center" }}>
+        <span style={{ flex: 1 }}>Channels</span>
+        {agents.length > 0 && <button className="ibtn" style={{ width: 20, height: 18 }} title="New channel" onClick={() => store.openSheet({ kind: "channel" })}><Ic.Plus size={11} /></button>}
+      </div>
       {channels.filter((c) => c.kind !== "dm").length === 0 && <div className="srow" style={{ color: "var(--ink-5)" }}>No channels yet</div>}
       {channels.filter((c) => c.kind !== "dm").map((c) => {
         const on = is("channel", c.id);
         const unread = !on && (messages[c.id]?.some((m) => m.kind === "question" && questions.find((q) => q.id === m.questionId)?.status === "open") ?? false);
         return (
-          <button key={c.id} className={"srow" + (on ? " srow-on" : "")} onClick={() => store.navigate({ name: "channel", channelId: c.id })}>
+          <button key={c.id} className={"srow" + (on ? " srow-on" : "")} onClick={() => store.navigate({ name: "channel", channelId: c.id })} onDoubleClick={() => store.openSheet({ kind: "channel", channelId: c.id })} title="Double-click to edit">
             <Ic.Hash stroke={on ? "var(--accent)" : "var(--ink-3)"} />
             <span className="grow" style={{ fontWeight: unread ? 600 : undefined }}>{c.name}</span>
             {unread && <span className="dot" style={{ width: 7, height: 7, background: "var(--accent)" }} />}

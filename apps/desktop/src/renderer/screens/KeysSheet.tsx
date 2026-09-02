@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { store, useStore } from "../state/store";
 import { Button, KV, Segmented } from "../ui/kit";
 import { ProvidersPanel } from "../components/ProvidersPanel";
+import { GitSettingsPanel } from "../components/GitSettingsPanel";
 import { Ic } from "../ui/icons";
+import type { GitSettings } from "@crew/shared";
 
 type Tab = "team" | "providers" | "data";
 
@@ -60,10 +62,11 @@ function TeamSettings() {
   const [cap, setCap] = useState(String(team.dailyCapUsd));
   const [depth, setDepth] = useState(String(team.chatDepthCap));
   const [workspace, setWorkspace] = useState(team.workspaceRoot ?? "");
-  useEffect(() => { setName(team.name); setOwner(team.ownerName); setCharter(team.charter); setCap(String(team.dailyCapUsd)); setDepth(String(team.chatDepthCap)); setWorkspace(team.workspaceRoot ?? ""); }, [team.id]);
-  const dirty = name !== team.name || owner !== team.ownerName || charter !== team.charter || Number(cap) !== team.dailyCapUsd || Number(depth) !== team.chatDepthCap || (workspace.trim() || null) !== team.workspaceRoot;
+  const [git, setGit] = useState<GitSettings | null>(team.git ?? null);
+  useEffect(() => { setName(team.name); setOwner(team.ownerName); setCharter(team.charter); setCap(String(team.dailyCapUsd)); setDepth(String(team.chatDepthCap)); setWorkspace(team.workspaceRoot ?? ""); setGit(team.git ?? null); }, [team.id]);
+  const dirty = name !== team.name || owner !== team.ownerName || charter !== team.charter || Number(cap) !== team.dailyCapUsd || Number(depth) !== team.chatDepthCap || (workspace.trim() || null) !== team.workspaceRoot || JSON.stringify(git) !== JSON.stringify(team.git ?? null);
   const save = async () => {
-    const t = await store.rpc<typeof team>("team.update", { name: name.trim() || team.name, ownerName: owner.trim() || team.ownerName, charter: charter.trim(), dailyCapUsd: Math.max(0, Number(cap) || 0), chatDepthCap: Math.max(1, Math.round(Number(depth) || 6)), workspaceRoot: workspace.trim() || null });
+    const t = await store.rpc<typeof team>("team.update", { name: name.trim() || team.name, ownerName: owner.trim() || team.ownerName, charter: charter.trim(), dailyCapUsd: Math.max(0, Number(cap) || 0), chatDepthCap: Math.max(1, Math.round(Number(depth) || 6)), workspaceRoot: workspace.trim() || null, git });
     store.toast(t.workspaceRoot !== team.workspaceRoot ? "Saved. New runs use the new workspace." : "Team settings saved.");
   };
 
@@ -78,6 +81,7 @@ function TeamSettings() {
         </KV>
         <div style={{ fontSize: 11, color: "var(--ink-4)", padding: "0 0 6px 102px" }}>This team's working directory. Agents run and edit files only inside it.</div>
       </div>
+      <GitSettingsPanel workspace={workspace.trim() || null} value={git} onChange={setGit} />
       <div style={{ border: "1px solid var(--border)", borderRadius: 7, background: "var(--surface)", padding: "8px 12px" }}>
         <div className="grp-t" style={{ marginTop: 4 }}>Charter</div>
         <textarea className="field" style={{ width: "100%", minHeight: 70 }} value={charter} onChange={(e) => setCharter(e.target.value)} />

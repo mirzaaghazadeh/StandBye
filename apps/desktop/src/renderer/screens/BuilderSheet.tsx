@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import type { AgentDraft } from "@crew/shared";
+import type { AgentDraft, GitSettings } from "@crew/shared";
 import { store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
 import { Avatar, Button, Segmented } from "../ui/kit";
 import { ModelPicker } from "../components/ModelPicker";
 import { BudgetEditor } from "../components/BudgetEditor";
+import { GitSettingsPanel } from "../components/GitSettingsPanel";
 
 /** New Team sheet: describe → draft → review outline → create. Mirrors the design's sheet. */
 export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "template" }) {
@@ -16,6 +17,7 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
   const [description, setDescription] = useState("");
   const [ownerName, setOwnerName] = useState(team?.ownerName ?? "");
   const [workspace, setWorkspace] = useState<string | null>(null);
+  const [git, setGit] = useState<GitSettings | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const providers = useStore((s) => s.providers);
   const ready = (["anthropic", "openrouter"] as const).filter((p) => providers?.[p].ready);
@@ -26,7 +28,7 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
   const doDraft = () => void store.draftTeam(description.trim(), ownerName.trim() || "Owner", workspace, drafter, "describe");
   const doTemplate = () => void store.draftTeam("", ownerName.trim() || "Owner", workspace, undefined, "template");
   const drafterModel = providers?.[drafter]?.defaultModel ?? "";
-  const create = () => draft && void store.createTeam(draft, workspace, ownerName.trim() || "Owner");
+  const create = () => draft && void store.createTeam(draft, workspace, ownerName.trim() || "Owner", git);
   const updateAgent = (i: number, patch: Partial<AgentDraft>) => draft && store.setDraft({ ...draft, agents: draft.agents.map((a, j) => (j === i ? { ...a, ...patch } : a)) });
   const removeAgent = (i: number) => draft && store.setDraft({ ...draft, agents: draft.agents.filter((_, j) => j !== i) });
 
@@ -65,6 +67,7 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
             </div>
             <div style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 4 }}>Each team has its own working directory. Agents only touch files inside it.</div>
           </div>
+          <GitSettingsPanel workspace={workspace} value={git} onChange={setGit} compact />
           <div>
             <div className="grp-t">Keys</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12 }}>

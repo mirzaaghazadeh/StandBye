@@ -115,10 +115,32 @@ export interface Agent extends AgentConfig {
 
 // ---------- Team ----------
 
+/** How the team uses git in its workspace. Only meaningful when the workspace is a git repo. */
+export interface GitSettings {
+  enabled: boolean;
+  /** Branch agents check out and work on. In PR mode they branch off it and open PRs against it. */
+  workBranch: string;
+  /** pr = feature branches + pull requests via gh; push = commit and push straight to workBranch */
+  mode: "pr" | "push";
+  devBranch: string | null;
+  stagingBranch: string | null;
+  productionBranch: string | null;
+}
+
+export interface GitInfo {
+  isRepo: boolean;
+  currentBranch: string | null;
+  branches: string[];
+  hasRemote: boolean;
+  remoteUrl: string | null;
+  hasGh: boolean;
+}
+
 export interface TeamConfig {
   id: string;
   name: string;
   charter: string;
+  git?: GitSettings | null;
   /** Hard daily cap for the whole team in USD. */
   dailyCapUsd: number;
   /** Max agent-to-agent reply depth for a single thread of mentions. */

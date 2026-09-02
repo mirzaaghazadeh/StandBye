@@ -1,10 +1,11 @@
 import { useState } from "react";
-import type { AgentDraft, Provider, TeamDraft } from "@crew/shared";
+import type { AgentDraft, GitSettings, Provider, TeamDraft } from "@crew/shared";
 import { store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
 import { Avatar, Button, Popup } from "../ui/kit";
 import { ModelPicker } from "../components/ModelPicker";
 import { BudgetEditor } from "../components/BudgetEditor";
+import { GitSettingsPanel } from "../components/GitSettingsPanel";
 
 const SWATCHES = ["#E9D9CF", "#D7E3DA", "#DDDCE8", "#F3E4C8", "#D9E6EE", "#EFEDE8"];
 
@@ -33,6 +34,7 @@ export function ManualTeamSheet() {
   const [teamName, setTeamName] = useState("My team");
   const [charter, setCharter] = useState("");
   const [workspace, setWorkspace] = useState<string | null>(null);
+  const [git, setGit] = useState<GitSettings | null>(null);
   const [agents, setAgents] = useState<AgentDraft[]>([]);
   const [open, setOpen] = useState<number | null>(null);
   const [preset, setPreset] = useState(PRESETS[0]!.role);
@@ -60,7 +62,7 @@ export function ManualTeamSheet() {
       agents, channels: [], guardrails: ["Push to main", "Any single run over the per-run cap", "Files outside the repo"],
       dailyCapUsd: Math.max(5, Math.ceil(daily * 1.5)), estimatedDailyUsd: { low: +(daily * 0.4).toFixed(0), high: +(daily * 1.1).toFixed(0) }, questionsForOwner: [],
     };
-    void store.createTeam(draft, workspace, ownerName.trim() || "Owner");
+    void store.createTeam(draft, workspace, ownerName.trim() || "Owner", git);
   };
 
   return (
@@ -85,6 +87,7 @@ export function ManualTeamSheet() {
             </div>
             <div style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 4 }}>Each team has its own working directory. Agents only touch files inside it.</div>
           </div>
+          <GitSettingsPanel workspace={workspace} value={git} onChange={setGit} compact />
           <div style={{ marginTop: "auto" }}>
             <div className="grp-t">Add a teammate</div>
             <div style={{ display: "flex", gap: 6 }}>

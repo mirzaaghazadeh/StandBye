@@ -1,5 +1,6 @@
-import type { Run } from "@crew/shared";
+import type { Agent, Run } from "@crew/shared";
 import type { Crew } from "./crew.js";
+import { gitRules } from "./git.js";
 import { runPrompt, systemPrompt } from "./prompt.js";
 import { anthropicRunner } from "./runners/anthropic.js";
 import { openrouterRunner } from "./runners/openrouter.js";
@@ -43,8 +44,10 @@ export async function executeRun(crew: Crew, runId: string, signal: AbortSignal)
   };
 
   const cwd = agent.workspace ?? crew.team?.workspaceRoot ?? crew.opts.dataDir;
+  // Team-level git rules come first so they win over the agent's own rules.
+  const effective: Agent = { ...agent, permissions: [...gitRules(crew.team?.git), ...agent.permissions] };
   const out = await runner({
-    crew, agent, run, mode, model, cwd, signal,
+    crew, agent: effective, run, mode, model, cwd, signal,
     system: systemPrompt(crew, agent, mode),
     prompt: runPrompt(crew, agent, run),
     ctx,

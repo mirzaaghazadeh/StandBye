@@ -1,9 +1,10 @@
 import { WebSocketServer, WebSocket } from "ws";
 import fs from "node:fs";
 import path from "node:path";
-import type { AgentConfig, AgentFiles, Provider, ProviderConfig, PushEvent, RpcRequest, RpcResponse, TeamConfig, TeamDraft } from "@crew/shared";
+import type { AgentConfig, AgentFiles, GitSettings, Provider, ProviderConfig, PushEvent, RpcRequest, RpcResponse, TeamConfig, TeamDraft } from "@crew/shared";
 import { TeamDraftSchema } from "@crew/shared";
 import { draftTeam } from "./builder.js";
+import { defaultGitSettings, gitInfo } from "./git.js";
 import type { Crew } from "./crew.js";
 import type { Hub } from "./hub.js";
 import { listModels } from "./models.js";
@@ -90,9 +91,9 @@ export class Api {
       // ----- teams -----
       "teams.list": () => hub.list(),
       "teams.select": (p: { id: string }, conn) => { if (!hub.get(p.id)) throw new Error(`Unknown team ${p.id}`); conn.teamId = p.id; return hub.get(p.id)!.crew.team; },
-      "teams.create": (p: { draft: TeamDraft; workspaceRoot: string | null; ownerName: string }, conn) => {
+      "teams.create": (p: { draft: TeamDraft; workspaceRoot: string | null; ownerName: string; git?: GitSettings | null }, conn) => {
         const draft = TeamDraftSchema.parse(p.draft);
-        const rt = hub.createTeam(draft, { workspaceRoot: p.workspaceRoot, ownerName: p.ownerName });
+        const rt = hub.createTeam(draft, { workspaceRoot: p.workspaceRoot, ownerName: p.ownerName, git: p.git ?? null });
         conn.teamId = rt.crew.id;
         return rt.crew.team;
       },
@@ -124,6 +125,11 @@ export class Api {
 
       // ----- channels & messages -----
       "channels.list": (_p, conn) => (conn.teamId ? this.crewFor(conn).listChannels() : []),
+      "channels.create": (p: { name: string; purpose?: string; members?: string[] }, conn) => this.crewFor(conn).ensureChannel(p.name, p.purpose ?? "", p.members ?? []),
+      "channels.update": (p: { id: string; purpose?: string; members?: string[] }, conn) => this.crewFor(conn).updateChannel(p.id, p),
+      "channels.delete": (p: { id: string }, conn) => { this.crewFor(conn).deleteChannel(p.id); return null; },
+      "git.info": (p: { path: string | null }) => gitInfo(p.path),
+      "git.defaults": (p: { path: string | null }) => defaultGitSettings(gitInfo(p.path)),
       "messages.list": (p: { channelId: string; limit?: number; before?: string }, conn) => this.crewFor(conn).db.listMessages(p.channelId, p.limit ?? 100, p.before),
       "messages.send": (p: { channelId: string; text: string }, conn) => this.crewFor(conn).postMessage({ channel: p.channelId, authorId: "user", text: p.text }),
 

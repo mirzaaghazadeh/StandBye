@@ -1,5 +1,6 @@
 import type { Agent, Message, Question, Run, RunTrigger } from "@crew/shared";
 import type { Crew } from "./crew.js";
+import { gitPrompt } from "./git.js";
 
 /** Build the system prompt for an agent: soul, rules, team, memory, how the tools work. */
 export function systemPrompt(crew: Crew, agent: Agent, mode: "full" | "checkin"): string {
@@ -30,6 +31,8 @@ export function systemPrompt(crew: Crew, agent: Agent, mode: "full" | "checkin")
     channels || "- #general",
     "",
     files.rules ? files.rules : "",
+    "",
+    gitPrompt(team?.git, owner),
     "",
     "# How this works",
     "You are woken by a trigger (a check-in, a mention, a task, an answer, a schedule). Each wake-up is one run.",
