@@ -71,6 +71,9 @@ export function ProvidersPanel() {
       </ProviderRow>
 
       <ProviderRow title="Other OpenAI-compatible" enabled={false} onToggle={() => undefined} ready={false} status="Coming next: Ollama, LM Studio, any base URL" hint="" disabled />
+      <div style={{ fontSize: 11, color: "var(--ink-4)", lineHeight: 1.5 }}>
+        <b style={{ fontWeight: 600 }}>Default model</b> does the real work. <b style={{ fontWeight: 600 }}>Check-ins</b> are the short wake-ups every few minutes where an agent glances at its channels, tasks and answers; they run on the cheap check-in model and only hand off to the default model when there is something to do. A check-in with nothing new costs about a cent.
+      </div>
     </div>
   );
 }
