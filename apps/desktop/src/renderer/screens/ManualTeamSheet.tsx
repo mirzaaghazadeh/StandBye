@@ -32,7 +32,7 @@ export function ManualTeamSheet() {
   const [ownerName, setOwnerName] = useState(team?.ownerName ?? "");
   const [teamName, setTeamName] = useState("My team");
   const [charter, setCharter] = useState("");
-  const [workspace, setWorkspace] = useState<string | null>(team?.workspaceRoot ?? null);
+  const [workspace, setWorkspace] = useState<string | null>(null);
   const [agents, setAgents] = useState<AgentDraft[]>([]);
   const [open, setOpen] = useState<number | null>(null);
   const [preset, setPreset] = useState(PRESETS[0]!.role);
@@ -80,9 +80,10 @@ export function ManualTeamSheet() {
           <div>
             <div className="grp-t">Workspace</div>
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <Button icon={<Ic.Folder size={13} />} onClick={() => void window.crew.pickFolder().then((p) => p && setWorkspace(p))}>{workspace ? "Change…" : "Choose folder…"}</Button>
-              <span className="mono cell" style={{ fontSize: 11, color: "var(--ink-4)", flex: 1 }}>{workspace ?? "The repo the team works in"}</span>
+              <input className="field mono" style={{ flex: 1, fontSize: 11 }} placeholder="/path/to/the/repo this team works in" value={workspace ?? ""} onChange={(e) => setWorkspace(e.target.value || null)} />
+              <Button icon={<Ic.Folder size={13} />} onClick={() => void window.crew.pickFolder().then((p) => p && setWorkspace(p))}>Choose…</Button>
             </div>
+            <div style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 4 }}>Each team has its own working directory. Agents only touch files inside it.</div>
           </div>
           <div style={{ marginTop: "auto" }}>
             <div className="grp-t">Add a teammate</div>
@@ -136,8 +137,8 @@ export function ManualTeamSheet() {
       <div className="sheet-f">
         <span style={{ fontSize: 12, color: "var(--ink-4)" }}>{agents.length} teammate{agents.length === 1 ? "" : "s"} · up to <span className="mono">${daily.toFixed(2)}</span> per day if everyone hits their cap. Sleeping is free.</span>
         <span className="grow" />
-        <Button lg onClick={() => store.openSheet(team ? { kind: "none" } : { kind: "onboarding" })}>Back</Button>
-        <Button lg primary onClick={create} disabled={agents.length === 0}>{team ? "Replace Team" : "Create Team"}</Button>
+        <Button lg onClick={() => store.openSheet({ kind: "onboarding" })}>Back</Button>
+        <Button lg primary onClick={create} disabled={agents.length === 0}>Create Team</Button>
       </div>
     </div>
   );

@@ -29,7 +29,7 @@ export function HomeScreen() {
         ) : (
           <Button icon={<Ic.Pause size={12} />} onClick={() => void store.pauseAll()} disabled={!team}>Pause All</Button>
         )}
-        <Button primary icon={<Ic.Plus size={12} />} onClick={() => store.openSheet({ kind: "builder" })}>{team ? "New Team…" : "Create Team…"}</Button>
+        <Button primary icon={<Ic.Plus size={12} />} onClick={() => store.openSheet({ kind: "onboarding" })}>New Team…</Button>
         <IconButton on={showInspector} onClick={() => setShowInspector((v) => !v)}><Ic.Sidebar size={15} /></IconButton>
       </Toolbar>
 
@@ -39,7 +39,7 @@ export function HomeScreen() {
             <div className="empty">
               <Ic.Team size={36} stroke="var(--ink-6)" strokeWidth={1.6} />
               <span>No team yet</span>
-              <Button primary onClick={() => store.openSheet({ kind: "builder" })}>Describe your team…</Button>
+              <Button primary onClick={() => store.openSheet({ kind: "onboarding" })}>Create a team…</Button>
             </div>
           ) : (
             <>

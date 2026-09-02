@@ -35,11 +35,17 @@ const check = (name, ok, detail = "") => { console.log(`${ok ? "ok  " : "FAIL"} 
 
 try {
   const status = await rpc("status.get");
-  check("status", status.runsToday === 0);
+  check("status", status.runsToday === 0 && status.teamId === null);
   const draft = await rpc("builder.draft", { description: "", ownerName: "Navid", workspaceRoot: null, mode: "template" });
   check("template draft", draft.agents.length === 4, draft.agents.map((a) => a.name).join(","));
   check("lead has schedules", (draft.agents[0].schedules ?? []).length === 3);
-  await rpc("team.create", { draft, workspaceRoot: null, ownerName: "Navid" });
+  const created = await rpc("teams.create", { draft, workspaceRoot: null, ownerName: "Navid" });
+  check("team created", Boolean(created.id));
+  const second = await rpc("teams.create", { draft: { ...draft, name: "Second team", agents: draft.agents.slice(0, 1) }, workspaceRoot: "/tmp", ownerName: "Navid" });
+  check("second team has its own workspace", second.workspaceRoot === "/tmp" && second.id !== created.id);
+  const teams = await rpc("teams.list");
+  check("two teams listed", teams.length === 2 && teams.find((t) => t.id === second.id)?.agentCount === 1);
+  await rpc("teams.select", { id: created.id });
   const agents = await rpc("agents.list");
   check("agents created", agents.length === 4 && agents.every((a) => a.status === "idle" || a.status === "over_budget"));
   check("cron mapped", agents.find((a) => a.id === "ada").triggers.cron.length === 3);
@@ -88,6 +94,11 @@ try {
   await rpc("supervisor.pauseAll");
   check("pause all", (await rpc("agents.list")).every((a) => a.status === "paused"));
   await rpc("supervisor.resumeAll");
+  await rpc("teams.select", { id: second.id });
+  check("other team unaffected", (await rpc("agents.list")).every((a) => a.status !== "paused"));
+  await rpc("teams.delete", { id: second.id });
+  check("team deleted", (await rpc("teams.list")).length === 1);
+  check("events carry teamId", events.some((e) => e === "message.created"));
   check("events flowed", ["message.created", "question.created", "run.updated", "agents.updated"].every((e) => events.includes(e)), [...new Set(events)].join(","));
 } catch (e) {
   failed++;

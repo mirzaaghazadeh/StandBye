@@ -1,10 +1,10 @@
 import { store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
 import { StatusDot } from "../ui/kit";
+import { TeamSwitcher } from "./TeamSwitcher";
 
 export function Sidebar() {
   const route = useStore((s) => s.route);
-  const team = useStore((s) => s.team);
   const agents = useStore((s) => s.agents);
   const channels = useStore((s) => s.channels);
   const questions = useStore((s) => s.questions);
@@ -12,19 +12,12 @@ export function Sidebar() {
   const messages = useStore((s) => s.messages);
 
   const openForUser = questions.filter((q) => q.status === "open" && q.toId === "user").length;
-  const working = agents.filter((a) => a.status === "working").length;
   const is = (name: string, id?: string) => route.name === name && (!id || ("channelId" in route && route.channelId === id));
 
   return (
     <aside className="side">
       <div className="side-drag" />
-      <div className="side-ws">
-        <span style={{ width: 20, height: 20, borderRadius: 5, background: "var(--accent)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-          <Ic.Team size={12} stroke="#fff" />
-        </span>
-        <span className="side-ws-name">{team?.name ?? "No team yet"}</span>
-        <span style={{ fontSize: 11, color: "var(--ink-5)" }}>{team ? `${working} working` : ""}</span>
-      </div>
+      <TeamSwitcher />
 
       <div className="sec">Team</div>
       <button className={"srow" + (is("home") || is("agent") ? " srow-on" : "")} onClick={() => store.navigate({ name: "home" })}>

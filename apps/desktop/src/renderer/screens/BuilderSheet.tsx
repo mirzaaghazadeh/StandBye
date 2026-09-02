@@ -15,7 +15,7 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
   const [mode, setMode] = useState<"describe" | "template">(initialMode ?? "describe");
   const [description, setDescription] = useState("");
   const [ownerName, setOwnerName] = useState(team?.ownerName ?? "");
-  const [workspace, setWorkspace] = useState<string | null>(team?.workspaceRoot ?? null);
+  const [workspace, setWorkspace] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const providers = useStore((s) => s.providers);
   const ready = (["anthropic", "openrouter"] as const).filter((p) => providers?.[p].ready);
@@ -37,7 +37,7 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
         <Segmented value={mode} onChange={setMode} options={[{ value: "describe", label: "Describe" }, { value: "template", label: "From Template" }]} />
         <span className="grow" />
         <span style={{ fontSize: 12, color: "var(--ink-4)" }}>{draft ? "Step 2 of 2 · Review the draft" : "Step 1 of 2 · Tell it what you need"}</span>
-        <button className="ibtn" onClick={() => store.openSheet(team ? { kind: "none" } : { kind: "onboarding" })}><Ic.X size={14} /></button>
+        <button className="ibtn" onClick={() => store.openSheet(team ? { kind: "none" } : { kind: "onboarding" })} title="Close"><Ic.X size={14} /></button>
       </div>
 
       <div className="sheet-body" style={{ display: "grid", gridTemplateColumns: "330px minmax(0, 1fr)" }}>
@@ -60,9 +60,10 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
           <div>
             <div className="grp-t">Workspace</div>
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <Button icon={<Ic.Folder size={13} />} onClick={() => void window.crew.pickFolder().then((p) => p && setWorkspace(p))}>{workspace ? "Change…" : "Choose folder…"}</Button>
-              <span className="mono cell" style={{ fontSize: 11, color: "var(--ink-4)", flex: 1 }}>{workspace ?? "The repo the team works in"}</span>
+              <input className="field mono" style={{ flex: 1, fontSize: 11 }} placeholder="/path/to/the/repo this team works in" value={workspace ?? ""} onChange={(e) => setWorkspace(e.target.value || null)} />
+              <Button icon={<Ic.Folder size={13} />} onClick={() => void window.crew.pickFolder().then((p) => p && setWorkspace(p))}>Choose…</Button>
             </div>
+            <div style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 4 }}>Each team has its own working directory. Agents only touch files inside it.</div>
           </div>
           <div>
             <div className="grp-t">Keys</div>
@@ -146,8 +147,8 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
       <div className="sheet-f">
         {draft && <span style={{ fontSize: 12, color: "var(--ink-4)" }}>Estimated <span className="mono">${draft.estimatedDailyUsd.low} – {draft.estimatedDailyUsd.high}</span> per day at normal activity. Sleeping is free.</span>}
         <span className="grow" />
-        <Button lg onClick={() => store.openSheet(team ? { kind: "none" } : { kind: "onboarding" })}>{team ? "Cancel" : "Back"}</Button>
-        <Button lg primary onClick={create} disabled={!draft || draft.agents.length === 0}>{team ? "Replace Team" : "Create Team"}</Button>
+        <Button lg onClick={() => store.openSheet({ kind: "onboarding" })}>Back</Button>
+        <Button lg primary onClick={create} disabled={!draft || draft.agents.length === 0}>Create Team</Button>
       </div>
     </div>
   );

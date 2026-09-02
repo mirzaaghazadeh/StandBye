@@ -38,7 +38,7 @@ export function KeysSheet() {
             </div>
             {team && (
               <div style={{ marginTop: "auto", paddingTop: 12 }}>
-                <Button danger onClick={() => { if (confirm("Delete the whole team, its agents and channels? Run history is kept.")) void store.deleteTeam().then(() => store.openSheet({ kind: "onboarding" })); }}>Delete Team…</Button>
+                <Button danger onClick={() => { if (confirm(`Delete "${team.name}" with its agents, channels and run history? Other teams are not affected.`)) void store.deleteTeam().then(() => store.openSheet(store.get().teams.length ? { kind: "none" } : { kind: "onboarding" })); }}>Delete This Team…</Button>
               </div>
             )}
           </div>
@@ -59,13 +59,13 @@ function TeamSettings() {
   const [charter, setCharter] = useState(team.charter);
   const [cap, setCap] = useState(String(team.dailyCapUsd));
   const [depth, setDepth] = useState(String(team.chatDepthCap));
-  useEffect(() => { setName(team.name); setOwner(team.ownerName); setCharter(team.charter); setCap(String(team.dailyCapUsd)); setDepth(String(team.chatDepthCap)); }, [team.id]);
-  const dirty = name !== team.name || owner !== team.ownerName || charter !== team.charter || Number(cap) !== team.dailyCapUsd || Number(depth) !== team.chatDepthCap;
+  const [workspace, setWorkspace] = useState(team.workspaceRoot ?? "");
+  useEffect(() => { setName(team.name); setOwner(team.ownerName); setCharter(team.charter); setCap(String(team.dailyCapUsd)); setDepth(String(team.chatDepthCap)); setWorkspace(team.workspaceRoot ?? ""); }, [team.id]);
+  const dirty = name !== team.name || owner !== team.ownerName || charter !== team.charter || Number(cap) !== team.dailyCapUsd || Number(depth) !== team.chatDepthCap || (workspace.trim() || null) !== team.workspaceRoot;
   const save = async () => {
-    await store.rpc("team.update", { name: name.trim() || team.name, ownerName: owner.trim() || team.ownerName, charter: charter.trim(), dailyCapUsd: Math.max(0, Number(cap) || 0), chatDepthCap: Math.max(1, Math.round(Number(depth) || 6)) });
-    store.toast("Team settings saved.");
+    const t = await store.rpc<typeof team>("team.update", { name: name.trim() || team.name, ownerName: owner.trim() || team.ownerName, charter: charter.trim(), dailyCapUsd: Math.max(0, Number(cap) || 0), chatDepthCap: Math.max(1, Math.round(Number(depth) || 6)), workspaceRoot: workspace.trim() || null });
+    store.toast(t.workspaceRoot !== team.workspaceRoot ? "Saved. New runs use the new workspace." : "Team settings saved.");
   };
-  const pickWorkspace = async () => { const p = await window.crew.pickFolder(); if (p) { await store.rpc("team.update", { workspaceRoot: p }); store.toast("Workspace changed for future runs."); } };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -73,9 +73,10 @@ function TeamSettings() {
         <KV k="Team name"><input className="field" value={name} onChange={(e) => setName(e.target.value)} /></KV>
         <KV k="Your name"><input className="field" value={owner} onChange={(e) => setOwner(e.target.value)} /></KV>
         <KV k="Workspace">
-          <span className="mono cell" style={{ fontSize: 11, color: "var(--ink-3)", flex: 1 }}>{team.workspaceRoot ?? "none"}</span>
-          <Button sm icon={<Ic.Folder size={12} />} onClick={() => void pickWorkspace()}>Change…</Button>
+          <input className="field mono" style={{ flex: 1, fontSize: 11 }} placeholder="/path/to/the/repo this team works in" value={workspace} onChange={(e) => setWorkspace(e.target.value)} />
+          <Button sm icon={<Ic.Folder size={12} />} onClick={() => void window.crew.pickFolder().then((p) => p && setWorkspace(p))}>Choose…</Button>
         </KV>
+        <div style={{ fontSize: 11, color: "var(--ink-4)", padding: "0 0 6px 102px" }}>This team's working directory. Agents run and edit files only inside it.</div>
       </div>
       <div style={{ border: "1px solid var(--border)", borderRadius: 7, background: "var(--surface)", padding: "8px 12px" }}>
         <div className="grp-t" style={{ marginTop: 4 }}>Charter</div>

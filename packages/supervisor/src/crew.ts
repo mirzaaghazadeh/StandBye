@@ -10,12 +10,21 @@ import { DEFAULT_MODELS } from "@crew/shared";
 import { Bus } from "./bus.js";
 import { Db } from "./db.js";
 import { Store } from "./store.js";
-import { DEFAULTS, type SupervisorOptions } from "./config.js";
+import { DEFAULTS } from "./config.js";
 import { DEFAULT_DEV_RULES } from "./permissions.js";
 
 export interface Keys {
   anthropic?: string;
   openrouter?: string;
+}
+
+export interface CrewOptions {
+  /** This team's folder: team.json, agents/, crew.db */
+  dataDir: string;
+  /** Shared across teams: providers.json */
+  globalDir: string;
+  /** Shared key object owned by the hub */
+  keys: Keys;
 }
 
 interface AgentRuntime {
@@ -35,13 +44,15 @@ export class Crew {
   readonly bus = new Bus();
   readonly startedAt = new Date().toISOString();
   team: TeamConfig | null;
-  keys: Keys = {};
+  readonly keys: Keys;
   pausedAll = false;
 
   private readonly runtime = new Map<string, AgentRuntime>();
   private readonly waiters = new Map<string, (answer: string | null) => void>();
 
-  constructor(readonly opts: SupervisorOptions) {
+  constructor(readonly opts: CrewOptions) {
+    fs.mkdirSync(opts.dataDir, { recursive: true });
+    this.keys = opts.keys;
     this.db = new Db(opts.dataDir);
     this.store = new Store(opts.dataDir);
     this.team = this.store.readTeam();
@@ -49,10 +60,17 @@ export class Crew {
     if (stale > 0) console.error(`[crew] marked ${stale} stale run(s) as failed after restart`);
   }
 
+  get id(): string | null {
+    return this.team?.id ?? null;
+  }
+  close(): void {
+    this.db.sqlite.close();
+  }
+
   // ---------------- keys & providers ----------------
 
   setKeys(keys: Keys): void {
-    this.keys = { ...this.keys, ...keys };
+    Object.assign(this.keys, keys);
     this.bus.emit("supervisor.status", this.status());
   }
   keyStatus(): KeyStatus {
@@ -68,7 +86,7 @@ export class Crew {
       anthropic: { ...cur.anthropic, ...(patch.anthropic ?? {}) },
       openrouter: { ...cur.openrouter, ...(patch.openrouter ?? {}) },
     };
-    fs.writeFileSync(path.join(this.opts.dataDir, "providers.json"), JSON.stringify(next, null, 2));
+    fs.writeFileSync(path.join(this.opts.globalDir, "providers.json"), JSON.stringify(next, null, 2));
     this.bus.emit("supervisor.status", this.status());
     return this.providerStatus();
   }
@@ -77,7 +95,7 @@ export class Crew {
       anthropic: { enabled: true, defaultModel: DEFAULT_MODELS.anthropic.main, checkinModel: DEFAULT_MODELS.anthropic.checkin },
       openrouter: { enabled: true, defaultModel: DEFAULT_MODELS.openrouter.main, checkinModel: DEFAULT_MODELS.openrouter.checkin },
     };
-    const p = path.join(this.opts.dataDir, "providers.json");
+    const p = path.join(this.opts.globalDir, "providers.json");
     if (!fs.existsSync(p)) return base;
     try {
       const saved = JSON.parse(fs.readFileSync(p, "utf8")) as { anthropic?: Partial<ProviderConfig>; openrouter?: Partial<ProviderConfig> };
@@ -112,11 +130,11 @@ export class Crew {
 
   // ---------------- team ----------------
 
-  createTeamFromDraft(draft: TeamDraft, opts: { workspaceRoot: string | null; ownerName: string }): TeamConfig {
+  createTeamFromDraft(draft: TeamDraft, opts: { workspaceRoot: string | null; ownerName: string; id?: string }): TeamConfig {
     this.store.deleteTeam();
     this.db.deleteAllChannels();
     const team: TeamConfig = {
-      id: nanoid(8),
+      id: opts.id ?? nanoid(8),
       name: draft.name,
       charter: draft.charter,
       dailyCapUsd: draft.dailyCapUsd || DEFAULTS.teamDailyCapUsd,
@@ -414,7 +432,7 @@ export class Crew {
     const agents = this.listAgents();
     const next = agents.filter((a) => a.nextWakeAt).sort((a, b) => a.nextWakeAt!.localeCompare(b.nextWakeAt!))[0];
     return {
-      startedAt: this.startedAt, pausedAll: this.pausedAll,
+      teamId: this.id, startedAt: this.startedAt, pausedAll: this.pausedAll,
       runningRuns: agents.filter((a) => a.currentRunId).length,
       runsToday: this.db.runsToday(), keys: this.keyStatus(),
       nextWake: next ? { agentId: next.id, at: next.nextWakeAt! } : null,

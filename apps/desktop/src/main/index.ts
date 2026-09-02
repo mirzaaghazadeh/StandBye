@@ -10,7 +10,6 @@ const host = new SupervisorHost(dataDir, (line) => console.log(line));
 
 let win: BrowserWindow | null = null;
 let tray: Tray | null = null;
-let agents: Agent[] = [];
 let status: SupervisorStatus | null = null;
 let spend: SpendSummary | null = null;
 
@@ -81,19 +80,25 @@ function trayIcon(): Electron.NativeImage {
   return img;
 }
 
+let teamsForTray: { teamId: string; teamName: string; agents: Agent[] }[] = [];
+
 function rebuildTray(): void {
   if (!tray) return;
-  const working = agents.filter((a) => a.status === "working").length;
-  const needs = agents.filter((a) => a.status === "needs_you").length;
-  const idle = agents.filter((a) => a.status === "idle").length;
+  const all = teamsForTray.flatMap((t) => t.agents);
+  const working = all.filter((a) => a.status === "working").length;
+  const needs = all.filter((a) => a.status === "needs_you").length;
+  const idle = all.filter((a) => a.status === "idle").length;
   const dot: Record<string, string> = { working: "●", needs_you: "◐", idle: "○", paused: "‖", failed: "✕", over_budget: "$" };
   const menu = Menu.buildFromTemplate([
     { label: `${working} working · ${needs} need you · ${idle} idle`, enabled: false },
     { type: "separator" },
-    ...agents.map((a) => ({
-      label: `${dot[a.status] ?? "○"}  ${a.name} — ${a.statusText || a.status}`,
-      click: () => showWindow(`/agent/${a.id}`),
-    })),
+    ...teamsForTray.flatMap((t) => [
+      ...(teamsForTray.length > 1 ? [{ label: t.teamName, enabled: false }] : []),
+      ...t.agents.map((a) => ({
+        label: `${dot[a.status] ?? "○"}  ${a.name} — ${a.statusText || a.status}`,
+        click: () => showWindow(`/agent/${a.id}`),
+      })),
+    ]),
     { type: "separator" },
     { label: needs ? `${needs} need your answer…` : "Inbox", click: () => showWindow("/inbox") },
     { label: spend ? `Spend today $${spend.todayUsd.toFixed(2)} / $${spend.capUsd}` : "Spend today", enabled: false },
@@ -111,17 +116,28 @@ function rebuildTray(): void {
 
 // ---------- events from the supervisor ----------
 
+let trayTimer: NodeJS.Timeout | null = null;
+function refreshTraySoon(): void {
+  if (trayTimer) return;
+  trayTimer = setTimeout(async () => {
+    trayTimer = null;
+    try {
+      teamsForTray = await host.rpc<typeof teamsForTray>("agents.all");
+      status = await host.rpc<SupervisorStatus>("status.get");
+      spend = await host.rpc<SpendSummary>("spend.get");
+    } catch { /* supervisor gone */ }
+    rebuildTray();
+  }, 400);
+}
+
 host.onEvent((e: PushEvent) => {
-  if (e.event === "agents.updated") agents = e.data;
-  if (e.event === "agent.updated") agents = agents.some((a) => a.id === e.data.id) ? agents.map((a) => (a.id === e.data.id ? e.data : a)) : [...agents, e.data];
-  if (e.event === "supervisor.status") status = e.data;
-  if (e.event === "spend.updated") spend = e.data;
   if (e.event === "notify") {
-    const n = new Notification({ title: e.data.title, body: e.data.body, silent: false });
+    const teamName = teamsForTray.find((t) => t.teamId === e.teamId)?.teamName;
+    const n = new Notification({ title: teamName && teamsForTray.length > 1 ? `${e.data.title} · ${teamName}` : e.data.title, body: e.data.body, silent: false });
     n.on("click", () => showWindow(e.data.questionId ? `/inbox/${e.data.questionId}` : "/inbox"));
     n.show();
   }
-  if (["agents.updated", "agent.updated", "supervisor.status", "spend.updated"].includes(e.event)) rebuildTray();
+  if (["agents.updated", "agent.updated", "supervisor.status", "spend.updated", "teams.updated"].includes(e.event)) refreshTraySoon();
   win?.webContents.send("crew:event", e);
 });
 
@@ -154,7 +170,7 @@ void app.whenReady().then(async () => {
     await host.start(script);
     const keys = loadKeys();
     if (Object.keys(keys).length) await host.rpc("keys.set", keys);
-    agents = await host.rpc<Agent[]>("agents.list");
+    teamsForTray = await host.rpc<typeof teamsForTray>("agents.all");
     status = await host.rpc<SupervisorStatus>("status.get");
     spend = await host.rpc<SpendSummary>("spend.get");
   } catch (e) {

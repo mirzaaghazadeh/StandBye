@@ -172,8 +172,9 @@ textarea.field.mono { font-family: var(--mono); font-size: 12.5px; line-height: 
 
 /* ---- sheets ---- */
 .dim { position: absolute; inset: 0; background: rgba(40, 36, 30, 0.28); z-index: 20; }
-.sheet { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 860px; max-width: calc(100% - 40px); height: 700px; max-height: calc(100% - 40px); background: var(--bg); border-radius: 0 0 12px 12px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.12); display: flex; flex-direction: column; overflow: hidden; z-index: 21; animation: drop 0.18s ease-out; }
-@keyframes drop { from { transform: translate(-50%, -12px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+.sheet { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 860px; max-width: calc(100% - 48px); height: 700px; max-height: calc(100% - 48px); background: var(--bg); border-radius: 12px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(0, 0, 0, 0.12); display: flex; flex-direction: column; overflow: hidden; z-index: 21; animation: rise 0.16s ease-out; }
+@keyframes rise { from { transform: translate(-50%, calc(-50% + 10px)); opacity: 0; } to { transform: translate(-50%, -50%); opacity: 1; } }
+.side-ws:hover { background: rgba(0, 0, 0, 0.08); }
 .sheet-h { height: 52px; flex-shrink: 0; display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid var(--border); gap: 12px; }
 .sheet-h b { font-weight: 600; font-size: 14px; }
 .sheet-f { height: 56px; flex-shrink: 0; display: flex; align-items: center; padding: 0 20px; border-top: 1px solid var(--border); gap: 10px; background: var(--bg); }

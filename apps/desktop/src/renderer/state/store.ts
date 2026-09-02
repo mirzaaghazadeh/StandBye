@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type {
-  Agent, AgentFiles, Channel, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunStep, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft,
+  Agent, AgentFiles, Channel, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunStep, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft, TeamSummary,
 } from "@crew/shared";
 
 export type Route =
@@ -28,6 +28,8 @@ export interface State {
   keys: KeyStatus;
   providers: ProviderStatus | null;
   models: Record<Provider, ModelInfo[]> | null;
+  teams: TeamSummary[];
+  activeTeamId: string | null;
   team: TeamConfig | null;
   agents: Agent[];
   channels: Channel[];
@@ -44,7 +46,7 @@ export interface State {
 
 const initial: State = {
   ready: false, error: null, route: { name: "home" }, sheet: { kind: "none" }, status: null,
-  keys: { anthropic: false, openrouter: false }, providers: null, models: null, team: null, agents: [], channels: [], messages: {}, questions: [], runs: [], steps: {},
+  keys: { anthropic: false, openrouter: false }, providers: null, models: null, teams: [], activeTeamId: null, team: null, agents: [], channels: [], messages: {}, questions: [], runs: [], steps: {},
   spend: null, selectedAgentId: null, builderDraft: null, builderBusy: false, toast: null,
 };
 
@@ -77,13 +79,27 @@ class Store {
   }
 
   async refreshAll(): Promise<void> {
+    const teams = await this.rpc<TeamSummary[]>("teams.list");
+    let activeTeamId = this.state.activeTeamId ?? readLocal("standbye.activeTeam");
+    if (!activeTeamId || !teams.some((t) => t.id === activeTeamId)) activeTeamId = teams[0]?.id ?? null;
+    if (activeTeamId) await this.rpc("teams.select", { id: activeTeamId });
+    writeLocal("standbye.activeTeam", activeTeamId ?? "");
     const [status, keys, providers, team, agents, channels, questions, runs, spend] = await Promise.all([
       this.rpc<SupervisorStatus>("status.get"), window.crew.keysGet(), this.rpc<ProviderStatus>("providers.get"), this.rpc<TeamConfig | null>("team.get"), this.rpc<Agent[]>("agents.list"),
       this.rpc<Channel[]>("channels.list"), this.rpc<Question[]>("questions.list", {}), this.rpc<Run[]>("runs.list", { limit: 200 }), this.rpc<SpendSummary>("spend.get"),
     ]);
-    this.set({ status, keys, providers, team, agents, channels, questions, runs, spend, selectedAgentId: this.state.selectedAgentId ?? agents[0]?.id ?? null });
+    this.set({
+      teams, activeTeamId, status, keys, providers, team, agents, channels, questions, runs, spend, messages: {}, steps: {},
+      selectedAgentId: agents.some((a) => a.id === this.state.selectedAgentId) ? this.state.selectedAgentId : agents[0]?.id ?? null,
+    });
     if (!team && this.state.sheet.kind === "none") this.set({ sheet: { kind: "onboarding" } });
     void this.loadModels();
+  }
+
+  async switchTeam(id: string): Promise<void> {
+    if (id === this.state.activeTeamId) return;
+    this.set({ activeTeamId: id, route: { name: "home" } });
+    await this.refreshAll();
   }
 
   async loadModels(force = false): Promise<void> {
@@ -100,6 +116,8 @@ class Store {
   }
 
   private onEvent(e: PushEvent): void {
+    if (e.event === "teams.updated") { this.set({ teams: e.data }); return; }
+    if (e.teamId && e.teamId !== this.state.activeTeamId) return; // another team's event; the switcher shows its counters
     switch (e.event) {
       case "agents.updated": this.set({ agents: e.data, selectedAgentId: this.state.selectedAgentId && e.data.some((a) => a.id === this.state.selectedAgentId) ? this.state.selectedAgentId : e.data[0]?.id ?? null }); break;
       case "agent.updated": this.set((s) => ({ agents: s.agents.some((a) => a.id === e.data.id) ? s.agents.map((a) => (a.id === e.data.id ? e.data : a)) : [...s.agents, e.data] })); break;
@@ -189,12 +207,24 @@ class Store {
   }
   setDraft(draft: TeamDraft | null): void { this.set({ builderDraft: draft }); }
   async createTeam(draft: TeamDraft, workspaceRoot: string | null, ownerName: string): Promise<void> {
-    await this.rpc("team.create", { draft, workspaceRoot, ownerName });
+    const team = await this.rpc<TeamConfig>("teams.create", { draft, workspaceRoot, ownerName });
+    this.set({ activeTeamId: team.id, sheet: { kind: "none" }, builderDraft: null, route: { name: "home" } });
     await this.refreshAll();
-    this.set({ sheet: { kind: "none" }, builderDraft: null, route: { name: "home" } });
-    this.toast("Team created. First check-ins in about a minute.");
+    this.toast(`Team "${team.name}" created. First check-ins in about a minute.`);
   }
-  async deleteTeam(): Promise<void> { await this.rpc("team.delete"); await this.refreshAll(); }
+  async deleteTeam(): Promise<void> {
+    if (!this.state.activeTeamId) return;
+    await this.rpc("teams.delete", { id: this.state.activeTeamId });
+    this.set({ activeTeamId: null });
+    await this.refreshAll();
+  }
+}
+
+function readLocal(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function writeLocal(key: string, value: string): void {
+  try { localStorage.setItem(key, value); } catch { /* ignore */ }
 }
 
 export const store = new Store();

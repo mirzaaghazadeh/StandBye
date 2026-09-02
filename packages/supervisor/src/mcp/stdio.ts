@@ -16,6 +16,7 @@ import { TEAM_TOOLS } from "../tools/team-tools.js";
 const port = process.env.CREW_PORT ?? "47311";
 const token = process.env.CREW_TOKEN ?? "dev";
 const agentId = process.env.CREW_AGENT;
+const teamId = process.env.CREW_TEAM; // optional; defaults to the first team
 if (!agentId) {
   console.error("CREW_AGENT is required (the agent id this session acts as)");
   process.exit(1);
@@ -48,7 +49,7 @@ let runId: string | undefined;
 const server = new McpServer({ name: "crew-team", version: "1.0.0" });
 for (const t of TEAM_TOOLS) {
   server.registerTool(t.name, { description: t.description, inputSchema: z.object(t.schema) }, async (args: Record<string, unknown>) => {
-    const res = await rpc<{ text: string; runId: string }>("tools.call", { agentId, tool: t.name, args, runId });
+    const res = await rpc<{ text: string; runId: string }>("tools.call", { teamId, agentId, tool: t.name, args, runId });
     runId = res.runId;
     return { content: [{ type: "text" as const, text: res.text }] };
   });

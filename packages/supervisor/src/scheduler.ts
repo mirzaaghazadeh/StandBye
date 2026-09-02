@@ -37,7 +37,7 @@ export class Scheduler {
     this.crons.clear();
     for (const agent of this.crew.listAgents()) {
       const jobs = agent.triggers.cron.map(
-        (t) => new Cron(t.expr, { name: `${agent.id}:${t.name}`, protect: true }, () => { this.queue.enqueue(agent.id, { kind: "schedule", name: t.name, prompt: t.prompt }); }),
+        (t) => new Cron(t.expr, { protect: true }, () => { this.queue.enqueue(agent.id, { kind: "schedule", name: t.name, prompt: t.prompt }); }),
       );
       this.crons.set(agent.id, jobs);
     }

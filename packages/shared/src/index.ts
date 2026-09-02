@@ -128,6 +128,20 @@ export interface TeamConfig {
   createdAt: string;
 }
 
+/** One row in the team switcher. Every team has its own folder, database, agents, channels and workspace. */
+export interface TeamSummary {
+  id: string;
+  name: string;
+  ownerName: string;
+  workspaceRoot: string | null;
+  agentCount: number;
+  working: number;
+  needsYou: number;
+  spendTodayUsd: number;
+  pausedAll: boolean;
+  createdAt: string;
+}
+
 export interface Channel {
   id: string;
   name: string;
@@ -296,7 +310,8 @@ export interface RpcResponse {
   error?: { code: number; message: string };
 }
 
-export type PushEvent =
+export type PushEvent = (
+  | { event: "teams.updated"; data: TeamSummary[] }
   | { event: "agent.updated"; data: Agent }
   | { event: "agents.updated"; data: Agent[] }
   | { event: "message.created"; data: Message }
@@ -307,9 +322,14 @@ export type PushEvent =
   | { event: "team.updated"; data: TeamConfig | null }
   | { event: "spend.updated"; data: SpendSummary }
   | { event: "notify"; data: { title: string; body: string; questionId?: string } }
-  | { event: "supervisor.status"; data: SupervisorStatus };
+  | { event: "supervisor.status"; data: SupervisorStatus }
+) & {
+  /** Which team the event belongs to; absent for global events (teams.updated) */
+  teamId?: string;
+};
 
 export interface SupervisorStatus {
+  teamId: string | null;
   startedAt: string;
   pausedAll: boolean;
   runningRuns: number;

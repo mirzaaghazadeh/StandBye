@@ -10,15 +10,17 @@ import { ProvidersPanel } from "../components/ProvidersPanel";
  */
 export function OnboardingSheet() {
   const providers = useStore((s) => s.providers);
-  const [step, setStep] = useState<1 | 2>(1);
+  const hasTeams = useStore((s) => s.teams.length > 0);
   const anyReady = Boolean(providers?.anthropic.ready || providers?.openrouter.ready);
+  const [step, setStep] = useState<1 | 2>(hasTeams && anyReady ? 2 : 1);
 
   return (
     <div className="sheet" style={{ width: 680, height: 560 }}>
       <div className="sheet-h">
-        <b>Welcome to Standbye</b>
+        <b>{hasTeams ? "New team" : "Welcome to Standbye"}</b>
         <span className="grow" />
         <Steps step={step} />
+        {hasTeams && <button className="ibtn" onClick={() => store.closeSheet()}><Ic.X size={14} /></button>}
       </div>
 
       {step === 1 ? (
@@ -33,7 +35,7 @@ export function OnboardingSheet() {
         <div className="sheet-body" style={{ flexDirection: "column", padding: "18px 24px", gap: 14 }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 600 }}>How do you want to make your team?</div>
-            <div style={{ fontSize: 12, color: "var(--ink-4)", marginTop: 2 }}>Every teammate is a folder with a soul, rules and a budget. You can change anything later.</div>
+            <div style={{ fontSize: 12, color: "var(--ink-4)", marginTop: 2 }}>Every team has its own workspace folder, channels and agents; every teammate is a folder with a soul, rules and a budget. You can change anything later.</div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12, flex: 1 }}>
             <Choice icon={<Ic.Sparkle size={22} stroke="var(--accent)" />} title="Describe it" body="Say what you're building and what you need done. Your default model drafts the roles, souls, channels and budgets; you review before anything is created." action="Describe…" disabled={!anyReady} onClick={() => store.openSheet({ kind: "builder", mode: "describe" })} />
