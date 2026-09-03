@@ -640,6 +640,7 @@ export type PushEvent = (
   | { event: "run.step"; data: RunStep }
   | { event: "team.updated"; data: TeamConfig | null }
   | { event: "spend.updated"; data: SpendSummary }
+  | { event: "tasks.updated"; data: Task[] }
   | { event: "skills.updated"; data: null }
   | { event: "notify"; data: { title: string; body: string; questionId?: string } }
   | { event: "supervisor.status"; data: SupervisorStatus }
@@ -648,6 +649,34 @@ export type PushEvent = (
   /** Which team the event belongs to; absent for global events (teams.updated) */
   teamId?: string;
 };
+
+export const TASK_COLUMNS = ["todo", "doing", "done"] as const;
+export type TaskColumn = (typeof TASK_COLUMNS)[number];
+
+/** One card on the team's shared task board: the work list both the owner and the agents file into. */
+export interface Task {
+  id: string;
+  column: TaskColumn;
+  title: string;
+  detail: string | null;
+  /** Agent id the card is assigned to, or null when nobody has picked it up. */
+  assignee: string | null;
+  /** "owner", or the id of the agent that filed it. */
+  createdBy: string;
+  /** Order within the column; lower shows higher. */
+  position: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Fields a client may change on a task; ids, authorship and timestamps are the supervisor's. */
+export const TaskPatchSchema = z.object({
+  title: z.string().min(1).max(500).optional(),
+  detail: z.string().max(4000).nullable().optional(),
+  column: z.enum(TASK_COLUMNS).optional(),
+  assignee: z.string().max(120).nullable().optional(),
+});
+export type TaskPatch = z.infer<typeof TaskPatchSchema>;
 
 export interface SupervisorStatus {
   teamId: string | null;

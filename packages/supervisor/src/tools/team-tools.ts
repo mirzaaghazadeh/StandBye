@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Run } from "@crew/shared";
-import { dmChannelId } from "@crew/shared";
+import { dmChannelId, TASK_COLUMNS } from "@crew/shared";
 import type { Crew } from "../crew.js";
 import { DEFAULTS } from "../config.js";
 import { normalizeSkillName } from "../skills.js";
@@ -205,6 +205,54 @@ export const TEAM_TOOLS = [
       });
       ctx.crew.addStep(ctx.run.id, "ask", `Proposed hire: ${args.name} (${args.role})`);
       return `Hire proposal ${q.id} sent to the owner.`;
+    },
+  }),
+  def({
+    name: "list_tasks",
+    description: "The team's kanban board: tasks filed by the owner and by agents, grouped by column (todo, doing, done). Read it before starting work or when told to pick something up.",
+    schema: {},
+    handler: async (_a, ctx) => {
+      const tasks = ctx.crew.db.listTasks();
+      const open = tasks.filter((t) => t.column !== "done");
+      if (!open.length) return "The board is empty of open tasks.";
+      return TASK_COLUMNS.filter((c) => c !== "done").map((c) => {
+        const col = open.filter((t) => t.column === c);
+        if (!col.length) return `${c}: (empty)`;
+        return `${c}:\n` + col.map((t) => `  [${t.id}] ${t.title}${t.assignee ? ` — ${t.assignee}` : " — unclaimed"}${t.detail ? `\n      ${t.detail.slice(0, 300)}` : ""}`).join("\n");
+      }).join("\n\n");
+    },
+  }),
+  def({
+    name: "file_task",
+    description: "Put a task on the team's kanban board (todo column). Use it when work is noticed that nobody should start right now, or when handing off something for later. Keep the title short and specific.",
+    schema: {
+      title: z.string().min(4).max(120),
+      detail: z.string().max(2000).optional().describe("What done looks like, with file paths where you know them."),
+    },
+    handler: async ({ title, detail }, ctx) => {
+      const task = ctx.crew.db.createTask({ title, detail: detail ?? null, createdBy: ctx.agentId });
+      ctx.crew.bus.emit("tasks.updated", ctx.crew.db.listTasks());
+      return `Filed [${task.id}] "${task.title}" on the board (todo).`;
+    },
+  }),
+  def({
+    name: "claim_task",
+    description: "Claim a board task and move it to doing. Use the id from list_tasks. Only claim what you are about to work on in this run.",
+    schema: { id: z.string().min(1) },
+    handler: async ({ id }, ctx) => {
+      const task = ctx.crew.db.claimTask(id, ctx.agentId);
+      ctx.crew.bus.emit("tasks.updated", ctx.crew.db.listTasks());
+      return `Claimed [${task.id}] "${task.title}" — it is yours (doing).`;
+    },
+  }),
+  def({
+    name: "finish_task",
+    description: "Mark a board task done. Call it when the work is actually finished and tests pass, not before. Say in one line what happened.",
+    schema: { id: z.string().min(1), outcome: z.string().max(1000) },
+    handler: async ({ id, outcome }, ctx) => {
+      const task = ctx.crew.db.completeTask(id, ctx.agentId);
+      ctx.crew.bus.emit("tasks.updated", ctx.crew.db.listTasks());
+      return `[${task.id}] "${task.title}" marked done. Outcome: ${outcome}`;
     },
   }),
   def({

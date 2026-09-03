@@ -1,6 +1,9 @@
 import Database from "better-sqlite3";
+import { nanoid } from "nanoid";
 import path from "node:path";
-import type { Channel, Message, Question, Run, RunStep, RunTrigger } from "@crew/shared";
+import { TASK_COLUMNS, type Channel, type Message, type Question, type Run, type RunStep, type RunTrigger, type Task, type TaskColumn } from "@crew/shared";
+
+type TaskRow = { id: string; title: string; detail: string | null; status: string; assignee: string | null; created_by: string; position: number; created_at: string; updated_at: string };
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS channels (
@@ -35,6 +38,13 @@ CREATE TABLE IF NOT EXISTS agent_state (
 CREATE TABLE IF NOT EXISTS decisions (
   id TEXT PRIMARY KEY, title TEXT NOT NULL, answer TEXT NOT NULL, by TEXT NOT NULL, created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS tasks (
+  id TEXT PRIMARY KEY, title TEXT NOT NULL, detail TEXT,
+  status TEXT NOT NULL DEFAULT 'todo',
+  assignee TEXT, created_by TEXT NOT NULL DEFAULT 'owner', position INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS tasks_board ON tasks(status, position);
 `;
 
 /**
@@ -207,6 +217,79 @@ export class Db {
   countMessagesToday(): number {
     const r = this.sqlite.prepare("SELECT COUNT(*) AS n FROM messages WHERE created_at >= ?").get(startOfToday()) as { n: number };
     return r.n;
+  }
+
+  // ---- tasks (the shared board) ----
+
+  createTask(input: { title: string; detail?: string | null; column?: TaskColumn; assignee?: string | null; createdBy: string }): Task {
+    const title = input.title?.trim();
+    if (!title) throw new Error("A task needs a title.");
+    const column = input.column ?? "todo";
+    if (!TASK_COLUMNS.includes(column)) throw new Error(`Unknown board column "${column}".`);
+    const now = new Date().toISOString();
+    const max = this.sqlite.prepare("SELECT COALESCE(MAX(position), -1) AS p FROM tasks WHERE status = ?").get(column) as { p: number };
+    const task: Task = {
+      id: nanoid(10), column, title, detail: input.detail?.trim() || null,
+      assignee: input.assignee ?? null, createdBy: input.createdBy,
+      position: max.p + 1, createdAt: now, updatedAt: now,
+    };
+    this.sqlite
+      .prepare("INSERT INTO tasks (id, title, detail, status, assignee, created_by, position, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)")
+      .run(task.id, task.title, task.detail, task.column, task.assignee, task.createdBy, task.position, task.createdAt, task.updatedAt);
+    return task;
+  }
+  listTasks(): Task[] {
+    const rows = this.sqlite
+      .prepare("SELECT * FROM tasks ORDER BY CASE status WHEN 'todo' THEN 0 WHEN 'doing' THEN 1 ELSE 2 END, position, created_at")
+      .all() as TaskRow[];
+    return rows.map(rowToTask);
+  }
+  getTask(id: string): Task | undefined {
+    const row = this.sqlite.prepare("SELECT * FROM tasks WHERE id = ?").get(id) as TaskRow | undefined;
+    return row ? rowToTask(row) : undefined;
+  }
+  /**
+   * Apply a partial update. Reassigning and renaming keep the card's slot; moving between
+   * columns appends to the end of the target column. Throws when the task does not exist.
+   */
+  updateTask(id: string, patch: { title?: string; detail?: string | null; column?: TaskColumn; assignee?: string | null }): Task {
+    const task = this.getTask(id);
+    if (!task) throw new Error(`No task ${id}.`);
+    const next: Task = {
+      ...task,
+      title: patch.title?.trim() || task.title,
+      detail: patch.detail === undefined ? task.detail : patch.detail?.trim() || null,
+      column: patch.column ?? task.column,
+      assignee: patch.assignee === undefined ? task.assignee : patch.assignee,
+      updatedAt: new Date().toISOString(),
+    };
+    if (!TASK_COLUMNS.includes(next.column)) throw new Error(`Unknown board column "${next.column}".`);
+    if (patch.column && patch.column !== task.column) {
+      const max = this.sqlite.prepare("SELECT COALESCE(MAX(position), -1) AS p FROM tasks WHERE status = ?").get(next.column) as { p: number };
+      next.position = max.p + 1;
+    }
+    this.sqlite
+      .prepare("UPDATE tasks SET title=?, detail=?, status=?, assignee=?, position=?, updated_at=? WHERE id=?")
+      .run(next.title, next.detail, next.column, next.assignee, next.position, next.updatedAt, id);
+    return next;
+  }
+  /** Claim: only an unassigned task can be claimed; the claimant takes it into doing. */
+  claimTask(id: string, agentId: string): Task {
+    const task = this.getTask(id);
+    if (!task) throw new Error(`No task ${id}.`);
+    if (task.assignee && task.assignee !== agentId) throw new Error(`Already assigned to ${task.assignee}.`);
+    return this.updateTask(id, { column: "doing", assignee: agentId });
+  }
+  /** Complete: any unassigned task may be completed by its completer; a task owned by someone else may not. */
+  completeTask(id: string, agentId: string): Task {
+    const task = this.getTask(id);
+    if (!task) throw new Error(`No task ${id}.`);
+    if (task.assignee && task.assignee !== agentId) throw new Error(`Assigned to ${task.assignee}, not you.`);
+    return this.updateTask(id, { column: "done", assignee: task.assignee ?? agentId });
+  }
+  deleteTask(id: string): boolean {
+    const r = this.sqlite.prepare("DELETE FROM tasks WHERE id = ?").run(id);
+    return r.changes > 0;
   }
 
   // ---- questions ----
@@ -385,4 +468,10 @@ function rowToRun(r: any): Run {
 }
 function rowToStep(r: any): RunStep {
   return { id: r.id, runId: r.run_id, at: r.at, kind: r.kind, text: r.text, detail: r.detail };
+}
+function rowToTask(r: any): Task {
+  return {
+    id: r.id, column: r.status, title: r.title, detail: r.detail ?? null, assignee: r.assignee ?? null,
+    createdBy: r.created_by, position: r.position, createdAt: r.created_at, updatedAt: r.updated_at,
+  };
 }

@@ -3,7 +3,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import type { AgentConfig, AgentDraft, AgentFiles, GitSettings, Provider, ProviderConfig, PushEvent, RpcRequest, RpcResponse, SkillInstallKind, SkillScope, SkillTarget, TeamConfig, TeamDraft } from "@crew/shared";
+import type { AgentConfig, AgentDraft, AgentFiles, GitSettings, Provider, ProviderConfig, PushEvent, RpcRequest, RpcResponse, SkillInstallKind, SkillScope, SkillTarget, TaskColumn, TaskPatch, TeamConfig, TeamDraft } from "@crew/shared";
 import { AgentDraftSchema, PROVIDERS, providerSpec, TeamDraftSchema } from "@crew/shared";
 import { probeProvider } from "./providers.js";
 import { previewCommand } from "./runners/cli.js";
@@ -245,6 +245,42 @@ export class Api {
       "questions.answer": (p: { id: string; answer: string; remember?: boolean }, conn) => this.crewFor(conn).answerQuestion(p.id, p.answer, "user", p.remember ?? false),
       "questions.dismiss": (p: { id: string }, conn) => this.crewFor(conn).dismissQuestion(p.id),
       "decisions.list": (_p, conn) => (conn.teamId ? this.crewFor(conn).db.listDecisions(100) : []),
+
+      // ----- tasks (kanban board) -----
+      "tasks.list": (_p, conn) => (conn.teamId ? this.crewFor(conn).db.listTasks() : []),
+      "tasks.create": (p: { title: string; detail?: string | null; column?: TaskColumn; assignee?: string | null; createdBy?: string }, conn) => {
+        if (!conn.teamId) throw new Error("No team");
+        const title = String(p.title ?? "").trim();
+        if (!title) throw new Error("Title required");
+        const task = this.crewFor(conn).db.createTask({ title, detail: p.detail ?? null, column: p.column ?? "todo", assignee: p.assignee ?? null, createdBy: p.createdBy ?? "owner" });
+        this.crewFor(conn).bus.emit("tasks.updated", this.crewFor(conn).db.listTasks());
+        return task;
+      },
+      "tasks.update": (p: { id: string; patch: TaskPatch }, conn) => {
+        const task = this.crewFor(conn).db.updateTask(p.id, p.patch);
+        this.crewFor(conn).bus.emit("tasks.updated", this.crewFor(conn).db.listTasks());
+        return task;
+      },
+      "tasks.claim": (p: { id: string; agent: string }, conn) => {
+        const crew = this.crewFor(conn);
+        const task = crew.db.claimTask(p.id, p.agent);
+        crew.bus.emit("tasks.updated", crew.db.listTasks());
+        return task;
+      },
+      "tasks.complete": (p: { id: string; agent: string }, conn) => {
+        const crew = this.crewFor(conn);
+        const task = crew.db.completeTask(p.id, p.agent);
+        crew.bus.emit("tasks.updated", crew.db.listTasks());
+        return task;
+      },
+      "tasks.delete": (p: { id: string }, conn) => {
+        const crew = this.crewFor(conn);
+        const ok = crew.db.deleteTask(p.id);
+        if (!ok) throw new Error(`No task ${p.id}.`);
+        crew.bus.emit("tasks.updated", crew.db.listTasks());
+        return null;
+      },
+
 
       // ----- runs -----
       "runs.list": (p: { agentId?: string; since?: string; limit?: number }, conn) => (conn.teamId ? this.crewFor(conn).db.listRuns(p) : []),
