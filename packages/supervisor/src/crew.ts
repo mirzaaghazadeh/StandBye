@@ -85,6 +85,7 @@ export class Crew {
 
   private readonly runtime = new Map<string, AgentRuntime>();
   private readonly waiters = new Map<string, (answer: string | null) => void>();
+  private readonly lastFailNotifyAt = new Map<string, number>();
 
   constructor(readonly opts: CrewOptions) {
     fs.mkdirSync(opts.dataDir, { recursive: true });
@@ -631,7 +632,22 @@ export class Crew {
     return step;
   }
   finishRun(run: Run, status: RunStatus, summary: string, extra: Partial<Run> = {}): Run {
-    return this.updateRun(run, { status, summary: summary.slice(0, 500), finishedAt: new Date().toISOString(), ...extra });
+    const next = this.updateRun(run, { status, summary: summary.slice(0, 500), finishedAt: new Date().toISOString(), ...extra });
+    if (status === "failed") this.notifyRunFailed(next, summary);
+    return next;
+  }
+  /**
+   * Terminal run failures (provider auth/credits, crash, timeout, unknown provider) ping the
+   * owner once per agent per hour — the run itself is already in the Runs list, but nothing
+   * told the owner it happened. Not fired for transient retries or cancellations.
+   */
+  private notifyRunFailed(run: Run, summary: string): void {
+    const now = Date.now();
+    if (now - (this.lastFailNotifyAt.get(run.agentId) ?? 0) < 60 * 60 * 1000) return;
+    this.lastFailNotifyAt.set(run.agentId, now);
+    const agent = this.getAgent(run.agentId);
+    const body = summary.trim() || "The run ended in an error — see the Runs screen for details.";
+    this.bus.emit("notify", { title: `${agent?.name ?? run.agentId} run failed`, body: body.slice(0, 200), runId: run.id });
   }
   /**
    * What the workspace looks like now vs. when the run started. Always answerable — an

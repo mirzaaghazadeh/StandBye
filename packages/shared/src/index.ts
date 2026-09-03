@@ -642,7 +642,7 @@ export type PushEvent = (
   | { event: "spend.updated"; data: SpendSummary }
   | { event: "tasks.updated"; data: Task[] }
   | { event: "skills.updated"; data: null }
-  | { event: "notify"; data: { title: string; body: string; questionId?: string } }
+  | { event: "notify"; data: { title: string; body: string; questionId?: string; runId?: string } }
   | { event: "supervisor.status"; data: SupervisorStatus }
   | { event: "supervisor.reconnected"; data: null }
 ) & {

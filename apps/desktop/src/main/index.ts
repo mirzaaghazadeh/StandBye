@@ -302,7 +302,7 @@ host.onEvent((e: PushEvent) => {
   if (e.event === "notify") {
     const teamName = teamsForTray.find((t) => t.teamId === e.teamId)?.teamName;
     const n = new Notification({ title: teamName && teamsForTray.length > 1 ? `${e.data.title} · ${teamName}` : e.data.title, body: e.data.body, silent: false });
-    n.on("click", () => showWindow(e.data.questionId ? `/inbox/${e.data.questionId}` : "/inbox"));
+    n.on("click", () => showWindow(e.data.questionId ? `/inbox/${e.data.questionId}` : e.data.runId ? `/runs/${e.data.runId}` : "/inbox"));
     n.show();
   }
   if (e.event === "supervisor.status") { status = e.data; updateAwake(); }
