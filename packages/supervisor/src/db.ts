@@ -65,9 +65,17 @@ export class Db {
 
   constructor(dataDir: string) {
     this.sqlite = new Database(path.join(dataDir, "crew.db"));
-    this.sqlite.pragma("journal_mode = WAL");
-    this.sqlite.exec(SCHEMA);
-    this.migrate();
+    // A failed open must not leak the handle it just opened: close it before letting the
+    // error out, so a caller that retries (or a test harness in the same process) starts
+    // from a clean slate instead of an orphaned connection.
+    try {
+      this.sqlite.pragma("journal_mode = WAL");
+      this.sqlite.exec(SCHEMA);
+      this.migrate();
+    } catch (err) {
+      this.sqlite.close();
+      throw err;
+    }
   }
 
   /**

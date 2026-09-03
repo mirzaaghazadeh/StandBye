@@ -102,3 +102,34 @@ test("a failing migration rolls back and retries on the next boot", (t) => {
   assert.equal(version(db.sqlite), MIGRATIONS.length, "the next open retries the migration from the old stamp");
   assert.ok(db.getChannel("general").kind === "group");
 });
+
+test("a failed open closes the sqlite handle before rethrowing", (t) => {
+  const dir = tempDir();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  seedLegacyChannelsDb(dir);
+
+  // The throwing Db instance never escapes its constructor, so the close is observed by
+  // patching better-sqlite3's close — scoped to this test, restored in finally.
+  const closes = [];
+  const origClose = Database.prototype.close;
+  Database.prototype.close = function (...args) {
+    closes.push(this);
+    return origClose.apply(this, args);
+  };
+
+  MIGRATIONS.push({ name: "boom", apply() { throw new Error("boom"); } });
+  try {
+    assert.throws(() => new Db(dir), /boom/, "open must fail when a migration throws");
+  } finally {
+    Database.prototype.close = origClose;
+    MIGRATIONS.pop();
+  }
+
+  assert.equal(closes.length, 1, "the handle the failed open created must be closed exactly once");
+  assert.equal(closes[0].open, false, "close must actually release the handle, not just be attempted");
+
+  // With the handle released the same file can be opened again in-process.
+  const probe = new Database(path.join(dir, "crew.db"));
+  assert.equal(version(probe), 0);
+  probe.close();
+});
