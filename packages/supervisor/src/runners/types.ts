@@ -22,7 +22,8 @@ export interface RunnerInput {
 
 /**
  * Why a run failed, in terms the owner can act on. `auth` and `credit` mean the agent
- * cannot work at all until the owner fixes something, so the runner pauses it.
+ * cannot work at all until the owner fixes something; nothing pauses the agent today —
+ * executeRun does not consume `failure` (owner decided 2026-09-03 to keep it that way).
  */
 export type FailureKind =
   | "auth"       // missing, invalid or expired key / login
