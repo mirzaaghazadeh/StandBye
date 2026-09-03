@@ -253,6 +253,11 @@ export interface TeamConfig {
   ownerName: string;
   /** How far the team may go on its own. Defaults to "pr". */
   autonomy?: Autonomy;
+  /**
+   * The owner stopped the whole team. Saved with the team rather than held in memory: pausing
+   * something and finding it running again after a restart is the opposite of what pause means.
+   */
+  paused?: boolean;
   createdAt: string;
 }
 

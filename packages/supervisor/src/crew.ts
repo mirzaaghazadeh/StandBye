@@ -55,7 +55,18 @@ export class Crew {
   readonly startedAt = new Date().toISOString();
   team: TeamConfig | null;
   readonly keys: Keys;
-  pausedAll = false;
+  /**
+   * Whether the owner has stopped the whole team. Backed by team.json, not by a field: this used
+   * to live only in memory, so quitting the app and opening it again quietly started a paused
+   * team back up — the one thing a pause must never do.
+   */
+  get pausedAll(): boolean {
+    return this.team?.paused ?? false;
+  }
+  set pausedAll(value: boolean) {
+    if (!this.team || this.team.paused === value) return;
+    this.updateTeam({ paused: value });
+  }
 
   /** This supervisor's API endpoint, for CLIs that join the team over the stdio MCP bridge. */
   get api(): { port: number; token: string } | undefined {

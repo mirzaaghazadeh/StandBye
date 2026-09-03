@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { dmChannelId } from "@crew/shared";
+import fs from "node:fs";
+import path from "node:path";
 import { makeCrew, spend } from "./helpers.mjs";
+import { Crew } from "../dist/crew.js";
 
 test("creating a team from the template draft", async (t) => {
   const { crew } = makeCrew(t);
@@ -293,5 +296,39 @@ test("restart recovery", async (t) => {
   await t.test("the team and its agents come back", () => {
     assert.equal(reopened.team.id, "team1");
     assert.deepEqual(reopened.listAgents().map((a) => a.id), ["ada", "kai", "rex", "sol"]);
+  });
+});
+
+test("pausing a team outlives the app being closed", async (t) => {
+  // It used to be a field in memory only, so quitting and reopening quietly started a paused
+  // team back up — the one thing a pause must never do.
+  const { crew, dataDir } = makeCrew(t);
+
+  await t.test("a fresh team is not paused", () => {
+    assert.equal(crew.pausedAll, false);
+  });
+
+  await t.test("pausing is written down, not just remembered", () => {
+    crew.pausedAll = true;
+    assert.equal(crew.pausedAll, true);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(dataDir, "team.json"), "utf8")).paused, true);
+  });
+
+  await t.test("it is still paused after a restart", () => {
+    crew.close();
+    const reopened = new Crew({ dataDir, globalDir: dataDir, keys: {} });
+    t.after(() => { try { reopened.close(); } catch { /* closed */ } });
+    assert.equal(reopened.pausedAll, true, "a paused team must not quietly start working again");
+    for (const a of reopened.listAgents()) assert.equal(a.status, "paused", `${a.name} shows as paused`);
+  });
+
+  await t.test("resuming is written down too", () => {
+    const c = new Crew({ dataDir, globalDir: dataDir, keys: {} });
+    c.pausedAll = false;
+    assert.equal(JSON.parse(fs.readFileSync(path.join(dataDir, "team.json"), "utf8")).paused, false);
+    c.close();
+    const again = new Crew({ dataDir, globalDir: dataDir, keys: {} });
+    t.after(() => { try { again.close(); } catch { /* closed */ } });
+    assert.equal(again.pausedAll, false);
   });
 });
