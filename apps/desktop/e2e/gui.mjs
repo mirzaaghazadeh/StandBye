@@ -62,6 +62,18 @@ try {
   await win.waitForTimeout(800);
   await shot(win, "inbox");
 
+  // Board: open, create a card, shoot, delete it again
+  await win.locator(".srow", { hasText: "Board" }).first().click();
+  await win.waitForTimeout(700);
+  await win.locator("button", { hasText: "New task" }).first().click();
+  await win.locator(".board-editor input.field").fill("Smoke task");
+  await win.locator("button", { hasText: "Add to board" }).click();
+  await win.waitForTimeout(700);
+  await shot(win, "board");
+  await win.locator(".board-card", { hasText: "Smoke task" }).first().click();
+  await win.locator("button", { hasText: "Delete" }).click();
+  await win.waitForTimeout(700);
+
   // Agent sheet
   await win.locator(".srow", { hasText: "Home" }).first().click();
   await win.waitForTimeout(600);

@@ -254,3 +254,22 @@ input.field { min-width: 0; }
 .msg-body .md-pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; line-height: 1.5; background: var(--alt); border: 1px solid var(--border-faint); border-radius: 6px; padding: 8px 10px; margin: 0 0 6px; overflow-x: auto; direction: ltr; text-align: left; }
 .msg-body .md-pre code { background: none; border: none; padding: 0; }
 .msg-body a { color: var(--accent); }
+
+/* ---- Board ---- */
+.board { flex: 1; min-height: 0; display: flex; gap: 12px; padding: 0 18px 12px; }
+.board-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; background: var(--alt); border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px; overflow-y: auto; }
+.board-col-h { display: flex; align-items: center; justify-content: space-between; padding: 0 2px 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-4); }
+.board-cards { display: flex; flex-direction: column; gap: 8px; }
+.board-card { display: flex; flex-direction: column; align-items: stretch; gap: 5px; text-align: left; font: inherit; border: 1px solid var(--border); background: var(--surface); border-radius: 6px; padding: 9px 11px; cursor: pointer; color: var(--ink); }
+.board-card:hover { border-color: var(--ink-5); }
+.board-card.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.board-card-t { font-weight: 600; font-size: 13px; }
+.board-card-d { font-size: 12px; color: var(--ink-3); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.board-card-f { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ink-4); }
+.board-card-f .hint { margin-left: auto; }
+.board-empty { font-size: 12px; color: var(--ink-5); padding: 6px 2px; }
+.board-editor { margin: 0 18px 14px; flex-shrink: 0; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06); }
+.board-editor-h { display: flex; align-items: center; justify-content: space-between; }
+.board-editor-h .grp-t { margin-bottom: 0; }
+.board-editor-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.board-detail { min-height: 56px; }

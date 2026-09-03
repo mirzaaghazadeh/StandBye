@@ -30,6 +30,10 @@ export function Sidebar() {
         <span className="grow">Inbox</span>
         {openForUser > 0 && <span className="badge">{openForUser}</span>}
       </button>
+      <button className={"srow" + (is("board") ? " srow-on" : "")} onClick={() => store.navigate({ name: "board" })}>
+        <Ic.Note stroke={is("board") ? "var(--accent)" : "var(--ink-3)"} />
+        <span className="grow">Board</span>
+      </button>
       <button className={"srow" + (is("runs") ? " srow-on" : "")} onClick={() => store.navigate({ name: "runs" })}>
         <Ic.Runs stroke={is("runs") ? "var(--accent)" : "var(--ink-3)"} />
         <span className="grow">Runs</span>

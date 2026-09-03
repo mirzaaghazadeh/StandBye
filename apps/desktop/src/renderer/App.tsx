@@ -4,6 +4,7 @@ import { HomeScreen } from "./screens/Home";
 import { ChannelScreen } from "./screens/Channel";
 import { InboxScreen } from "./screens/Inbox";
 import { RunsScreen } from "./screens/Runs";
+import { BoardScreen } from "./screens/Board";
 import { AgentSheet } from "./screens/AgentSheet";
 import { SkillsSheet } from "./screens/SkillsSheet";
 import { BuilderSheet } from "./screens/BuilderSheet";
@@ -37,6 +38,7 @@ export function App() {
         {route.name === "dm" && <ChannelScreen key={route.agentId} channelId={`dm-${route.agentId}`} dmAgentId={route.agentId} />}
         {route.name === "inbox" && <InboxScreen questionId={route.questionId} />}
         {route.name === "runs" && <RunsScreen runId={route.runId} />}
+        {route.name === "board" && <BoardScreen />}
         <StatusBar />
       </div>
 

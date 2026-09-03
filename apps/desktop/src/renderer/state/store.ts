@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { dmChannelId } from "@crew/shared";
 import type {
-  Agent, AgentDraft, AgentFiles, ArchivedTeam, Channel, MessageDraft, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunDiff, RunStep, SkillScope, SpendSummary, SupervisorStatus, Task, TeamConfig, TeamDraft, TeamSummary, UpdateState,
+  Agent, AgentDraft, AgentFiles, ArchivedTeam, Channel, MessageDraft, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunDiff, RunStep, SkillScope, SpendSummary, SupervisorStatus, Task, TaskColumn, TeamConfig, TeamDraft, TeamSummary, UpdateState,
 } from "@crew/shared";
 
 /** Matches shown per search. One extra is requested from the supervisor so overflow can be labelled. */
@@ -11,6 +11,7 @@ export type Route =
   | { name: "home" }
   | { name: "inbox"; questionId?: string }
   | { name: "runs"; runId?: string }
+  | { name: "board" }
   | { name: "channel"; channelId: string }
   | { name: "dm"; agentId: string }
   | { name: "agent"; agentId: string };
@@ -168,6 +169,7 @@ class Store {
     if (e.teamId && e.teamId !== this.state.activeTeamId) return; // another team's event; the switcher shows its counters
     switch (e.event) {
       case "agents.updated": this.set({ agents: e.data, selectedAgentId: this.state.selectedAgentId && e.data.some((a) => a.id === this.state.selectedAgentId) ? this.state.selectedAgentId : e.data[0]?.id ?? null }); break;
+      case "tasks.updated": this.set({ tasks: e.data }); break;
       case "agent.updated": this.set((s) => ({ agents: s.agents.some((a) => a.id === e.data.id) ? s.agents.map((a) => (a.id === e.data.id ? e.data : a)) : [...s.agents, e.data] })); break;
       case "message.created": this.set((s) => {
         const { [e.data.channelId]: _gone, ...drafts } = s.drafts;
@@ -321,6 +323,9 @@ class Store {
     this.toast(remember ? "Answer sent and saved as a team decision." : "Answer sent.");
   }
   async dismissQuestion(id: string): Promise<void> { await this.rpc("questions.dismiss", { id }); }
+  async createTask(title: string, detail: string | null, column: TaskColumn): Promise<void> { await this.rpc("tasks.create", { title, detail, column }); }
+  async updateTask(id: string, patch: { title?: string; detail?: string | null; column?: TaskColumn; assignee?: string | null }): Promise<void> { await this.rpc("tasks.update", { id, patch }); }
+  async deleteTask(id: string): Promise<void> { await this.rpc("tasks.delete", { id }); this.toast("Task deleted."); }
   async pauseAll(): Promise<void> { await this.rpc("supervisor.pauseAll"); this.toast("All agents paused."); }
   async resumeAll(): Promise<void> { await this.rpc("supervisor.resumeAll"); this.toast("Agents resumed."); }
   async pauseAgent(id: string, paused: boolean): Promise<void> { await this.rpc(paused ? "agent.pause" : "agent.resume", { id }); }
