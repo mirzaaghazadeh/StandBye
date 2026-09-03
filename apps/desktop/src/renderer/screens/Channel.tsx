@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Agent, Message, Question, Run } from "@crew/shared";
 import { store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
+import { Rich } from "../ui/markdown";
 import { Avatar, Button, Group, IconButton, KindPill, StatusPill, Toolbar, UserAvatar, hhmm, isToday, modelLabel } from "../ui/kit";
 import { Compose } from "../components/Compose";
 
@@ -105,7 +106,7 @@ function DraftRow({ channelId }: { channelId: string }) {
       <Avatar agent={a} name={draft.agentId} size={26} />
       <div style={{ minWidth: 0, flex: 1 }}>
         <div className="msg-h"><span className="msg-n">{a?.name ?? draft.agentId}</span><span className="msg-t">{a?.role ? `${a.role} · ` : ""}writing…</span></div>
-        <div className="msg-body sel">{draft.text}<span className="caret" /></div>
+        <div className="msg-body sel"><Rich text={draft.text} /><span className="caret" /></div>
       </div>
     </div>
   );
@@ -200,7 +201,7 @@ function MessageRow({ m }: { m: Message }) {
       {avatar}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="msg-h"><span className="msg-n">{m.authorName}</span><span className="msg-t">{agent?.role ? `${agent.role} · ` : ""}{hhmm(m.createdAt)}</span></div>
-        {m.kind === "question" && question ? <QuestionCard q={question} /> : <div className="msg-body sel">{m.text}</div>}
+        {m.kind === "question" && question ? <QuestionCard q={question} /> : <div className="msg-body sel"><Rich text={m.text} /></div>}
       </div>
     </div>
   );

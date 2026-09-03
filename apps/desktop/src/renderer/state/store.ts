@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { dmChannelId } from "@crew/shared";
 import type {
-  Agent, AgentFiles, ArchivedTeam, Channel, MessageDraft, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunStep, SkillScope, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft, TeamSummary,
+  Agent, AgentFiles, ArchivedTeam, Channel, MessageDraft, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunStep, SkillScope, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft, TeamSummary, UpdateState,
 } from "@crew/shared";
 
 export type Route =
@@ -17,7 +17,7 @@ export type Sheet =
   | { kind: "onboarding" }
   | { kind: "builder"; mode?: "describe" | "template" }
   | { kind: "manual" }
-  | { kind: "keys" }
+  | { kind: "keys"; tab?: "team" | "providers" | "data" | "updates" }
   | { kind: "channel"; channelId?: string }
   | { kind: "agent"; agentId: string; tab?: string }
   | { kind: "skills"; scope?: SkillScope; ownerId?: string | null; name?: string }
@@ -47,6 +47,8 @@ export interface State {
   runs: Run[];
   steps: Record<string, RunStep[]>;
   spend: SpendSummary | null;
+  /** Whether a newer Standbye exists and how far along installing it is. Owned by the main process. */
+  update: UpdateState | null;
   selectedAgentId: string | null;
   /** Folder chosen by "Open folder…" that turned out to have no team yet. */
   pendingWorkspace: string | null;
@@ -65,7 +67,7 @@ export interface State {
 const initial: State = {
   ready: false, error: null, route: { name: "home" }, sheet: { kind: "none" }, status: null,
   keys: {}, providers: null, models: null, teams: [], archived: [], activeTeamId: null, team: null, agents: [], channels: [], messages: {}, drafts: {}, questions: [], runs: [], steps: {},
-  spend: null, selectedAgentId: null, pendingWorkspace: null, seen: {}, waking: {}, firstStepsDismissed: false, skillsStamp: 0, builderDraft: null, builderBusy: false, toast: null,
+  spend: null, update: null, selectedAgentId: null, pendingWorkspace: null, seen: {}, waking: {}, firstStepsDismissed: false, skillsStamp: 0, builderDraft: null, builderBusy: false, toast: null,
 };
 
 type Listener = () => void;
@@ -88,6 +90,8 @@ class Store {
   async init(): Promise<void> {
     window.crew.onEvent((e) => this.onEvent(e));
     window.crew.onNavigate((r) => this.navigateByPath(r));
+    window.crew.onUpdate((u) => this.set({ update: u }));
+    void window.crew.updates.get().then((update) => this.set({ update }));
     try {
       await this.refreshAll();
       this.set({ ready: true });
@@ -179,6 +183,7 @@ class Store {
   navigateByPath(p: string): void {
     const [, a, b] = p.split("/");
     if (a === "inbox") this.navigate({ name: "inbox", questionId: b });
+    else if (a === "settings") this.openSheet({ kind: "keys", tab: b === "updates" ? "updates" : undefined });
     else if (a === "agent" && b) this.navigate({ name: "dm", agentId: b });
     else if (a === "runs") this.navigate({ name: "runs", runId: b });
     else this.navigate({ name: "home" });

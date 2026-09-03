@@ -1,14 +1,28 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, safeStorage, shell, Tray } from "electron";
 import path from "node:path";
 import fs from "node:fs";
-import type { Agent, PushEvent, SupervisorStatus, SpendSummary } from "@crew/shared";
+import type { Agent, PushEvent, SupervisorStatus, SpendSummary, UpdateState } from "@crew/shared";
 import { SupervisorHost } from "./supervisor.js";
+import { Updater } from "./updates.js";
 
 const isDev = !app.isPackaged;
 const dataDir = process.env.CREW_DATA_DIR ?? path.join(app.getPath("appData"), "Standbye");
 const host = new SupervisorHost(dataDir, (line) => console.log(line));
 
 let win: BrowserWindow | null = null;
+
+/**
+ * Push to the window, if there still is one.
+ *
+ * The supervisor keeps sending while a frame is being torn down — a reload, a closed window, a
+ * quit with events in flight — and an unguarded send throws "Render frame was disposed" for every
+ * one of them. Nothing is lost by dropping them: the renderer refetches its state on connect.
+ */
+function toWindow(channel: string, payload: unknown): void {
+  if (!win || win.isDestroyed() || win.webContents.isDestroyed()) return;
+  try { win.webContents.send(channel, payload); } catch { /* frame went away mid-send */ }
+}
+
 let tray: Tray | null = null;
 let status: SupervisorStatus | null = null;
 let spend: SpendSummary | null = null;
@@ -35,10 +49,14 @@ function saveKeys(keys: Record<string, string>): void {
 // Machine-level, not team-level: whether this Mac keeps the agents working after the window is
 // closed. It defaults to off, because a team that keeps spending while nobody is looking should
 // be something the owner turned on deliberately, not something they discover on a bill.
+//
+// Staying up to date is the opposite case and defaults to on: an update costs nothing, fixes the
+// bugs the owner would otherwise hit, and only ever installs itself at a moment they chose — the
+// Restart button or the next quit. Turning it off leaves the check in place and the install manual.
 
 const settingsFile = path.join(app.getPath("userData"), "app-settings.json");
-interface AppSettings { keepWorkingWhenClosed: boolean }
-const DEFAULT_SETTINGS: AppSettings = { keepWorkingWhenClosed: false };
+interface AppSettings { keepWorkingWhenClosed: boolean; autoUpdate: boolean }
+const DEFAULT_SETTINGS: AppSettings = { keepWorkingWhenClosed: false, autoUpdate: true };
 
 function loadSettings(): AppSettings {
   try { return { ...DEFAULT_SETTINGS, ...(JSON.parse(fs.readFileSync(settingsFile, "utf8")) as Partial<AppSettings>) }; }
@@ -53,6 +71,40 @@ function saveSettings(patch: Partial<AppSettings>): AppSettings {
 
 ipcMain.handle("crew:settings.get", () => loadSettings());
 ipcMain.handle("crew:settings.set", (_e, patch: Partial<AppSettings>) => saveSettings(patch));
+
+// ---------- updates ----------
+
+let update: UpdateState | null = null;
+
+const updater = new Updater({
+  isAutoUpdate: () => loadSettings().autoUpdate,
+  onState: (s) => {
+    update = s;
+    toWindow("crew:update", s);
+    rebuildTray();
+  },
+  notify: (title, body, onClick) => {
+    const n = new Notification({ title, body, silent: true });
+    n.on("click", () => { showWindow(); onClick(); });
+    n.show();
+  },
+  openExternal: (url) => void shell.openExternal(url),
+});
+
+ipcMain.handle("crew:updates.get", () => updater.get());
+ipcMain.handle("crew:updates.check", () => updater.check(true));
+ipcMain.handle("crew:updates.download", () => updater.download());
+ipcMain.handle("crew:updates.install", () => updater.installAndRestart());
+ipcMain.handle("crew:updates.setAuto", (_e, on: boolean) => {
+  saveSettings({ autoUpdate: on });
+  // Turning it on with a release already waiting should act on it, not wait six hours.
+  if (on && updater.get().stage === "available") void updater.download();
+  const s = updater.get();
+  update = s;
+  toWindow("crew:update", s);
+  rebuildTray();
+  return s;
+});
 
 // ---------- window ----------
 
@@ -113,7 +165,7 @@ function showWindow(route?: string): void {
   if (!win) createWindow();
   win?.show();
   win?.focus();
-  if (route) win?.webContents.send("crew:navigate", route);
+  if (route) toWindow("crew:navigate", route);
 }
 
 // ---------- tray (menu bar item) ----------
@@ -132,6 +184,18 @@ function trayIcon(): Electron.NativeImage {
 }
 
 let teamsForTray: { teamId: string; teamName: string; agents: Agent[] }[] = [];
+
+/**
+ * The menu bar only mentions an update when there is one. A staged update gets the one action that
+ * finishes it; anything else sends the owner to the panel that explains where it got to.
+ */
+function updateTrayItems(): Electron.MenuItemConstructorOptions[] {
+  const v = update?.release?.version;
+  if (!v) return [];
+  if (update?.stage === "ready") return [{ label: `Restart to Update to ${v}`, click: () => updater.installAndRestart() }];
+  if (update?.stage === "downloading") return [{ label: `Downloading ${v}… ${Math.round(update.progress * 100)}%`, enabled: false }];
+  return [{ label: `Update to ${v} Available…`, click: () => showWindow("/settings/updates") }];
+}
 
 function rebuildTray(): void {
   if (!tray) return;
@@ -158,6 +222,7 @@ function rebuildTray(): void {
       ? { label: "Resume All Agents", click: () => void host.rpc("supervisor.resumeAll") }
       : { label: "Pause All Agents", accelerator: "CmdOrCtrl+Shift+P", click: () => void host.rpc("supervisor.pauseAll") },
     { label: "Open Team Window", accelerator: "CmdOrCtrl+1", click: () => showWindow() },
+    ...updateTrayItems(),
     { type: "separator" },
     { label: "Quit (agents sleep until you reopen)", role: "quit" },
   ]);
@@ -189,7 +254,7 @@ host.onEvent((e: PushEvent) => {
     n.show();
   }
   if (["agents.updated", "agent.updated", "supervisor.status", "spend.updated", "teams.updated"].includes(e.event)) refreshTraySoon();
-  win?.webContents.send("crew:event", e);
+  toWindow("crew:event", e);
 });
 
 // ---------- IPC ----------
@@ -256,6 +321,7 @@ void app.whenReady().then(async () => {
   if (process.platform !== "darwin") tray.on("click", () => showWindow());
   rebuildTray();
   createWindow();
+  updater.start();
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 
@@ -265,6 +331,10 @@ app.on("window-all-closed", () => { /* stay alive in the menu bar */ });
 // supervisor this app started, so leaving it alone is genuinely "keep working": the next launch
 // attaches to the same one and picks up where it left off.
 app.on("before-quit", () => {
+  // A downloaded update installs itself here: the owner is leaving anyway, so nothing is
+  // interrupted, and the next launch is the new version. The swap happens after we exit.
+  updater.installOnQuit();
+  updater.stop();
   if (loadSettings().keepWorkingWhenClosed) { console.log("[standbye] quitting; leaving the supervisor running so the team keeps working"); return; }
   host.stop();
 });

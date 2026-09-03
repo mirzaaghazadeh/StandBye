@@ -332,6 +332,46 @@ export const TEAM_DIR_NAME = ".standbye";
 export const APP_NAME = "Standbye";
 export const APP_URL = "https://standbye.navid.tr";
 
+/**
+ * How far along the app is in updating itself. `available` means we found a newer release and have
+ * not fetched it; `ready` means the new version is on disk, verified, and one restart away.
+ */
+export type UpdateStage = "idle" | "checking" | "available" | "downloading" | "ready" | "error";
+
+/** The newer release, as much of it as the owner needs to decide. */
+export interface UpdateRelease {
+  /** The tag with any leading `v` stripped, e.g. `0.2.0`. */
+  version: string;
+  name: string;
+  /** The release notes, as GitHub markdown. */
+  notes: string;
+  /** The release page, for when we cannot install it ourselves. */
+  url: string;
+  publishedAt: string | null;
+  /** The file this machine would install, when the release has one it can use. */
+  assetName: string | null;
+  assetSize: number;
+}
+
+export interface UpdateState {
+  stage: UpdateStage;
+  /** The version running right now. */
+  current: string;
+  release: UpdateRelease | null;
+  /** 0..1 while downloading. */
+  progress: number;
+  error: string | null;
+  /** When we last reached GitHub, whatever the answer was. */
+  checkedAt: string | null;
+  /**
+   * Whether this build can replace itself. False for a dev run, for a Linux `.deb`, and for any
+   * release with no file matching this platform and architecture — there the release page is all
+   * we can honestly offer.
+   */
+  canInstall: boolean;
+  autoUpdate: boolean;
+}
+
 /** One row in the team switcher. Every team has its own folder, database, agents, channels and workspace. */
 export interface TeamSummary {
   id: string;

@@ -84,10 +84,32 @@ export function Sidebar() {
           <div className="bar" style={{ marginTop: 6 }}><i style={{ width: `${Math.min(100, (spend.todayUsd / Math.max(1, spend.capUsd)) * 100)}%` }} /></div>
         </div>
       )}
+      <UpdateRow />
       <button className="srow" style={{ marginBottom: 10 }} onClick={() => store.openSheet({ kind: "keys" })}>
         <Ic.Settings stroke="var(--ink-3)" />
         <span className="grow">Settings</span>
       </button>
     </aside>
+  );
+}
+
+/**
+ * One quiet line above Settings, and only while there is something to say. A staged update offers
+ * the restart straight from here, because that is the whole action; anything else opens the panel.
+ */
+function UpdateRow() {
+  const u = useStore((s) => s.update);
+  if (!u?.release || u.stage === "idle" || u.stage === "error" || u.stage === "checking") return null;
+  const ready = u.stage === "ready";
+  const label = ready ? `Restart to update to ${u.release.version}` : u.stage === "downloading" ? `Downloading ${u.release.version}… ${Math.round(u.progress * 100)}%` : `Update to ${u.release.version}`;
+  return (
+    <button
+      className="srow"
+      title={ready ? "Standbye closes, updates and reopens" : "Open Settings → Updates"}
+      onClick={() => (ready ? void window.crew.updates.install() : store.openSheet({ kind: "keys", tab: "updates" }))}
+    >
+      <Ic.Download stroke="var(--accent)" />
+      <span className="grow" style={{ color: "var(--accent)", fontWeight: 500 }}>{label}</span>
+    </button>
   );
 }

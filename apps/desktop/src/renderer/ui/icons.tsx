@@ -30,6 +30,7 @@ export const Ic = {
   Question: (p: P) => <I {...p}><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5" /><path d="M12 17h.01" /></I>,
   Shield: (p: P) => <I {...p}><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" /></I>,
   Sparkle: (p: P) => <I {...p}><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" /></I>,
+  Download: (p: P) => <I strokeWidth={2.2} {...p}><path d="M12 3v12" /><path d="M7 11l5 5 5-5" /><path d="M4 20h16" /></I>,
   File: (p: P) => <I {...p}><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6" /></I>,
   Edit: (p: P) => <I {...p}><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></I>,
   Terminal: (p: P) => <I {...p}><path d="M4 17l6-5-6-5" /><path d="M12 19h8" /></I>,

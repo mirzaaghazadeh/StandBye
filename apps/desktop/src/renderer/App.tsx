@@ -44,7 +44,7 @@ export function App() {
       {sheet.kind === "onboarding" && <OnboardingSheet />}
       {sheet.kind === "manual" && <ManualTeamSheet />}
       {sheet.kind === "builder" && <BuilderSheet mode={sheet.mode} />}
-      {sheet.kind === "keys" && <KeysSheet />}
+      {sheet.kind === "keys" && <KeysSheet tab={sheet.tab} />}
       {sheet.kind === "agent" && <AgentSheet agentId={sheet.agentId} tab={sheet.tab} />}
       {sheet.kind === "skills" && <SkillsSheet scope={sheet.scope} ownerId={sheet.ownerId} name={sheet.name} />}
       {sheet.kind === "wake" && <WakeSheet agentId={sheet.agentId} />}

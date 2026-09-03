@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
 import { store, useStore } from "../state/store";
-import { Button, KV, Segmented, Switch } from "../ui/kit";
+import { Button, KV, Progress, Segmented, Switch, ago } from "../ui/kit";
 import { ProvidersPanel } from "../components/ProvidersPanel";
 import { GitSettingsPanel } from "../components/GitSettingsPanel";
 import { Ic } from "../ui/icons";
 import type { Autonomy, GitSettings } from "@crew/shared";
 import { AUTONOMY_LABEL, AUTONOMY_RULE } from "@crew/shared";
 
-type Tab = "team" | "providers" | "data";
+type Tab = "team" | "providers" | "data" | "updates";
 
-export function KeysSheet() {
+export function KeysSheet({ tab: initialTab }: { tab?: Tab }) {
   const team = useStore((s) => s.team);
-  const [tab, setTab] = useState<Tab>(team ? "team" : "providers");
+  const [tab, setTab] = useState<Tab>(initialTab ?? (team ? "team" : "providers"));
   const [dataDir, setDataDir] = useState("");
   const [keepWorking, setKeepWorking] = useState(false);
   useEffect(() => { void window.crew.dataDir().then(setDataDir); }, []);
@@ -22,7 +22,7 @@ export function KeysSheet() {
     <div className="sheet" style={{ width: tab === "providers" ? 860 : 660, height: 600 }}>
       <div className="sheet-h">
         <b>Settings</b>
-        <Segmented value={tab} onChange={setTab} options={[{ value: "team", label: "Team" }, { value: "providers", label: "Providers" }, { value: "data", label: "Data" }]} />
+        <Segmented value={tab} onChange={setTab} options={[{ value: "team", label: "Team" }, { value: "providers", label: "Providers" }, { value: "data", label: "Data" }, { value: "updates", label: "Updates" }]} />
         <span className="grow" />
       </div>
       <div className="sheet-body scroll" style={{ flexDirection: "column", padding: "18px 20px", gap: 16 }}>
@@ -33,6 +33,7 @@ export function KeysSheet() {
             <ProvidersPanel />
           </>
         )}
+        {tab === "updates" && <UpdatesSettings />}
         {tab === "data" && (
           <div style={{ fontSize: 12, color: "var(--ink-3)", display: "flex", flexDirection: "column", gap: 10 }}>
             <div>Data folder: <span className="mono sel">{dataDir}</span> · <a onClick={() => void window.crew.openPath(dataDir)}>Show in Finder</a></div>
@@ -67,6 +68,87 @@ export function KeysSheet() {
         <span className="grow" />
         <Button lg primary onClick={() => store.openSheet(team ? { kind: "none" } : { kind: "onboarding" })}>Done</Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * What Standbye knows about newer versions of itself. The main process does the work and owns the
+ * state; this panel only ever shows it and offers the one action that makes sense right now.
+ */
+function UpdatesSettings() {
+  const u = useStore((s) => s.update);
+  if (!u) return <div className="empty" style={{ fontSize: 12 }}>Loading…</div>;
+  const v = u.release?.version;
+
+  const line = (() => {
+    if (u.stage === "checking") return "Checking for updates…";
+    if (u.stage === "downloading") return `Downloading Standbye ${v}…`;
+    if (u.stage === "ready") return `Standbye ${v} is ready to install.`;
+    if (u.stage === "available") return `Standbye ${v} is available.`;
+    if (u.stage === "error") return v ? `Could not download Standbye ${v}.` : "Could not check for updates.";
+    return `Standbye ${u.current} is the latest version.`;
+  })();
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, fontSize: 12, color: "var(--ink-3)" }}>
+      <div style={{ border: "1px solid var(--border)", borderRadius: 7, background: "var(--surface)", padding: "12px 14px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ minWidth: 0, flex: 1 }}>
+            <span style={{ display: "block", fontWeight: 600, fontSize: 13, color: "var(--ink-1)" }}>{line}</span>
+            <span style={{ display: "block", fontSize: 11, color: "var(--ink-4)", marginTop: 2 }}>
+              You are running {u.current}
+              {u.checkedAt ? ` · checked ${ago(u.checkedAt)}` : ""}
+            </span>
+          </span>
+          {u.stage === "ready" && <Button primary onClick={() => void window.crew.updates.install()}>Restart &amp; Install</Button>}
+          {u.stage === "available" && u.canInstall && <Button primary onClick={() => void window.crew.updates.download()}>Download</Button>}
+          {u.stage === "available" && !u.canInstall && u.release && <Button primary onClick={() => void window.crew.openPath(u.release!.url)}>Get It…</Button>}
+          {u.stage === "error" && <Button onClick={() => void window.crew.updates.check()}>Try Again</Button>}
+          {u.stage === "idle" && <Button onClick={() => void window.crew.updates.check()}>Check Now</Button>}
+        </div>
+        {u.stage === "downloading" && (
+          <div style={{ marginTop: 10 }}>
+            <Progress value={u.progress} max={1} />
+            <div style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 4 }}>{Math.round(u.progress * 100)}% of {u.release?.assetName}</div>
+          </div>
+        )}
+        {u.stage === "ready" && (
+          <div style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 8, lineHeight: 1.5 }}>
+            Nothing is replaced until Standbye closes, so a run in progress is safe. It also installs
+            by itself the next time you quit.
+          </div>
+        )}
+        {u.stage === "error" && u.error && <div style={{ fontSize: 11, color: "var(--red-ink)", marginTop: 8 }}>{u.error}</div>}
+        {u.stage === "available" && !u.canInstall && (
+          <div style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 8, lineHeight: 1.5 }}>
+            This build cannot replace itself — a development run, a Linux <span className="mono">.deb</span> that belongs
+            to your package manager, or a release with no download for this machine. The release page has the file.
+          </div>
+        )}
+      </div>
+
+      <div style={{ border: "1px solid var(--border)", borderRadius: 7, background: "var(--surface)", padding: "10px 12px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+          <Switch on={u.autoUpdate} onChange={(on) => void window.crew.updates.setAuto(on)} />
+          <span style={{ minWidth: 0 }}>
+            <span style={{ display: "block", fontWeight: 500, fontSize: 12.5, color: "var(--ink-1)" }}>Keep Standbye up to date</span>
+            <span style={{ display: "block", fontSize: 11, color: "var(--ink-4)", lineHeight: 1.45 }}>
+              {u.autoUpdate
+                ? "New versions download on their own and install when you restart or quit. Standbye never restarts itself while you are working."
+                : "Standbye still tells you when a version is out, but downloads and installs nothing until you ask."}
+            </span>
+          </span>
+        </div>
+      </div>
+
+      {u.release?.notes && (
+        <div style={{ border: "1px solid var(--border)", borderRadius: 7, background: "var(--surface)", padding: "10px 12px" }}>
+          <div className="grp-t" style={{ marginTop: 0 }}>What&rsquo;s new in {u.release.version}</div>
+          <div className="scroll" style={{ maxHeight: 180, whiteSpace: "pre-wrap", fontSize: 11.5, lineHeight: 1.55, color: "var(--ink-3)" }}>{u.release.notes}</div>
+          <div style={{ marginTop: 8 }}><a onClick={() => u.release && void window.crew.openPath(u.release.url)}>Open the release page</a></div>
+        </div>
+      )}
     </div>
   );
 }
