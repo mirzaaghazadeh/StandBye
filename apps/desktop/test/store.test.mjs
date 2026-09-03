@@ -350,3 +350,41 @@ test("searchMessages: a response landing after refreshAll is dropped, not restor
   await pending;
   assert.equal(store.get().search, null); // the stale response must not resurrect search
 });
+
+test("loadRunDiff caches per run; refetch bypasses the cache", async () => {
+  let calls = 0;
+  const { store } = await freshStore({
+    "run.diff": () => {
+      calls += 1;
+      return { runId: "r1", available: true, reason: null, baseHead: "aa", head: "bb", stat: " 1 file changed", patch: "diff --git a/f b/f\n" };
+    },
+  });
+  await store.loadRunDiff("r1");
+  await store.loadRunDiff("r1"); // cached: no second RPC
+  assert.equal(calls, 1);
+  assert.equal(store.get().runDiffs["r1"].patch, "diff --git a/f b/f\n");
+  await store.loadRunDiff("r1", true); // refetch bypasses
+  assert.equal(calls, 2);
+  assert.equal(store.get().runDiffs["r1"].available, true);
+});
+
+test("loadRunDiff: a failing RPC stores an unavailable diff instead of throwing", async () => {
+  const { store } = await freshStore({
+    "run.diff": () => { throw new Error("unknown method: run.diff"); },
+  });
+  await store.loadRunDiff("r1"); // must not reject
+  const d = store.get().runDiffs["r1"];
+  assert.equal(d.available, false);
+  assert.ok(d.reason.includes("run.diff"));
+  assert.equal(d.patch, null);
+});
+
+test("switchTeam drops cached run diffs so another team's diff never shows", async () => {
+  const { store } = await freshStore({
+    "run.diff": () => ({ runId: "r1", available: true, reason: null, baseHead: "aa", head: "bb", stat: "", patch: "+x" }),
+  });
+  await store.loadRunDiff("r1");
+  assert.ok(store.get().runDiffs["r1"]);
+  await store.switchTeam("t2");
+  assert.deepEqual(store.get().runDiffs, {});
+});

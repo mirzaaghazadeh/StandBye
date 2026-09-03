@@ -1,5 +1,5 @@
-import { useMemo, useState, type ReactElement } from "react";
-import type { Agent, Run, RunStatus, RunStep, RunStepKind, RunTrigger } from "@crew/shared";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
+import type { Agent, Run, RunDiff, RunStatus, RunStep, RunStepKind, RunTrigger } from "@crew/shared";
 import { store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
 import { Avatar, Button, Money, Popup, RunPill, SearchField, Segmented, Toolbar, dur, hhmm, isToday, modelLabel } from "../ui/kit";
@@ -168,7 +168,13 @@ const EMPTY_STEPS: RunStep[] = [];
 
 function RunDetail({ run, agents, owner }: { run: Run | undefined; agents: Agent[]; owner: string }) {
   const steps = useStore((s) => (run ? s.steps[run.id] ?? EMPTY_STEPS : EMPTY_STEPS));
+  const diff = useStore((s) => (run ? s.runDiffs[run.id] : undefined));
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [tab, setTab] = useState<"steps" | "changes">("steps");
+  const runId = run?.id;
+  useEffect(() => {
+    if (tab === "changes" && runId) store.loadRunDiff(runId);
+  }, [tab, runId]);
   const agent = run ? agents.find((a) => a.id === run.agentId) : undefined;
 
   return (
@@ -185,10 +191,21 @@ function RunDetail({ run, agents, owner }: { run: Run | undefined; agents: Agent
                 {triggerLabel(run.trigger, agents, owner).replace(/^[A-Z]/, (c) => c.toLowerCase())} · {hhmm(run.startedAt ?? run.createdAt)}{run.finishedAt ? ` to ${hhmm(run.finishedAt)}` : " · still running"} · {steps.length} step{steps.length === 1 ? "" : "s"}
               </span>
               <span className="grow" />
+              <Segmented<"steps" | "changes">
+                value={tab}
+                onChange={setTab}
+                options={[
+                  { value: "steps", label: "Steps" },
+                  { value: "changes", label: "Changes" },
+                ]}
+              />
               <span className="mono" style={{ fontWeight: 400, fontSize: 11, color: "var(--ink-4)" }}>
                 {modelLabel(run.model)} · {fmtTokens(run.inputTokens)} in / {fmtTokens(run.outputTokens)} out · ${run.costUsd.toFixed(2)}
               </span>
             </div>
+            {tab === "changes" ? (
+              <ChangesPane run={run} diff={diff} onRefresh={() => store.loadRunDiff(run.id, true)} />
+            ) : (
             <div className="scroll" style={{ flex: 1, padding: "6px 0", background: "var(--surface)" }}>
               {steps.length === 0 && (
                 <div style={{ padding: "12px 14px", color: "var(--ink-5)", fontSize: 12 }}>
@@ -197,6 +214,7 @@ function RunDetail({ run, agents, owner }: { run: Run | undefined; agents: Agent
               )}
               {steps.map((s) => <StepRow key={s.id} step={s} open={Boolean(open[s.id])} onToggle={() => setOpen((o) => ({ ...o, [s.id]: !o[s.id] }))} />)}
             </div>
+            )}
           </div>
           <div style={{ width: 300, flexShrink: 0, borderLeft: "1px solid var(--border)", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }}>
             <div>
@@ -222,6 +240,45 @@ function RunDetail({ run, agents, owner }: { run: Run | undefined; agents: Agent
       )}
     </div>
   );
+}
+
+function ChangesPane({ run, diff, onRefresh }: { run: Run; diff?: RunDiff; onRefresh: () => void }) {
+  return (
+    <div className="scroll" style={{ flex: 1, padding: "10px 14px", background: "var(--surface)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <span style={{ fontSize: 11, color: "var(--ink-4)" }}>
+          {diff?.available && diff.stat ? diff.stat.trim().split("\n").pop() : "Commits made during this run, against its recorded starting point."}
+        </span>
+        <span className="grow" />
+        <Button sm onClick={onRefresh}>Refresh</Button>
+      </div>
+      {!diff ? (
+        <div style={{ color: "var(--ink-5)", fontSize: 12 }}>Loading changes…</div>
+      ) : !diff.available ? (
+        <div style={{ color: "var(--ink-5)", fontSize: 12 }}>{diff.reason ?? "This run has no recorded starting point."}</div>
+      ) : diff.patch == null ? (
+        <div style={{ color: "var(--ink-5)", fontSize: 12 }}>Could not load the patch.</div>
+      ) : diff.patch === "" ? (
+        <div style={{ color: "var(--ink-5)", fontSize: 12 }}>
+          No commits yet{run.status === "running" || run.status === "queued" ? " — what the agent commits shows up here." : "."}
+        </div>
+      ) : (
+        <pre className="mono" style={{ margin: 0, fontSize: 11, lineHeight: "16px", whiteSpace: "pre", overflowX: "auto" }}>
+          {diff.patch.split("\n").map((line, i) => (
+            <div key={i} style={{ color: diffLineColour(line) }}>{line || " "}</div>
+          ))}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+function diffLineColour(line: string): string {
+  if (line.startsWith("diff ") || line.startsWith("index ") || line.startsWith("--- ") || line.startsWith("+++ ")) return "var(--ink-5)";
+  if (line.startsWith("+")) return "var(--green-ink)";
+  if (line.startsWith("-")) return "var(--red-ink)";
+  if (line.startsWith("@@")) return "var(--accent)";
+  return "var(--ink-2)";
 }
 
 function StepRow({ step, open, onToggle }: { step: RunStep; open: boolean; onToggle: () => void }) {

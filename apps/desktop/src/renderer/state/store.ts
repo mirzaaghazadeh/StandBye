@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { dmChannelId } from "@crew/shared";
 import type {
-  Agent, AgentFiles, ArchivedTeam, Channel, MessageDraft, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunStep, SkillScope, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft, TeamSummary, UpdateState,
+  Agent, AgentFiles, ArchivedTeam, Channel, MessageDraft, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunDiff, RunStep, SkillScope, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft, TeamSummary, UpdateState,
 } from "@crew/shared";
 
 export type Route =
@@ -48,6 +48,8 @@ export interface State {
   questions: Question[];
   runs: Run[];
   steps: Record<string, RunStep[]>;
+  /** Workspace diffs per run id, fetched on demand from run.diff. */
+  runDiffs: Record<string, RunDiff>;
   spend: SpendSummary | null;
   /** Whether a newer Standbye exists and how far along installing it is. Owned by the main process. */
   update: UpdateState | null;
@@ -68,7 +70,7 @@ export interface State {
 
 const initial: State = {
   ready: false, error: null, route: { name: "home" }, sheet: { kind: "none" }, status: null,
-  keys: {}, providers: null, models: null, teams: [], archived: [], activeTeamId: null, team: null, agents: [], channels: [], messages: {}, drafts: {}, search: null, questions: [], runs: [], steps: {},
+  keys: {}, providers: null, models: null, teams: [], archived: [], activeTeamId: null, team: null, agents: [], channels: [], messages: {}, drafts: {}, search: null, questions: [], runs: [], steps: {}, runDiffs: {},
   spend: null, update: null, selectedAgentId: null, pendingWorkspace: null, seen: {}, waking: {}, firstStepsDismissed: false, skillsStamp: 0, builderDraft: null, builderBusy: false, toast: null,
 };
 
@@ -118,7 +120,7 @@ class Store {
     this.searchSeq++;
     this.set({
       firstStepsDismissed: readLocal("standbye.firstSteps." + (activeTeamId ?? "")) === "done",
-      teams, activeTeamId, status, keys: readyMap(providers), providers, team, agents, channels, questions, runs, spend, messages: {}, steps: {}, search: null,
+      teams, activeTeamId, status, keys: readyMap(providers), providers, team, agents, channels, questions, runs, spend, messages: {}, steps: {}, runDiffs: {}, search: null,
       selectedAgentId: agents.some((a) => a.id === this.state.selectedAgentId) ? this.state.selectedAgentId : agents[0]?.id ?? null,
     });
     if (!team && this.state.sheet.kind === "none") this.set({ sheet: { kind: "onboarding" } });
@@ -235,6 +237,17 @@ class Store {
   async loadSteps(runId: string): Promise<void> {
     const r = await this.rpc<{ run: Run | null; steps: RunStep[] }>("run.get", { id: runId });
     this.set((s) => ({ steps: { ...s.steps, [runId]: r.steps }, runs: r.run && !s.runs.some((x) => x.id === runId) ? [r.run, ...s.runs] : s.runs }));
+  }
+  /** Fetch a run's workspace diff. Cached per run; refetch force-bypasses the cache. */
+  async loadRunDiff(runId: string, refetch = false): Promise<void> {
+    if (!refetch && this.get().runDiffs[runId]) return;
+    try {
+      const d = await this.rpc<RunDiff>("run.diff", { id: runId });
+      this.set((s) => ({ runDiffs: { ...s.runDiffs, [runId]: d } }));
+    } catch (e) {
+      // Old supervisor without run.diff, or a transport error: show it honestly instead of throwing.
+      this.set((s) => ({ runDiffs: { ...s.runDiffs, [runId]: { runId, available: false, reason: e instanceof Error ? e.message : "Could not load changes.", baseHead: null, head: null, stat: null, patch: null } } }));
+    }
   }
   async loadAgentFiles(agentId: string): Promise<AgentFiles> {
     return this.rpc<AgentFiles>("agent.files.get", { id: agentId });
