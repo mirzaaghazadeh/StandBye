@@ -38,13 +38,40 @@ fs.writeFileSync(path.join(out, "package.json"), JSON.stringify({ name: pkg.name
 
 // npm is npm.cmd on Windows, which needs a shell to resolve. --ignore-scripts keeps npm from
 // invoking node-gyp on better-sqlite3, which has a binding.gyp but ships prebuilt binaries.
-const r = spawnSync("npm", ["install", "--omit=dev", "--ignore-scripts", "--no-package-lock", "--no-audit", "--no-fund", "--loglevel=error"], {
+//
+// --os/--cpu matter: @anthropic-ai/claude-agent-sdk picks its ~190 MB native Claude Code binary
+// through optionalDependencies keyed on os/cpu, and npm resolves those against the *host* unless
+// told otherwise. Without this a mac-x64 build made on an arm64 runner ships the arm64 binary.
+const r = spawnSync("npm", ["install", "--omit=dev", "--ignore-scripts", "--no-package-lock", "--no-audit", "--no-fund", "--loglevel=error", `--os=${targetPlatform}`, `--cpu=${targetArch}`], {
   cwd: out,
   stdio: "inherit",
   shell: process.platform === "win32",
   env: { ...process.env, COREPACK_ENABLE_STRICT: "0", npm_config_workspaces: "false" },
 });
 if (r.status !== 0) { console.error("npm install failed"); process.exit(1); }
+
+// The Claude Agent SDK ships its ~200 MB native Claude Code binary as one optional dependency per
+// platform. npm's --os/--cpu only *filter* those, they never install a foreign one, so the target's
+// variant has to be asked for by name with --force (which skips the os/cpu check). Then drop every
+// other variant, including the host one npm keeps re-adding.
+const anthropicDir = path.join(out, "node_modules/@anthropic-ai");
+const sdkPkg = path.join(anthropicDir, "claude-agent-sdk/package.json");
+if (fs.existsSync(sdkPkg)) {
+  const sdkVersion = JSON.parse(fs.readFileSync(sdkPkg, "utf8")).version;
+  const want = `claude-agent-sdk-${targetPlatform}-${targetArch}`;
+  const f = spawnSync("npm", ["install", `@anthropic-ai/${want}@${sdkVersion}`, "--force", "--ignore-scripts", "--no-save", "--no-package-lock", "--no-audit", "--no-fund", "--loglevel=error"], {
+    cwd: out,
+    stdio: "inherit",
+    shell: process.platform === "win32",
+    env: { ...process.env, COREPACK_ENABLE_STRICT: "0", npm_config_workspaces: "false" },
+  });
+  if (f.status !== 0) { console.error(`could not install @anthropic-ai/${want}@${sdkVersion}`); process.exit(1); }
+  for (const d of fs.readdirSync(anthropicDir)) {
+    if (d.startsWith("claude-agent-sdk-") && d !== want) fs.rmSync(path.join(anthropicDir, d), { recursive: true, force: true });
+  }
+  if (!fs.existsSync(path.join(anthropicDir, want))) { console.error(`@anthropic-ai/${want} did not land`); process.exit(1); }
+  console.log(`kept claude binary: ${want}@${sdkVersion}`);
+}
 
 const sharedOut = path.join(out, "node_modules/@crew/shared");
 fs.mkdirSync(sharedOut, { recursive: true });

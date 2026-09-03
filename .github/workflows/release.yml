@@ -92,9 +92,10 @@ jobs:
         shell: bash
         run: |
           mkdir -p out-artifacts
-          # Only the distributables, not the unpacked app directories electron-builder leaves behind.
+          # Only the distributables plus the updater metadata (latest*.yml) — not the unpacked app
+          # directories, and not builder-debug.yml, which would otherwise ship in the release.
           find apps/desktop/release -maxdepth 1 -type f \
-            \( -name '*.dmg' -o -name '*.zip' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' -o -name '*.yml' -o -name '*.blockmap' \) \
+            \( -name '*.dmg' -o -name '*.zip' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' -o -name 'latest*.yml' -o -name '*.blockmap' \) \
             -exec cp {} out-artifacts/ \;
           ls -lh out-artifacts
 
