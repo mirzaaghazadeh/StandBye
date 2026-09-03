@@ -25,7 +25,7 @@ do and don't allow, so you don't have to guess.
 
 Anyone may run their own build of this code — that's the point of an open license. What the
 trademark protects is a narrow thing: that when someone downloads something called **Standbye**,
-or visits **standbye.org**, they get the software we actually maintain. A fork that ships under
+or visits **standbye.navid.tr**, they get the software we actually maintain. A fork that ships under
 its own name is welcome. A fork that ships under ours is a support burden for us and a confusing
 download for the user.
 

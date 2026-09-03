@@ -130,7 +130,7 @@ jobs:
           generate_release_notes: true
           name: Standbye ${{ github.ref_name }}
           body: |
-            Download the build for your machine below, or from [standbye.org/download](https://standbye.org/download).
+            Download the build for your machine below, or from [standbye.navid.tr/download](https://standbye.navid.tr/download).
 
             | Platform | File |
             | --- | --- |

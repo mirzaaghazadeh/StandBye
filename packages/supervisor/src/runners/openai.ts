@@ -75,6 +75,8 @@ export const openaiRunner: Runner = async (input) => {
   let error: string | undefined;
   let failure: FailureKind | undefined;
 
+  // Lives above the try so the catch can sweep half-finished drafts when the stream dies.
+  const drafting = new Map<string, { channelId: string; json: string; sent: string }>();
   try {
     const loop = new ToolLoopAgent({
       model,
@@ -108,7 +110,6 @@ export const openaiRunner: Runner = async (input) => {
     // is the tool call being composed: the model emits its arguments as JSON deltas, and the
     // `text` field of that half-finished JSON is the message so far.
     const result = await loop.stream({ prompt: input.prompt, abortSignal: signal });
-    const drafting = new Map<string, { channelId: string; json: string; sent: string }>();
     for await (const part of result.fullStream) {
       // A streamed run reports provider trouble as a part rather than by rejecting, so without
       // this an expired key or an empty balance would arrive as a nameless "other" failure and
@@ -142,6 +143,14 @@ export const openaiRunner: Runner = async (input) => {
     const finalText = await result.text;
     if (finalText?.trim()) text = finalText.trim();
   } catch (e) {
+    // A mid-stream failure inside a streamed post_message strands the half-written draft: the
+    // desktop only clears it on message.created or a done:true draft, so without this sweep the
+    // "writing…" bubble stays until reload. Close every unfinished draft the way tool-input-end
+    // would have — done:true, with everything written so far.
+    for (const d of drafting.values()) {
+      if (d.channelId) crew.bus.emit("message.draft", { runId: run.id, agentId: agent.id, channelId: d.channelId, text: d.sent, done: true });
+    }
+    drafting.clear();
     const f = classifyFailure(e, spec.name);
     error = f.text;
     failure = f.kind;

@@ -10,7 +10,7 @@ Describe the team you wish you had. Standbye turns it into agents that check in 
 to each other in channels, ask you only when a decision is yours, propose hires, and remember what
 they learn. **Not cron jobs with a chat window. A team.**
 
-[**Download**](https://standbye.org/download) · [standbye.org](https://standbye.org) · [Releases](https://github.com/mirzaaghazadeh/StandBye/releases) · [Contributing](CONTRIBUTING.md)
+[**Download**](https://standbye.navid.tr/download) · [standbye.navid.tr](https://standbye.navid.tr) · [Releases](https://github.com/mirzaaghazadeh/StandBye/releases) · [Contributing](CONTRIBUTING.md)
 
 [![Release](https://img.shields.io/github/v/release/mirzaaghazadeh/StandBye?style=flat-square&color=D9683F&label=release)](https://github.com/mirzaaghazadeh/StandBye/releases/latest)
 [![CI](https://img.shields.io/github/actions/workflow/status/mirzaaghazadeh/StandBye/ci.yml?style=flat-square&label=CI)](https://github.com/mirzaaghazadeh/StandBye/actions/workflows/ci.yml)
@@ -120,7 +120,7 @@ way. Same app, same release, one more entry in this table.
 
 ## Download
 
-From [standbye.org/download](https://standbye.org/download) or the
+From [standbye.navid.tr/download](https://standbye.navid.tr/download) or the
 [latest release](https://github.com/mirzaaghazadeh/StandBye/releases/latest).
 
 | Platform | File | Notes |
@@ -256,5 +256,5 @@ See [TRADEMARK.md](TRADEMARK.md).
 
 <div align="center">
 <br>
-<sub><a href="https://standbye.org">standbye.org</a></sub>
+<sub><a href="https://standbye.navid.tr">standbye.navid.tr</a></sub>
 </div>

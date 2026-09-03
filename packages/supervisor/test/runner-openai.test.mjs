@@ -11,7 +11,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { openaiRunner } from "../dist/runners/openai.js";
-import { blocksAgent } from "../dist/runners/types.js";
+import { blocksAgent, classifyFailure } from "../dist/runners/types.js";
 
 /** A catalog entry as providers.ts would hand one over. */
 const SPEC = { id: "custom", name: "Custom OpenAI-compatible", auth: "key", baseUrl: "https://provider.invalid/v1" };
@@ -79,4 +79,15 @@ test("openai runner: a saved key is required before any request is attempted", a
   const out = await openaiRunner(input({ crew: { keys: {}, addStep: () => {} } }));
   assert.equal(out.failure, "auth");
   assert.equal(blocksAgent(out.failure), true);
+});
+
+test("a stream that stops mid-reply is reported as a dropped connection, not a mystery", () => {
+  // Two long runs died this way and were recorded with no failure kind at all, which reads as if
+  // the agent had done something wrong. undici reports the bare word "terminated".
+  const dropped = new TypeError("terminated");
+  dropped.cause = Object.assign(new Error("other side closed"), { code: "UND_ERR_SOCKET" });
+  const f = classifyFailure(dropped, "OpenRouter");
+  assert.equal(f.kind, "network");
+  assert.match(f.text, /closed the connection part-way/);
+  assert.equal(blocksAgent("network"), false, "a dropped connection must not pause the agent");
 });

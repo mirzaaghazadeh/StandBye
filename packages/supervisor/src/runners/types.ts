@@ -92,6 +92,12 @@ export function classifyFailure(e: unknown, who = "The provider"): Failure {
   if (has("fetch failed", "network error", "getaddrinfo", "socket hang up", "econnrefused", "enotfound")) {
     return { kind: "network", text: `Could not reach ${who}. Check this Mac's internet connection.` };
   }
+  // A streamed response that stops mid-body: undici reports the bare word "terminated", with the
+  // real cause (a closed socket, a body timeout) only on `cause`. Two long runs died this way and
+  // were recorded with no failure kind at all, which reads like the agent did something wrong.
+  if (raw.trim().toLowerCase() === "terminated" || has("und_err_socket", "und_err_body_timeout", "other side closed", "premature close")) {
+    return { kind: "network", text: `${who} closed the connection part-way through the reply. The work up to that point was kept; the agent will pick it up at its next check-in.` };
+  }
 
   // Credit / quota. Check before auth: a 402 also mentions billing.
   if (status === 402 || has("credit balance is too low", "insufficient credits", "insufficient_quota", "quota exceeded", "billing", "payment required", "add credits")) {
