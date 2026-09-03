@@ -15,6 +15,8 @@ import { Queue } from "./queue.js";
 export class Scheduler {
   readonly queue: Queue;
   private timer: NodeJS.Timeout | null = null;
+  /** Set by stop(). A late bus event must not start work against a team that is shutting down. */
+  private stopped = false;
   private crons = new Map<string, Cron[]>();
 
   constructor(private readonly crew: Crew) {
@@ -34,6 +36,7 @@ export class Scheduler {
     this.timer = setInterval(() => this.tick(), 30_000);
   }
   stop(): void {
+    this.stopped = true;
     if (this.timer) clearInterval(this.timer);
     for (const jobs of this.crons.values()) jobs.forEach((j) => j.stop());
     this.queue.cancelAll();
@@ -71,6 +74,7 @@ export class Scheduler {
   }
 
   tick(): void {
+    if (this.stopped) return;
     // 1. deadlines
     for (const q of this.crew.expireQuestions()) {
       if (q.fromAgentId && q.runId) this.queue.enqueue(q.fromAgentId, { kind: "answer", questionId: q.id });
@@ -110,6 +114,19 @@ export class Scheduler {
     return next;
   }
 
+  /**
+   * Who picks up an unaddressed message from the owner in a shared channel: the lead if they are
+   * in it, otherwise whoever is. Direct chats already have an obvious answerer and never come here.
+   */
+  private whoAnswersFor(channelId: string): string | null {
+    const channel = this.crew.db.getChannel(channelId);
+    if (!channel || channel.kind === "dm") return null;
+    const inRoom = this.crew.listAgents().filter((a) => !a.paused && (channel.members.includes(a.id) || a.channels.includes(channelId)));
+    if (!inRoom.length) return null;
+    const lead = inRoom.find((a) => /\blead\b|maintainer/i.test(a.role));
+    return (lead ?? inRoom[0])!.id;
+  }
+
   private subscribe(): void {
     const { crew, queue } = this;
 
@@ -117,6 +134,7 @@ export class Scheduler {
     // a whole agent folder in by hand. Rebuild the crons so a changed schedule takes effect now,
     // and tick so an agent that has just appeared gets its first check-in rather than waiting.
     crew.bus.on("agents.updated", () => {
+      if (this.stopped) return;
       this.rebuildCrons();
       this.tick();
     });
@@ -136,6 +154,15 @@ export class Scheduler {
         } else {
           queue.enqueue(agentId, { kind: "mention", messageId: m.id, by: m.authorId, depth: m.authorId === "user" ? 0 : m.depth });
         }
+      }
+
+      // The owner speaking to the room and nobody answering is the app looking broken. Agents need
+      // an @ so a passing remark does not wake the whole team, but that rule was applied to the
+      // owner too: "hi guys" in #general reached everyone and woke no one. Someone answers now —
+      // the lead where there is one, so it lands with the person who can delegate it.
+      if (m.authorId === "user" && m.mentions.length === 0) {
+        const answerer = this.whoAnswersFor(m.channelId);
+        if (answerer) queue.enqueue(answerer, { kind: "mention", messageId: m.id, by: "user", depth: 0 });
       }
     });
 

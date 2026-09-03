@@ -28,6 +28,7 @@ export class Queue {
   }
 
   enqueue(agentId: string, trigger: RunTrigger): Run | null {
+    if (this.stopped) return null;
     const agent = this.crew.getAgent(agentId);
     if (agent.paused || this.crew.pausedAll) return null;
     if (this.isDuplicate(agentId, trigger)) return null;
@@ -83,7 +84,11 @@ export class Queue {
     if (ac) { ac.abort("cancelled"); return true; }
     return false;
   }
+  /** Set by cancelAll() at shutdown: nothing new starts after the team is being torn down. */
+  private stopped = false;
+
   cancelAll(): void {
+    this.stopped = true;
     for (const run of this.pending.splice(0)) this.crew.finishRun(run, "cancelled", "Paused");
     for (const s of this.suspended.values()) {
       s.resolve?.();
@@ -218,12 +223,17 @@ export class Queue {
         if (res.escalate) this.onEscalate(run.agentId, res.escalate);
       })
       .catch((e) => {
+        // The team can be torn down while a run is still going — a closed folder, a stopping
+        // supervisor. There is no database left to record the failure in, and nothing to record
+        // it for.
+        if (this.crew.isClosed) return;
         const r = this.crew.db.getRun(run.id);
         if (r) this.crew.finishRun(r, "failed", String(e instanceof Error ? e.message : e), { error: String(e) });
         this.crew.setAgentRuntime(run.agentId, { status: "failed", statusText: String(e).slice(0, 120), currentRunId: null });
       })
       .finally(() => {
         clearTimeout(timer);
+        if (this.crew.isClosed) return;
         this.active.delete(run.id);
         this.awake.set(this.active.size + this.suspended.size);
         // A parallel reply never claimed the agent, so it must not release them either: the

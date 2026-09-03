@@ -175,7 +175,13 @@ export const TEAM_TOOLS = [
       const target = ctx.crew.findAgent(agent);
       if (!target) return `No teammate named ${agent}.`;
       const me = ctx.crew.getAgent(ctx.agentId);
-      const ch = me.channels.find((c) => target.channels.includes(c) && c !== "general") ?? "general";
+      // Only a room that actually exists. An agent's channel list can name one that has since
+      // been deleted — or was never created — and handing that to postMessage failed the whole
+      // hand-off with "Unknown channel dev" rather than just posting somewhere sensible.
+      const rooms = new Set(ctx.crew.listChannels().filter((c) => c.kind !== "dm").map((c) => c.id));
+      const ch = me.channels.find((c) => rooms.has(c) && target.channels.includes(c) && c !== "general")
+        ?? (rooms.has("general") ? "general" : [...rooms][0]);
+      if (!ch) return "This team has no shared channel to hand work over in.";
       ctx.crew.postMessage({ channel: ch, authorId: ctx.agentId, text: `@${target.name} task: ${title}\n${details}`, runId: ctx.run.id, depth: 0 });
       ctx.crew.bus.emit("notify", { title: `${me.name} → ${target.name}`, body: title });
       ctx.crew.addStep(ctx.run.id, "post", `Assigned to ${target.name}: ${title}`);

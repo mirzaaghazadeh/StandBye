@@ -383,7 +383,7 @@ export class Hub {
   settingsCrew(): Crew {
     const any = this.first()?.crew;
     if (any) return any;
-    return new Crew({ dataDir: path.join(this.opts.dataDir, ".scratch"), globalDir: this.opts.dataDir, keys: this.keys, api: { port: this.opts.port, token: this.opts.token } });
+    return new Crew({ dataDir: path.join(this.opts.dataDir, ".scratch"), globalDir: this.opts.dataDir, keys: this.keys, transient: true, api: { port: this.opts.port, token: this.opts.token } });
   }
   stop(): void {
     for (const rt of this.teams.values()) { rt.scheduler.stop(); rt.crew.close(); }

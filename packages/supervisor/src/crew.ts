@@ -28,6 +28,8 @@ export interface CrewOptions {
   globalDir: string;
   /** Shared key object owned by the hub */
   keys: Keys;
+  /** A short-lived crew opened only to read global settings: it owns nothing and watches nothing. */
+  transient?: boolean;
   /**
    * Where this supervisor's WebSocket API is listening. A spawned coding-agent CLI reaches its
    * team through the stdio MCP bridge, which needs both to connect back.
@@ -78,6 +80,8 @@ export class Crew {
   /** Runs cut off by a restart, waiting for the scheduler to start them again. Read once. */
   interrupted: Run[] = [];
   private folderWatch: FolderWatch | null = null;
+  /** Set by close(). A debounced folder event can land after teardown and must not touch the db. */
+  private closed = false;
 
   private readonly runtime = new Map<string, AgentRuntime>();
   private readonly waiters = new Map<string, (answer: string | null) => void>();
@@ -104,6 +108,7 @@ export class Crew {
     if (this.interrupted.length) log(`${this.interrupted.length} run(s) were cut off by a restart; they will be picked up again`, { team: this.team?.id });
     this.restoreChannels();
     this.ensureGeneral();
+    this.pruneMissingChannels();
     this.watchFolder();
     for (const a of this.store.listAgentConfigs()) this.ensureDm(a.id); // teams created before direct chats existed
   }
@@ -111,15 +116,26 @@ export class Crew {
   get id(): string | null {
     return this.team?.id ?? null;
   }
+  /** True once close() has run. A run still in flight must not write to a database that has gone. */
+  get isClosed(): boolean {
+    return this.closed;
+  }
   /**
    * Follow the folder. A team is files so a person can edit them; when they do, the running app
    * should already agree with what is on disk rather than needing a restart.
    */
   private watchFolder(): void {
     // Not conditional on a team existing yet: a crew is often constructed before its team.json is
-    // written, and the folder is the thing being watched either way.
-    if (this.folderWatch) return;
-    this.folderWatch = watchTeamFolder(this.opts.dataDir, () => this.reloadFromDisk());
+    // written, and the folder is the thing being watched either way. A throwaway crew opened only
+    // to read the global settings is the exception: nobody closes it, so a watcher on it would
+    // outlive every team and fire against a database that has since gone.
+    if (this.folderWatch || this.opts.transient) return;
+    this.folderWatch = watchTeamFolder(this.opts.dataDir, () => {
+      // A debounced event can land in the moment between close() and the timer being cleared, and
+      // during shutdown the folder may be going away underneath us. Neither is worth a crash.
+      try { this.reloadFromDisk(); }
+      catch (e) { if (!this.closed) log(`could not reload the team folder: ${e instanceof Error ? e.message : String(e)}`, { team: this.team?.id }); }
+    });
   }
 
   /**
@@ -127,6 +143,7 @@ export class Crew {
    * rather than accumulated, so an edit, a new agent folder, or a deleted one all land the same way.
    */
   reloadFromDisk(): void {
+    if (this.closed) return;
     const before = this.store.listAgentConfigs().map((a) => a.id).join(",");
     this.team = this.store.readTeam();
     if (!this.team) return;
@@ -135,6 +152,7 @@ export class Crew {
     // Someone dropped an agent folder in by hand: it needs its direct chat and its place in the
     // rooms, exactly as if it had been hired through the app.
     for (const cfg of this.store.listAgentConfigs()) this.ensureDm(cfg.id);
+    this.pruneMissingChannels();
     const after = this.store.listAgentConfigs().map((a) => a.id).join(",");
     if (before !== after) log(`the team on disk changed: now ${after.split(",").filter(Boolean).length} agent(s)`, { team: this.team.id });
     this.bus.emit("team.updated", this.team);
@@ -142,6 +160,7 @@ export class Crew {
   }
 
   close(): void {
+    this.closed = true;
     this.folderWatch?.close();
     this.skills.dispose();
     this.db.sqlite.close();
@@ -298,6 +317,24 @@ export class Crew {
     this.syncChannels();
     log("restored #general: the team had no shared channel", { team: this.team.id });
     return channel;
+  }
+
+  /**
+   * Drop channels an agent lists that no longer exist.
+   *
+   * A stale name is not harmless: `assign_task` picks a room the two agents share, and picking a
+   * deleted one failed the whole hand-off with "Unknown channel dev" — which the team hit twice
+   * before anyone noticed. The lists are reconciled against the real channels on load.
+   */
+  private pruneMissingChannels(): void {
+    const real = new Set(this.db.listChannels().map((c) => c.id));
+    for (const cfg of this.store.listAgentConfigs()) {
+      const kept = cfg.channels.filter((c) => real.has(c));
+      if (kept.length === cfg.channels.length) continue;
+      const gone = cfg.channels.filter((c) => !real.has(c));
+      this.store.writeAgentConfig({ ...cfg, channels: kept });
+      log(`${cfg.name} listed ${gone.join(", ")}, which no longer exist; removed`, { team: this.team?.id });
+    }
   }
 
   /** Every agent has a direct chat with the owner. It is a channel the agent is always a member of. */
