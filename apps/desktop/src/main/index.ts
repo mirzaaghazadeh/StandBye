@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, safeStorage, shell, Tray } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, powerSaveBlocker, safeStorage, shell, Tray } from "electron";
 import path from "node:path";
 import fs from "node:fs";
 import type { Agent, PushEvent, SupervisorStatus, SpendSummary, UpdateState } from "@crew/shared";
@@ -70,7 +70,7 @@ function saveSettings(patch: Partial<AppSettings>): AppSettings {
 }
 
 ipcMain.handle("crew:settings.get", () => loadSettings());
-ipcMain.handle("crew:settings.set", (_e, patch: Partial<AppSettings>) => saveSettings(patch));
+ipcMain.handle("crew:settings.set", (_e, patch: Partial<AppSettings>) => { const next = saveSettings(patch); updateAwake(); return next; });
 
 // ---------- updates ----------
 
@@ -105,6 +105,42 @@ ipcMain.handle("crew:updates.setAuto", (_e, on: boolean) => {
   rebuildTray();
   return s;
 });
+
+// ---------- staying awake ----------
+//
+// A Mac asleep is a team that is not working. This one sleeps a minute after the owner stops
+// touching it, on battery and on mains alike, so locking the screen and walking away froze every
+// agent mid-run — the machine, not the app, was the thing that stopped.
+//
+// The assertion is held only while it is earning its keep: whenever a run is actually in flight,
+// so work started is work finished rather than frozen half-way; and continuously when the owner
+// has asked for the team to keep working with the app closed, which is what round-the-clock
+// means. An idle team with the setting off lets the Mac sleep exactly as it always did.
+
+let awake: number | null = null;
+
+function holdAwake(reason: string): void {
+  if (awake !== null && powerSaveBlocker.isStarted(awake)) return;
+  // "prevent-app-suspension" stops the system sleeping without keeping the display lit, so the
+  // screen still locks and dims; only the sleep is held off.
+  awake = powerSaveBlocker.start("prevent-app-suspension");
+  console.log(`[power] keeping this Mac awake: ${reason}`);
+}
+
+function releaseAwake(): void {
+  if (awake === null) return;
+  if (powerSaveBlocker.isStarted(awake)) powerSaveBlocker.stop(awake);
+  awake = null;
+  console.log("[power] letting this Mac sleep again");
+}
+
+/** Called whenever the supervisor's status changes, and when the setting is toggled. */
+function updateAwake(): void {
+  if (loadSettings().keepWorkingWhenClosed) { holdAwake("the team is set to keep working"); return; }
+  const running = status?.runningRuns ?? 0;
+  if (running > 0) holdAwake(`${running} run(s) in flight`);
+  else releaseAwake();
+}
 
 // ---------- window ----------
 
@@ -253,9 +289,21 @@ host.onEvent((e: PushEvent) => {
     n.on("click", () => showWindow(e.data.questionId ? `/inbox/${e.data.questionId}` : "/inbox"));
     n.show();
   }
+  if (e.event === "supervisor.status") { status = e.data; updateAwake(); }
+  if (e.event === "run.updated") void refreshStatusSoon();
   if (["agents.updated", "agent.updated", "supervisor.status", "spend.updated", "teams.updated"].includes(e.event)) refreshTraySoon();
   toWindow("crew:event", e);
 });
+
+/** Runs change far more often than the status broadcast, so ask for the count, gently. */
+let statusSoon: NodeJS.Timeout | null = null;
+function refreshStatusSoon(): void {
+  if (statusSoon) return;
+  statusSoon = setTimeout(() => {
+    statusSoon = null;
+    void host.rpc<SupervisorStatus>("status.get").then((s) => { status = s; updateAwake(); }).catch(() => { /* supervisor busy */ });
+  }, 2000);
+}
 
 // ---------- IPC ----------
 
@@ -331,6 +379,7 @@ app.on("window-all-closed", () => { /* stay alive in the menu bar */ });
 // supervisor this app started, so leaving it alone is genuinely "keep working": the next launch
 // attaches to the same one and picks up where it left off.
 app.on("before-quit", () => {
+  if (!loadSettings().keepWorkingWhenClosed) releaseAwake();
   // A downloaded update installs itself here: the owner is leaving anyway, so nothing is
   // interrupted, and the next launch is the new version. The swap happens after we exit.
   updater.installOnQuit();

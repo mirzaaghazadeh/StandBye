@@ -2,6 +2,7 @@ import type { Run, RunTrigger } from "@crew/shared";
 import { DEFAULTS } from "./config.js";
 import type { Crew } from "./crew.js";
 import { executeRun } from "./runner.js";
+import { KeepAwake } from "./power.js";
 
 /**
  * One run at a time per agent, a few in parallel across the team.
@@ -19,6 +20,8 @@ export class Queue {
   // slot is freed but the run itself keeps executing. Map insertion order is the FIFO
   // re-entry order; `resolve` is set once the run wants its slot back.
   private readonly suspended = new Map<string, { ac: AbortController; resolve?: () => void }>();
+  /** The machine must not sleep out from under a run that is half-way through a change. */
+  private readonly awake = new KeepAwake();
 
   constructor(private readonly crew: Crew, private readonly onEscalate: (agentId: string, reason: string) => void) {}
 
@@ -65,6 +68,7 @@ export class Queue {
     }
     this.suspended.clear();
     for (const ac of this.active.values()) ac.abort("cancelled");
+    this.awake.dispose();
   }
 
   /**
@@ -143,6 +147,7 @@ export class Queue {
       this.busyAgents.add(run.agentId);
       const ac = new AbortController();
       this.active.set(run.id, ac);
+      this.awake.set(this.active.size + this.suspended.size);
       const minutes = run.trigger.kind === "heartbeat" ? DEFAULTS.checkinTimeoutMinutes : DEFAULTS.runTimeoutMinutes;
       const timer = setTimeout(() => ac.abort(`timeout:${minutes}`), minutes * 60_000);
       void executeRun(this.crew, run.id, ac.signal)
@@ -157,6 +162,7 @@ export class Queue {
         .finally(() => {
           clearTimeout(timer);
           this.active.delete(run.id);
+          this.awake.set(this.active.size + this.suspended.size);
           this.busyAgents.delete(run.agentId);
           // The run may have ended while parked on an owner answer (timeout, cancel):
           // drop any leftover suspended entry so nothing waits on a dead promise.
