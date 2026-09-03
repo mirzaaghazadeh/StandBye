@@ -10,7 +10,7 @@ import { log } from "./log.js";
 /**
  * Skills, in the Agent Skills format (agentskills.io): one folder per skill, holding a
  * SKILL.md whose YAML frontmatter carries `name` and `description`, plus whatever
- * scripts/, references/ and assets/ it needs. Nothing here is Standbye-specific, so a skill
+ * scripts/, references/ and assets/ it needs. Nothing here is StandBye-specific, so a skill
  * from Claude Code or a GitHub repo drops straight in, and a skill written here can be
  * copied out and used anywhere else.
  *
@@ -551,7 +551,7 @@ export class SkillLibrary {
     const skill = readSkillDir(path.join(this.rootFor(target), normalizeSkillName(name)), target.scope, target.ownerId ?? null);
     if (!skill) throw new Error(`No skill "${name}" on that shelf`);
     const { kind, ref } = skill.source;
-    if (kind === "bundled") throw new Error(`"${name}" ships with Standbye and updates when the app does. Edit it here and it stays yours.`);
+    if (kind === "bundled") throw new Error(`"${name}" ships with StandBye and updates when the app does. Edit it here and it stays yours.`);
     if (!ref || kind === "manual" || kind === "learned") throw new Error(`"${name}" was written here, so there is nothing to update it from.`);
     // Always refetch: "update" is a request for whatever is there now, not for a held copy.
     const out = this.install(kind as SkillInstallKind, ref, target, [skill.name], true);

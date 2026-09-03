@@ -18,6 +18,9 @@ export const Ic = {
   Settings: (p: P) => <I {...p}><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" /></I>,
   Search: (p: P) => <I {...p}><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></I>,
   Pause: (p: P) => <I strokeWidth={2.4} {...p}><path d="M8 5v14M16 5v14" /></I>,
+  /** Pause, but at the end of the line rather than here: the bar a run finishes into. */
+  PauseSoon: (p: P) => <I strokeWidth={2.2} {...p}><path d="M4 6v12" /><path d="M9 12h8" /><path d="M14 8l4 4-4 4" /></I>,
+  More: (p: P) => <svg width={p.size ?? 16} height={p.size ?? 16} viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="5" cy="12" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="19" cy="12" r="1.7" /></svg>,
   Play: (p: P) => <I {...p}><path d="M7 4l12 8-12 8z" /></I>,
   Plus: (p: P) => <I strokeWidth={2.4} {...p}><path d="M12 5v14M5 12h14" /></I>,
   Back: (p: P) => <I strokeWidth={2.2} {...p}><path d="M15 18l-6-6 6-6" /></I>,

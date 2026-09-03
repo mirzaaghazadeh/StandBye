@@ -21,7 +21,7 @@ const api = {
   /** This Mac's own settings, e.g. whether the team keeps working after the window is closed. */
   settingsGet: (): Promise<AppSettings> => ipcRenderer.invoke("crew:settings.get") as Promise<AppSettings>,
   settingsSet: (patch: Partial<AppSettings>): Promise<AppSettings> => ipcRenderer.invoke("crew:settings.set", patch) as Promise<AppSettings>,
-  /** Checking for, fetching and installing a newer Standbye. Every call answers with the whole state. */
+  /** Checking for, fetching and installing a newer StandBye. Every call answers with the whole state. */
   updates: {
     get: (): Promise<UpdateState> => ipcRenderer.invoke("crew:updates.get") as Promise<UpdateState>,
     check: (): Promise<UpdateState> => ipcRenderer.invoke("crew:updates.check") as Promise<UpdateState>,

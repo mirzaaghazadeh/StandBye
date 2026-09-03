@@ -31,7 +31,7 @@
       "label": "Killing processes"
     },
     {
-      "pattern": "Bash(*Application Support/Standbye*)",
+      "pattern": "Bash(*Application Support/StandBye*)",
       "behavior": "block",
       "label": "Touching the live app data"
     },

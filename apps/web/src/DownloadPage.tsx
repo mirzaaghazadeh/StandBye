@@ -1,5 +1,8 @@
-// /download/: every platform in one place. File names follow apps/desktop/electron-builder.yml; the version
-// and build come from src/commits.json (scripts/fetch-commits.mjs: latest v* tag, else the app's package.json).
+// /download/: every platform in one place. The links come from the real GitHub release, fetched at render
+// time, so they follow whatever "latest" is without the site being rebuilt: a build is matched to an asset
+// by the shape of its name (apps/desktop/electron-builder.yml decides those), never by a version we guessed.
+// Until that answers — and if it never does — every button falls back to the releases page, which cannot 404.
+// src/commits.json (scripts/fetch-commits.mjs) is only the "built from" line, not the download links.
 import { useEffect, useState } from "react";
 import { Ic } from "@kit/icons";
 import { Avatar, Button, KindPill, Pill, Progress, Switch, ago } from "@kit/kit";
@@ -7,11 +10,14 @@ import { GITHUB, agents, questions, spentToday, team } from "./data";
 import { Footer, Nav } from "./App";
 import snapshot from "./commits.json";
 
-const VERSION = snapshot.version;
 const RELEASES = `${GITHUB}/releases`;
-const asset = (file: string) => `${GITHUB}/releases/latest/download/${file}`;
+const LATEST = `${GITHUB}/releases/latest`;
+const API_LATEST = `https://api.github.com/repos/${GITHUB.replace(/^https:\/\/github\.com\//, "")}/releases/latest`;
 
-type Build = { label: string; file: string; primary?: boolean };
+/** The published release we point at. `null` while it loads, and if GitHub never answers. */
+type Release = { version: string; url: string; date: string; assets: { name: string; url: string }[] };
+
+type Build = { label: string; match: RegExp; primary?: boolean };
 type Platform = { id: "mac" | "win" | "linux"; name: string; icon: React.ReactNode; blurb: string; builds: Build[]; note: string };
 
 const PLATFORMS: Platform[] = [
@@ -19,17 +25,17 @@ const PLATFORMS: Platform[] = [
     id: "mac", name: "macOS", icon: <AppleIcon />,
     blurb: "The team runs on your Mac and lives in the menu bar.",
     builds: [
-      { label: "Apple silicon", file: `Standbye-${VERSION}-mac-arm64.dmg`, primary: true },
-      { label: "Intel", file: `Standbye-${VERSION}-mac-x64.dmg` },
+      { label: "Apple silicon", match: /-mac-arm64\.dmg$/, primary: true },
+      { label: "Intel", match: /-mac-x64\.dmg$/ },
     ],
-    note: "macOS 13 or newer. Not notarized yet: the first launch is right-click, Open.",
+    note: "macOS 13 or newer. Not notarized yet: the first launch is System Settings, Privacy & Security, Open Anyway.",
   },
   {
     id: "win", name: "Windows", icon: <WindowsIcon />,
     blurb: "Same app, same supervisor, in the system tray.",
     builds: [
-      { label: "Installer", file: `Standbye-${VERSION}-win-x64-setup.exe`, primary: true },
-      { label: "Portable zip", file: `Standbye-${VERSION}-win-x64-setup.zip` },
+      { label: "Installer", match: /-win-x64-setup\.exe$/, primary: true },
+      { label: "Portable zip", match: /-win-x64\.zip$/ },
     ],
     note: "Windows 10 or 11, 64-bit. Unsigned for now: More info, then Run anyway.",
   },
@@ -37,10 +43,10 @@ const PLATFORMS: Platform[] = [
     id: "linux", name: "Linux", icon: <LinuxIcon />,
     blurb: "AppImage and deb, for the machines that never sleep.",
     builds: [
-      { label: "AppImage x64", file: `Standbye-${VERSION}-linux-x86_64.AppImage`, primary: true },
-      { label: "deb x64", file: `Standbye-${VERSION}-linux-amd64.deb` },
-      { label: "AppImage arm64", file: `Standbye-${VERSION}-linux-arm64.AppImage` },
-      { label: "deb arm64", file: `Standbye-${VERSION}-linux-arm64.deb` },
+      { label: "AppImage x64", match: /-linux-x86_64\.AppImage$/, primary: true },
+      { label: "deb x64", match: /-linux-amd64\.deb$/ },
+      { label: "AppImage arm64", match: /-linux-arm64\.AppImage$/ },
+      { label: "deb arm64", match: /-linux-arm64\.deb$/ },
     ],
     note: "Any recent distribution. Works headless too, so a team can live on a server.",
   },
@@ -53,9 +59,46 @@ function detectPlatform(): Platform["id"] {
   return "mac";
 }
 
+/** The latest published release, or null: a rate limit or an offline visitor is not an error worth showing. */
+function useLatestRelease(): Release | null {
+  const [release, setRelease] = useState<Release | null>(null);
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      try {
+        const res = await fetch(API_LATEST, { headers: { Accept: "application/vnd.github+json" } });
+        if (!res.ok) return;
+        const json = await res.json();
+        // Drafts and prereleases are not what /releases/latest serves, and neither are the updater's
+        // sidecars: only real installers get a button.
+        const assets = (json.assets ?? [])
+          .filter((a: { name?: string }) => a.name && !/\.(blockmap|yml|yaml)$/i.test(a.name))
+          .map((a: { name: string; browser_download_url: string }) => ({ name: a.name, url: a.browser_download_url }));
+        if (live && json.tag_name) {
+          setRelease({
+            version: String(json.tag_name).replace(/^v/, ""),
+            url: json.html_url ?? LATEST,
+            date: String(json.published_at ?? "").slice(0, 10),
+            assets,
+          });
+        }
+      } catch { /* keep the releases-page fallback */ }
+    })();
+    return () => { live = false; };
+  }, []);
+  return release;
+}
+
 export function DownloadPage() {
   const [mine, setMine] = useState<Platform["id"]>("mac");
   useEffect(() => { setMine(detectPlatform()); }, []);
+  const release = useLatestRelease();
+  const version = release?.version;
+  // No release in hand yet: send people to the release page rather than to a filename we invented.
+  const hrefFor = (b: Build) => release?.assets.find((a) => b.match.test(a.name))?.url ?? LATEST;
+  const fileFor = (b: Build) => release?.assets.find((a) => b.match.test(a.name))?.name;
+  // A build the release does not actually carry is not offered at all.
+  const buildsFor = (p: Platform) => (release ? p.builds.filter((b) => release.assets.some((a) => b.match.test(a.name))) : p.builds);
   return (
     <>
       <Nav />
@@ -65,9 +108,9 @@ export function DownloadPage() {
             <div className="eyebrow">
               <Pill bg="var(--accent-soft)" ink="var(--accent-dark)">Free · open source</Pill>
               <Pill>macOS · Windows · Linux</Pill>
-              <Pill mono>v{VERSION} · {snapshot.head}</Pill>
+              {version ? <Pill mono>v{version}</Pill> : null}
             </div>
-            <h1>Get Standbye</h1>
+            <h1>Get StandBye</h1>
             <p className="lede">One app for your Mac, your PC or your Linux box. The phone app for running the team from wherever you are is on the way.</p>
           </div>
         </section>
@@ -76,19 +119,24 @@ export function DownloadPage() {
           <div className="wrap wrap-wide">
             <div className="plats">
               {PLATFORMS.map((p) => {
-                const primary = p.builds.find((b) => b.primary) ?? p.builds[0]!;
-                const rest = p.builds.filter((b) => b !== primary);
+                const builds = buildsFor(p);
+                const primary = builds.find((b) => b.primary) ?? builds[0];
+                const rest = builds.filter((b) => b !== primary);
                 return (
                   <div key={p.id} className={"card plat" + (p.id === mine ? " plat-mine" : "")}>
                     <div className="plat-h">
                       <span className="plat-i">{p.icon}</span>
                       <div className="plat-n">{p.name}</div>
-                      {p.id === mine ? <Pill bg="var(--accent-soft)" ink="var(--accent-dark)">Your machine</Pill> : <Pill bg="var(--green-bg)" ink="var(--green-ink)">v{VERSION}</Pill>}
+                      {p.id === mine ? <Pill bg="var(--accent-soft)" ink="var(--accent-dark)">Your machine</Pill> : version ? <Pill bg="var(--green-bg)" ink="var(--green-ink)">v{version}</Pill> : null}
                     </div>
                     <p>{p.blurb}</p>
-                    <a className="btn btn-primary btn-xl plat-btn" href={asset(primary.file)}><Ic.File size={14} />Download for {p.name}<span className="plat-arch">{primary.label}</span></a>
+                    {primary ? (
+                      <a className="btn btn-primary btn-xl plat-btn" href={hrefFor(primary)}><Ic.File size={14} />Download for {p.name}<span className="plat-arch">{primary.label}</span></a>
+                    ) : (
+                      <a className="btn btn-xl plat-btn" href={RELEASES}><Ic.File size={14} />Not in this release<span className="plat-arch">see all releases</span></a>
+                    )}
                     <div className="plat-files">
-                      {rest.map((b) => <a key={b.file} href={asset(b.file)}><span className="mono">{b.file}</span><span className="fine"> · {b.label}</span></a>)}
+                      {rest.map((b) => <a key={b.label} href={hrefFor(b)}><span className="mono">{fileFor(b) ?? b.label}</span>{fileFor(b) ? <span className="fine"> · {b.label}</span> : null}</a>)}
                     </div>
                     <div className="fine">{p.note}</div>
                   </div>
@@ -96,12 +144,15 @@ export function DownloadPage() {
               })}
             </div>
             <div className="dl-meta">
-              <span>Version {VERSION}{snapshot.tagged ? "" : " (next release)"} · built from <span className="mono">{snapshot.head}</span> on {snapshot.headDate}</span>
+              <span>
+                {version ? `Version ${version}${release?.date ? ` · published ${release.date}` : ""} · ` : "Latest release · "}
+                source at <span className="mono">{snapshot.head}</span> on {snapshot.headDate}
+              </span>
               <a href={RELEASES}>All releases and notes</a>
-              <a href={`${GITHUB}/releases/latest`}>Checksums</a>
+              <a href={release?.url ?? LATEST}>{version ? `What's new in v${version}` : "Release notes"}</a>
             </div>
             <div className="dl-steps card">
-              <div className="dl-step"><span className="step-i">1</span><div><b>Install it.</b> Standbye needs Node 22 or newer on the machine; it launches its supervisor with your own <span className="mono">node</span>, found via PATH, Homebrew, nvm, fnm or Volta.</div></div>
+              <div className="dl-step"><span className="step-i">1</span><div><b>Install it.</b> StandBye needs Node 22 or newer on the machine; it launches its supervisor with your own <span className="mono">node</span>, found via PATH, Homebrew, nvm, fnm or Volta.</div></div>
               <div className="dl-step"><span className="step-i">2</span><div><b>Connect a provider.</b> Your Claude Code login is picked up on its own. Otherwise paste an Anthropic or OpenRouter key, or any of the others.</div></div>
               <div className="dl-step"><span className="step-i">3</span><div><b>Describe the team</b> or start from the built-in one, point it at a repo, set the daily cap. Close the window; they start on the next heartbeat.</div></div>
             </div>

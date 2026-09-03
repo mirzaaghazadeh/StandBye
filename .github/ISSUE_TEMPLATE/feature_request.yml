@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest something Standbye should be able to do
+description: Suggest something StandBye should be able to do
 labels: ["enhancement"]
 body:
   - type: textarea
@@ -16,7 +16,7 @@ body:
   - type: textarea
     id: idea
     attributes:
-      label: What would you like Standbye to do about it?
+      label: What would you like StandBye to do about it?
     validations:
       required: true
 

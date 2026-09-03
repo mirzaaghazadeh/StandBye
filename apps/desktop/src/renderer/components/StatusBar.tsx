@@ -10,8 +10,10 @@ export function StatusBar() {
   return (
     <div className="status">
       <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <span className="dot" style={{ width: 7, height: 7, background: status?.pausedAll ? "var(--amber)" : "var(--green)" }} />
-        {status?.pausedAll ? "All agents paused" : status ? `Supervisor running since ${hhmm(status.startedAt)}` : "Supervisor offline"}
+        <span className="dot" style={{ width: 7, height: 7, background: status?.pausedAll || status?.pausePending ? "var(--amber)" : "var(--green)" }} />
+        {status?.pausedAll ? "All agents paused"
+          : status?.pausePending ? (status.runningRuns > 0 ? `Pausing when ${status.runningRuns === 1 ? "the last run finishes" : `the last of ${status.runningRuns} runs finishes`}` : "Pausing")
+          : status ? `Supervisor running since ${hhmm(status.startedAt)}` : "Supervisor offline"}
       </span>
       {status && <span>{status.runsToday} runs today</span>}
       {next && status?.nextWake && <span>Next wake-up: {next.name} at {hhmm(status.nextWake.at)}</span>}

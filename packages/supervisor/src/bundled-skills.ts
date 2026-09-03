@@ -7,7 +7,7 @@ import { log } from "./log.js";
 import { SOURCE_FILE, copySkillDir, readSkillDir } from "./skills.js";
 
 /**
- * The skills Standbye ships with. They are ordinary Agent Skills folders under
+ * The skills StandBye ships with. They are ordinary Agent Skills folders under
  * `packages/supervisor/skills/`, copied onto the user shelf (`<dataDir>/skills/`) the first time
  * a supervisor starts, so a brand new install has a team that already knows how to review a diff,
  * debug a failure and ask the owner a decent question.
@@ -20,7 +20,7 @@ import { SOURCE_FILE, copySkillDir, readSkillDir } from "./skills.js";
  *   untouched         → refreshed when the shipped version changes, so an app update improves them.
  *   name already used → left alone. A skill the owner installed keeps its name.
  *
- * Nothing here is Standbye-specific to the format: these folders can be copied out and used in
+ * Nothing here is StandBye-specific to the format: these folders can be copied out and used in
  * Claude Code or anywhere else that reads SKILL.md.
  */
 

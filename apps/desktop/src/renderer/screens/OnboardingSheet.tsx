@@ -17,7 +17,7 @@ export function OnboardingSheet() {
   return (
     <div className="sheet" style={{ width: 680, height: 560 }}>
       <div className="sheet-h">
-        <b>{hasTeams ? "New team" : "Welcome to Standbye"}</b>
+        <b>{hasTeams ? "New team" : "Welcome to StandBye"}</b>
         <span className="grow" />
         <Steps step={step} />
         {hasTeams && <button className="ibtn" onClick={() => store.closeSheet()}><Ic.X size={14} /></button>}

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { defaultModelsFor, type Agent, type Question } from "@crew/shared";
 import { store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
-import { Avatar, Button, Checkbox, Group, IconButton, KindPill, KV, Popup, SearchField, StatusPill, Toolbar, ago, dur, modelLabel } from "../ui/kit";
+import { Avatar, Button, Checkbox, Group, IconButton, KindPill, KV, MenuButton, Pill, Popup, SearchField, StatusPill, Toolbar, ago, dur, modelLabel } from "../ui/kit";
 import { Money } from "../ui/kit";
 import { ModelPicker } from "../components/ModelPicker";
 import { BudgetEditor, workHoursOf } from "../components/BudgetEditor";
@@ -24,11 +24,8 @@ export function HomeScreen() {
     <>
       <Toolbar title="Home" subtitle={team ? `${agents.length} agents · ${working} working · ${needs} need${needs === 1 ? "s" : ""} you · ${idle} idle` : "Describe a team to get started"}>
         <SearchField value={filter} onChange={setFilter} />
-        {status?.pausedAll ? (
-          <Button icon={<Ic.Play size={12} />} onClick={() => void store.resumeAll()}>Resume All</Button>
-        ) : (
-          <Button icon={<Ic.Pause size={12} />} onClick={() => void store.pauseAll()} disabled={!team}>Pause All</Button>
-        )}
+        <PauseControl />
+
         <Button icon={<Ic.Plus size={12} />} onClick={() => store.openSheet({ kind: "add-agent" })} disabled={!team}>Add Teammate…</Button>
         <Button primary icon={<Ic.Plus size={12} />} onClick={() => store.openSheet({ kind: "onboarding" })}>New Team…</Button>
         <IconButton on={showInspector} onClick={() => setShowInspector((v) => !v)}><Ic.Sidebar size={15} /></IconButton>
@@ -66,6 +63,71 @@ export function HomeScreen() {
         </div>
         {showInspector && selected && <AgentInspector agent={selected} />}
       </div>
+    </>
+  );
+}
+
+/**
+ * Stopping the team, in the order the owner usually wants it.
+ *
+ * The button used to be Pause All, which cuts every run off where it stands — an agent ninety
+ * steps into a change loses the lot. That is the right answer when something is going wrong and
+ * the wrong one the rest of the time, so the default is now the polite stop: nothing new starts,
+ * and the team pauses itself the moment the work already in flight has finished. The old
+ * behaviour is one click away under the "…", where an emergency stop belongs.
+ */
+function PauseControl() {
+  const status = useStore((s) => s.status);
+  const team = useStore((s) => s.team);
+  const running = status?.runningRuns ?? 0;
+
+  // Stopped, and saying so: a wind-down that has landed must not still read as "pausing", and the
+  // only thing left to do from here is start again, so that is the button — primary, because on a
+  // paused team it is the one action the toolbar is for.
+  if (status?.pausedAll) {
+    return (
+      <>
+        <Pill bg="var(--amber-bg)" ink="var(--amber-ink)">Paused</Pill>
+        <Button primary icon={<Ic.Play size={12} />} onClick={() => void store.resumeAll()}>Start</Button>
+      </>
+    );
+  }
+  if (status?.pausePending) {
+    return (
+      <>
+        <Button
+          icon={<Ic.Clock size={12} />}
+          onClick={() => void store.cancelPause()}
+          title="Nothing new is starting. Click to call it off and keep working."
+        >
+          Pausing{running > 0 ? ` · ${running} finishing` : "…"}
+        </Button>
+        <MenuButton
+          title="Pause options"
+          items={[
+            { label: "Pause all now", detail: running > 0 ? `Stop the ${running} still running mid-run` : "Stop everything immediately", danger: true, onClick: () => void store.pauseAll() },
+            { label: "Keep working", detail: "Call the pause off", onClick: () => void store.cancelPause() },
+          ]}
+        />
+      </>
+    );
+  }
+  return (
+    <>
+      <Button
+        icon={<Ic.PauseSoon size={12} />}
+        onClick={() => void store.pauseWhenIdle()}
+        disabled={!team}
+        title="No new work starts; the team pauses once what is running has finished"
+      >
+        Pause on Finish
+      </Button>
+      <MenuButton
+        title="Pause options"
+        items={[
+          { label: "Pause all now", detail: running > 0 ? `Cut the ${running === 1 ? "run" : `${running} runs`} in progress off where they are` : "Stop everything immediately", danger: true, disabled: !team, onClick: () => void store.pauseAll() },
+        ]}
+      />
     </>
   );
 }

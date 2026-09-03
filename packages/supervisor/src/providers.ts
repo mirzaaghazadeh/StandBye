@@ -24,7 +24,7 @@ export type Keys = Record<string, string>;
 /**
  * Headers that put the app's name on a call the owner is paying for. OpenRouter reads these two
  * and shows the title, linked to the URL, beside every request in the owner's activity log — so
- * a Standbye run is identifiable there rather than an anonymous line among their other tools.
+ * a StandBye run is identifiable there rather than an anonymous line among their other tools.
  * Sent on billed calls only; the public model catalog needs no attribution.
  */
 export const ATTRIBUTION_HEADERS: Record<string, string> = { "HTTP-Referer": APP_URL, "X-Title": APP_NAME };

@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in Standbye doesn't work the way it should
+description: Something in StandBye doesn't work the way it should
 labels: ["bug"]
 body:
   - type: markdown
@@ -44,7 +44,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Standbye version
+      label: StandBye version
       description: Shown in Settings, or the version of the installer you downloaded.
       placeholder: "0.1.0"
     validations:

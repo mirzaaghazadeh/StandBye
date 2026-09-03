@@ -1,6 +1,6 @@
 appId: org.standbye.app
-productName: Standbye
-copyright: Copyright © 2026 Standbye
+productName: StandBye
+copyright: Copyright © 2026 StandBye
 directories:
   buildResources: build
   output: release
@@ -24,30 +24,41 @@ publish:
 mac:
   category: public.app-category.developer-tools
   target: [dmg, zip]
-  artifactName: Standbye-${version}-mac-${arch}.${ext}
+  artifactName: StandBye-${version}-mac-${arch}.${ext}
   icon: build/icon.icns
   darkModeSupport: true
-  # Unsigned for now: no Developer ID certificate. First launch needs right-click → Open.
+  # "-" is an ad-hoc signature: no certificate, no cost, but a real seal over the bundle.
+  #
+  # It must not go back to `null`. Null means electron-builder signs nothing at all, which leaves
+  # only the linker's ad-hoc signature that Electron's prebuilt binary arrived with — a signature
+  # that promises a sealed resource directory the bundle does not have. macOS reads that as a
+  # *broken* signature rather than a missing one and shows the dead-end "StandBye is damaged and
+  # can't be opened" alert, whose only buttons are Move to Trash and Cancel. That is what shipped
+  # in 0.1.0; right-click → Open cannot rescue it.
+  #
+  # Ad-hoc only buys the ordinary "unidentified developer" prompt that Open Anyway clears. A clean
+  # first launch needs a real Developer ID and notarization, which .github/workflows/release.yml
+  # switches on with -c.mac.* overrides when the signing secrets are present.
   hardenedRuntime: false
-  identity: null
+  identity: "-"
 dmg:
-  artifactName: Standbye-${version}-mac-${arch}.${ext}
-  title: Standbye ${version}
+  artifactName: StandBye-${version}-mac-${arch}.${ext}
+  title: StandBye ${version}
 
 win:
   target: [nsis, zip]
-  artifactName: Standbye-${version}-win-${arch}.${ext}
+  artifactName: StandBye-${version}-win-${arch}.${ext}
   icon: build/icon.png
-  executableName: Standbye
+  executableName: StandBye
   # Unsigned: SmartScreen warns on first run until we buy a code-signing certificate.
 nsis:
-  artifactName: Standbye-${version}-win-${arch}-setup.${ext}
+  artifactName: StandBye-${version}-win-${arch}-setup.${ext}
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: Standbye
+  shortcutName: StandBye
 
 linux:
   target: [AppImage, deb]
@@ -57,7 +68,7 @@ linux:
   # electron-builder 26 dropped linux.desktopName; syncDesktopName names the .desktop entry after
   # executableName instead, which is what the window manager matches against.
   syncDesktopName: true
-  maintainer: Standbye <hello@navid.tr>
+  maintainer: StandBye <hello@navid.tr>
   icon: build/icon.png
   category: Development
   synopsis: BYOK desktop app for 24/7 AI agent teams
@@ -67,14 +78,14 @@ linux:
     decision is yours, and remembering what they learn. Bring your own keys.
   desktop:
     entry:
-      Name: Standbye
+      Name: StandBye
       # Electron reports the executable name as WM_CLASS, so this has to match executableName
       # exactly or the running window won't link back to this launcher entry.
       StartupWMClass: standbye
 appImage:
-  artifactName: Standbye-${version}-linux-${arch}.${ext}
+  artifactName: StandBye-${version}-linux-${arch}.${ext}
 deb:
-  artifactName: Standbye-${version}-linux-${arch}.${ext}
+  artifactName: StandBye-${version}-linux-${arch}.${ext}
   depends:
     - libgtk-3-0
     - libnotify4

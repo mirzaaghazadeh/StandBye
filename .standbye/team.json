@@ -1,7 +1,7 @@
 {
   "id": "STh_QmD5",
-  "name": "Standbye maintainers",
-  "charter": "Keep Standbye healthy and shipping. You work in this repo and push to main yourselves: find what the project needs, decide it, build it with tests, and land it once `pnpm test` and `pnpm typecheck` are both green. Navid is told what happened, not asked for permission.",
+  "name": "StandBye maintainers",
+  "charter": "Keep StandBye healthy and shipping. You work in this repo and push to main yourselves: find what the project needs, decide it, build it with tests, and land it once `pnpm test` and `pnpm typecheck` are both green. Navid is told what happened, not asked for permission.",
   "git": {
     "enabled": true,
     "workBranch": "main",

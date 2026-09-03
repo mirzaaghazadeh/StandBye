@@ -1,80 +1,80 @@
 {
   "fetchedAt": "2026-09-03",
-  "version": "0.1.0",
-  "tagged": false,
-  "head": "4192b0c",
-  "headDate": "2026-09-03",
-  "count": 16,
+  "version": "0.2.0",
+  "tagged": true,
+  "head": "bbd0dad",
+  "headDate": "2026-09-04",
+  "count": 73,
   "commits": [
     {
-      "hash": "4192b0c",
+      "hash": "bbd0dad",
+      "date": "2026-09-04",
+      "subject": "Tell people how to run the team on an OpenRouter key"
+    },
+    {
+      "hash": "3ef7ea5",
+      "date": "2026-09-04",
+      "subject": "kanban: tasks table, RPC surface, agent tools and tests"
+    },
+    {
+      "hash": "6887631",
+      "date": "2026-09-04",
+      "subject": "Stop the test suite hanging for everyone"
+    },
+    {
+      "hash": "b0f1af0",
+      "date": "2026-09-04",
+      "subject": "Release v0.2.0"
+    },
+    {
+      "hash": "21b3192",
+      "date": "2026-09-04",
+      "subject": "Desktop: add a teammate to an existing team"
+    },
+    {
+      "hash": "75d5191",
       "date": "2026-09-03",
-      "subject": "Open-source repo setup and cross-platform release builds"
+      "subject": "Supervisor: builder.draftTeammate — draft one teammate from a description"
     },
     {
-      "hash": "dcf4199",
+      "hash": "ce1e83f",
       "date": "2026-09-03",
-      "subject": "Landing page and a curated Claude model list"
+      "subject": "Supervisor: cover agents.create with RPC tests"
     },
     {
-      "hash": "67baec4",
+      "hash": "c152e6d",
+      "date": "2026-09-04",
+      "subject": "Answer the owner when they speak to the room"
+    },
+    {
+      "hash": "aa22089",
       "date": "2026-09-03",
-      "subject": "Remove an unrequested landing page from the workspace"
+      "subject": "Say something when the window comes up blank"
     },
     {
-      "hash": "7b72aae",
+      "hash": "7471718",
       "date": "2026-09-03",
-      "subject": "Cap how often teammates can wake each other"
+      "subject": "Answer a question like a question, and show the thinking behind the wait"
     },
     {
-      "hash": "bfc0ba4",
+      "hash": "9d008c6",
       "date": "2026-09-03",
-      "subject": "Test suite, failure classification, logging, UX pass"
+      "subject": "Search honesty: failed searches show an error, cap page says so"
     },
     {
-      "hash": "9195112",
+      "hash": "9a80750",
       "date": "2026-09-03",
-      "subject": "User-created channels and git-aware team settings"
+      "subject": "Auto-updater: verify release asset digest and guard asset names"
     },
     {
-      "hash": "5c7862c",
+      "hash": "b223b5c",
       "date": "2026-09-03",
-      "subject": "Direct chats per agent, typing indicator, @-mention autocomplete, queue fairness"
+      "subject": "Follow the folder when the owner edits the team by hand"
     },
     {
-      "hash": "97162c1",
+      "hash": "2e39136",
       "date": "2026-09-03",
-      "subject": "Add CLAUDE.md with commands and architecture notes"
-    },
-    {
-      "hash": "6c710dc",
-      "date": "2026-09-03",
-      "subject": "Wrap and truncate long question options in cards and the Home needs-you pane"
-    },
-    {
-      "hash": "07443c9",
-      "date": "2026-09-03",
-      "subject": "Attach to a running supervisor, GUI test, renderer selector fixes"
-    },
-    {
-      "hash": "0d698fb",
-      "date": "2026-09-03",
-      "subject": "Multiple teams, each with its own workspace; centered sheets"
-    },
-    {
-      "hash": "7bc3694",
-      "date": "2026-09-03",
-      "subject": "Schedules, skills, team settings, smoke test and macOS packaging"
-    },
-    {
-      "hash": "2f023b0",
-      "date": "2026-09-02",
-      "subject": "Explain default vs check-in models in the provider panel"
-    },
-    {
-      "hash": "a989ea3",
-      "date": "2026-09-02",
-      "subject": "Team builder on any ready provider, per-provider default models, floating model picker"
+      "subject": "Supervisor: correct failure-pause comments to match decided behavior"
     }
   ]
 }

@@ -72,6 +72,25 @@ export class Crew {
     this.updateTeam({ paused: value });
   }
 
+  /**
+   * The gentler stop: the owner has asked the team to down tools, but only once the work that is
+   * already running has finished. Nothing new is queued or started while this is set, and the
+   * queue flips it into a real `pausedAll` when the last run ends. Persisted alongside `paused`,
+   * so a supervisor that restarts mid-wind-down does not quietly start everything up again.
+   */
+  get pauseWhenIdle(): boolean {
+    return this.team?.pauseWhenIdle ?? false;
+  }
+  set pauseWhenIdle(value: boolean) {
+    if (!this.team || (this.team.pauseWhenIdle ?? false) === value) return;
+    this.updateTeam({ pauseWhenIdle: value });
+  }
+
+  /** True while the team is either stopped or on its way there: nothing new may start. */
+  get stopping(): boolean {
+    return this.pausedAll || this.pauseWhenIdle;
+  }
+
   /** This supervisor's API endpoint, for CLIs that join the team over the stdio MCP bridge. */
   get api(): { port: number; token: string } | undefined {
     return this.opts.api;
@@ -382,6 +401,9 @@ export class Crew {
     let status = rt.status;
     let statusText = rt.statusText;
     if (cfg.paused || this.pausedAll) { status = "paused"; statusText = "Paused"; }
+    // Winding down: whoever is still running is genuinely still working, but an agent with
+    // nothing in flight is already stopped — it will not wake again — so say so.
+    else if (this.pauseWhenIdle && !rt.currentRunId) { status = "paused"; statusText = "Stopping · no new work"; }
     else if (status === "idle" && spentTodayUsd >= cfg.budget.dailyUsd) { status = "over_budget"; statusText = "Daily budget reached"; }
     return {
       ...cfg, status, statusText, currentRunId: rt.currentRunId, spentTodayUsd,
@@ -674,7 +696,7 @@ export class Crew {
     // Only the owner's own switch is checked here. Missing credentials are the runner's to
     // report: it knows whether the key was rejected, the CLI is not installed or the endpoint
     // is unreachable, and that distinction is what pauses the agent and what the owner reads.
-    if (!providerSpec(agent.provider)) return { ok: false, reason: `${agent.name} is on "${agent.provider}", which this version of Standbye does not offer. Pick another provider in ${agent.name}'s settings.` };
+    if (!providerSpec(agent.provider)) return { ok: false, reason: `${agent.name} is on "${agent.provider}", which this version of StandBye does not offer. Pick another provider in ${agent.name}'s settings.` };
     if (!this.providerConfig(agent.provider).enabled) return { ok: false, reason: `${providerLabel(agent.provider)} is turned off in Settings` };
     if (!fromOwner) {
       const anHourAgo = new Date(Date.now() - 3_600_000).toISOString();
@@ -695,7 +717,7 @@ export class Crew {
     const agents = this.listAgents();
     const next = agents.filter((a) => a.nextWakeAt).sort((a, b) => a.nextWakeAt!.localeCompare(b.nextWakeAt!))[0];
     return {
-      teamId: this.id, startedAt: this.startedAt, pausedAll: this.pausedAll,
+      teamId: this.id, startedAt: this.startedAt, pausedAll: this.pausedAll, pausePending: this.pauseWhenIdle,
       runningRuns: agents.filter((a) => a.currentRunId).length,
       runsToday: this.db.runsToday(), keys: this.keyStatus(),
       nextWake: next ? { agentId: next.id, at: next.nextWakeAt! } : null,

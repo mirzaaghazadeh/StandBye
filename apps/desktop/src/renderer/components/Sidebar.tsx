@@ -109,7 +109,7 @@ function UpdateRow() {
   return (
     <button
       className="srow"
-      title={ready ? "Standbye closes, updates and reopens" : "Open Settings → Updates"}
+      title={ready ? "StandBye closes, updates and reopens" : "Open Settings → Updates"}
       onClick={() => (ready ? void window.crew.updates.install() : store.openSheet({ kind: "keys", tab: "updates" }))}
     >
       <Ic.Download stroke="var(--accent)" />

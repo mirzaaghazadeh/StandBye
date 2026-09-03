@@ -13,11 +13,11 @@ We'll credit you in the advisory unless you'd rather stay anonymous.
 
 ## Supported versions
 
-Standbye is pre-1.0 and moves fast. Only the **latest release** gets security fixes.
+StandBye is pre-1.0 and moves fast. Only the **latest release** gets security fixes.
 
 ## What is in scope
 
-Standbye runs autonomous agents with file and shell access on your machine, so the security surface
+StandBye runs autonomous agents with file and shell access on your machine, so the security surface
 that matters most is the boundary between what an agent may do and what it may not:
 
 - Escaping the **workspace fence** — an agent reaching files outside the configured workspace.
@@ -29,7 +29,7 @@ that matters most is the boundary between what an agent may do and what it may n
   (it binds to `127.0.0.1`).
 - **Prompt injection** that reliably turns content in a repo — a README, an issue, a code comment —
   into privileged tool calls the owner never approved.
-- Anything in the packaging or update path that lets a third party ship code as Standbye.
+- Anything in the packaging or update path that lets a third party ship code as StandBye.
 
 ## What is out of scope
 
@@ -41,5 +41,5 @@ that matters most is the boundary between what an agent may do and what it may n
 
 ## Handling keys
 
-Standbye is BYOK: your keys stay on your machine, encrypted by the OS keychain. If you believe a
-key has been exposed by Standbye, rotate it first with your provider, then report.
+StandBye is BYOK: your keys stay on your machine, encrypted by the OS keychain. If you believe a
+key has been exposed by StandBye, rotate it first with your provider, then report.

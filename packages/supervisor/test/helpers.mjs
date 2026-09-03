@@ -54,7 +54,7 @@ export function makeRepo(t, branches = ["dev", "staging"], { remote = false } = 
   const g = (...args) => execFileSync("git", args, { cwd: dir, stdio: ["ignore", "pipe", "ignore"], encoding: "utf8" });
   g("init", "-b", "main");
   g("config", "user.email", "test@example.com");
-  g("config", "user.name", "Standbye Test");
+  g("config", "user.name", "StandBye Test");
   g("config", "commit.gpgsign", "false");
   g("commit", "--allow-empty", "-m", "init");
   for (const b of branches) g("branch", b);

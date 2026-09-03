@@ -258,6 +258,12 @@ export interface TeamConfig {
    * something and finding it running again after a restart is the opposite of what pause means.
    */
   paused?: boolean;
+  /**
+   * The owner asked to stop, but not mid-sentence: nothing new starts, and the team pauses for
+   * real once the work already in flight has finished. Saved for the same reason `paused` is —
+   * a supervisor that restarts in the middle of winding down must carry on winding down.
+   */
+  pauseWhenIdle?: boolean;
   createdAt: string;
 }
 
@@ -334,7 +340,7 @@ export const TEAM_DIR_NAME = ".standbye";
  * OpenRouter's activity log is the one that matters today: it prints the title and links the
  * URL, so without these every run the owner pays for is an anonymous line in their dashboard.
  */
-export const APP_NAME = "Standbye";
+export const APP_NAME = "StandBye";
 export const APP_URL = "https://standbye.navid.tr";
 
 /**
@@ -392,6 +398,8 @@ export interface TeamSummary {
   needsYou: number;
   spendTodayUsd: number;
   pausedAll: boolean;
+  /** Winding down: no new work is started, and the pause lands when the last run finishes. */
+  pausePending: boolean;
   createdAt: string;
 }
 
@@ -682,6 +690,11 @@ export interface SupervisorStatus {
   teamId: string | null;
   startedAt: string;
   pausedAll: boolean;
+  /**
+   * A pause is on its way: nothing new starts, and `pausedAll` flips as soon as the runs still
+   * going have finished. `runningRuns` is how many the owner is waiting on.
+   */
+  pausePending: boolean;
   runningRuns: number;
   runsToday: number;
   keys: KeyStatus;

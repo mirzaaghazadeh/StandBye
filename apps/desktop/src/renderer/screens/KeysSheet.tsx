@@ -30,7 +30,7 @@ export function KeysSheet({ tab: initialTab }: { tab?: Tab }) {
         {tab === "team" && (team ? <TeamSettings /> : <div className="empty" style={{ fontSize: 12 }}>No team yet.</div>)}
         {tab === "providers" && (
           <>
-            <div style={{ fontSize: 12, color: "var(--ink-4)" }}>Bring what you already pay for. Keys are encrypted with the macOS keychain and only ever sent to the provider itself; a coding-agent CLI keeps its own login and Standbye never sees it.</div>
+            <div style={{ fontSize: 12, color: "var(--ink-4)" }}>Bring what you already pay for. Keys are encrypted with the macOS keychain and only ever sent to the provider itself; a coding-agent CLI keeps its own login and StandBye never sees it.</div>
             <ProvidersPanel />
           </>
         )}
@@ -43,11 +43,11 @@ export function KeysSheet({ tab: initialTab }: { tab?: Tab }) {
               <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                 <Switch on={keepWorking} onChange={(v) => { setKeepWorking(v); void window.crew.settingsSet({ keepWorkingWhenClosed: v }); }} />
                 <span style={{ minWidth: 0 }}>
-                  <span style={{ display: "block", fontWeight: 500, fontSize: 12.5 }}>Keep working when Standbye is closed</span>
+                  <span style={{ display: "block", fontWeight: 500, fontSize: 12.5 }}>Keep working when StandBye is closed</span>
                   <span style={{ display: "block", fontSize: 11, color: "var(--ink-4)", lineHeight: 1.45 }}>
                     {keepWorking
                       ? "Agents keep checking in, running and spending after you quit. Reopening attaches to the same session."
-                      : "Quitting stops the team. Nothing runs and nothing is spent until you open Standbye again."}
+                      : "Quitting stops the team. Nothing runs and nothing is spent until you open StandBye again."}
                   </span>
                 </span>
               </div>
@@ -87,7 +87,7 @@ export function KeysSheet({ tab: initialTab }: { tab?: Tab }) {
 }
 
 /**
- * What Standbye knows about newer versions of itself. The main process does the work and owns the
+ * What StandBye knows about newer versions of itself. The main process does the work and owns the
  * state; this panel only ever shows it and offers the one action that makes sense right now.
  */
 function UpdatesSettings() {
@@ -97,11 +97,11 @@ function UpdatesSettings() {
 
   const line = (() => {
     if (u.stage === "checking") return "Checking for updates…";
-    if (u.stage === "downloading") return `Downloading Standbye ${v}…`;
-    if (u.stage === "ready") return `Standbye ${v} is ready to install.`;
-    if (u.stage === "available") return `Standbye ${v} is available.`;
-    if (u.stage === "error") return v ? `Could not download Standbye ${v}.` : "Could not check for updates.";
-    return `Standbye ${u.current} is the latest version.`;
+    if (u.stage === "downloading") return `Downloading StandBye ${v}…`;
+    if (u.stage === "ready") return `StandBye ${v} is ready to install.`;
+    if (u.stage === "available") return `StandBye ${v} is available.`;
+    if (u.stage === "error") return v ? `Could not download StandBye ${v}.` : "Could not check for updates.";
+    return `StandBye ${u.current} is the latest version.`;
   })();
 
   return (
@@ -129,7 +129,7 @@ function UpdatesSettings() {
         )}
         {u.stage === "ready" && (
           <div style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 8, lineHeight: 1.5 }}>
-            Nothing is replaced until Standbye closes, so a run in progress is safe. It also installs
+            Nothing is replaced until StandBye closes, so a run in progress is safe. It also installs
             by itself the next time you quit.
           </div>
         )}
@@ -146,11 +146,11 @@ function UpdatesSettings() {
         <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
           <Switch on={u.autoUpdate} onChange={(on) => void window.crew.updates.setAuto(on)} />
           <span style={{ minWidth: 0 }}>
-            <span style={{ display: "block", fontWeight: 500, fontSize: 12.5, color: "var(--ink-1)" }}>Keep Standbye up to date</span>
+            <span style={{ display: "block", fontWeight: 500, fontSize: 12.5, color: "var(--ink-1)" }}>Keep StandBye up to date</span>
             <span style={{ display: "block", fontSize: 11, color: "var(--ink-4)", lineHeight: 1.45 }}>
               {u.autoUpdate
-                ? "New versions download on their own and install when you restart or quit. Standbye never restarts itself while you are working."
-                : "Standbye still tells you when a version is out, but downloads and installs nothing until you ask."}
+                ? "New versions download on their own and install when you restart or quit. StandBye never restarts itself while you are working."
+                : "StandBye still tells you when a version is out, but downloads and installs nothing until you ask."}
             </span>
           </span>
         </div>

@@ -39,7 +39,7 @@ export class Scheduler {
     this.stopped = true;
     if (this.timer) clearInterval(this.timer);
     for (const jobs of this.crons.values()) jobs.forEach((j) => j.stop());
-    this.queue.cancelAll();
+    this.queue.shutdown();
   }
 
   /**
@@ -80,7 +80,7 @@ export class Scheduler {
       if (q.fromAgentId && q.runId) this.queue.enqueue(q.fromAgentId, { kind: "answer", questionId: q.id });
     }
     // 2. heartbeats
-    if (this.crew.pausedAll) return;
+    if (this.crew.stopping) return;
     const now = new Date();
     for (const agent of this.crew.listAgents()) {
       const next = this.nextHeartbeat(agent, now);

@@ -46,7 +46,7 @@ export const GROUP_LABEL: Record<ProviderGroup, string> = {
 export const GROUP_BLURB: Record<ProviderGroup, string> = {
   claude: "A Claude Pro or Max login on this Mac, or an Anthropic API key. Both drive the full Claude Code harness.",
   plans: "Coding plans that speak the Anthropic API. Same harness, someone else's models, flat monthly price.",
-  clis: "A subscription you already have. Standbye spawns the CLI in headless mode and hands it the team tools over MCP, so it keeps its own login and you pay nothing extra per run.",
+  clis: "A subscription you already have. StandBye spawns the CLI in headless mode and hands it the team tools over MCP, so it keeps its own login and you pay nothing extra per run.",
   apis: "Plain API keys. Agents get our workspace file and shell tools, gated by the same permission rules.",
   clouds: "Claude billed through an account you already have.",
   local: "A model on your own machine. No key, no bill, no data leaving the Mac.",

@@ -30,7 +30,10 @@ export class Queue {
   enqueue(agentId: string, trigger: RunTrigger): Run | null {
     if (this.stopped) return null;
     const agent = this.crew.getAgent(agentId);
-    if (agent.paused || this.crew.pausedAll) return null;
+    // `stopping` covers both stops: the immediate one, and the one waiting for the runs already
+    // going to finish. Neither may start anything new, including the owner's own wake-ups —
+    // resuming is how you take the team off pause, not sending it a message.
+    if (agent.paused || this.crew.stopping) return null;
     if (this.isDuplicate(agentId, trigger)) return null;
     const run = this.crew.createRun(agentId, trigger, agent.model);
     if (fromOwner(trigger)) this.pending.unshift(run);
@@ -84,11 +87,15 @@ export class Queue {
     if (ac) { ac.abort("cancelled"); return true; }
     return false;
   }
-  /** Set by cancelAll() at shutdown: nothing new starts after the team is being torn down. */
+  /** Set by shutdown(): nothing new starts after the team is being torn down. */
   private stopped = false;
 
+  /**
+   * Stop everything now: queued runs are cancelled before they start, running ones are aborted.
+   * This is Pause All, so the queue stays usable — it used to latch `stopped` here, which meant
+   * a paused team could never be resumed without restarting the supervisor.
+   */
   cancelAll(): void {
-    this.stopped = true;
     for (const run of this.pending.splice(0)) this.crew.finishRun(run, "cancelled", "Paused");
     for (const s of this.suspended.values()) {
       s.resolve?.();
@@ -96,7 +103,43 @@ export class Queue {
     }
     this.suspended.clear();
     for (const ac of this.active.values()) ac.abort("cancelled");
+    this.awake.set(0);
+  }
+
+  /** The team is being torn down. Same as cancelAll, and nothing may ever start again. */
+  shutdown(): void {
+    this.stopped = true;
+    this.cancelAll();
     this.awake.dispose();
+  }
+
+  /** Runs that are still going: executing, or parked waiting on the owner but still alive. */
+  inFlight(): number {
+    return this.active.size + this.suspended.size;
+  }
+
+  /**
+   * Pause once the work in flight is done. Anything merely queued is cancelled — it has not
+   * started, so there is nothing to finish — and whatever is running is left alone to end
+   * properly. Returns true when there was nothing to wait for and the pause is already done.
+   */
+  pauseWhenIdle(): boolean {
+    for (const run of this.pending.splice(0)) this.crew.finishRun(run, "cancelled", "Pausing when the team is idle");
+    return this.finishPauseIfIdle();
+  }
+
+  /**
+   * The moment a wind-down becomes a pause. Called after every run ends, so the owner's "stop
+   * when you're done" turns into a real stop without them having to come back and press anything.
+   */
+  private finishPauseIfIdle(): boolean {
+    if (!this.crew.pauseWhenIdle || this.inFlight() > 0) return false;
+    this.crew.pauseWhenIdle = false;
+    this.crew.pausedAll = true;
+    this.awake.set(0);
+    this.crew.bus.emit("agents.updated", this.crew.listAgents());
+    this.crew.bus.emit("supervisor.status", this.crew.status());
+    return true;
   }
 
   /**
@@ -243,6 +286,9 @@ export class Queue {
         // drop any leftover suspended entry so nothing waits on a dead promise.
         this.settleSlot(run.id);
         void this.pump();
+        // "Stop when you're done" lands here: the last run has just ended, so the wind-down
+        // becomes a pause without the owner having to come back and press anything.
+        this.finishPauseIfIdle();
       });
   }
 }

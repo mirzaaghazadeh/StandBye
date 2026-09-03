@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Hardened runtime entitlements, applied when a real Developer ID signs the build.
+
+  electron-builder picks this file up by name (build/entitlements.mac.plist), and the sibling
+  .inherit.plist for the four helper apps, so nothing has to point at them. They are inert on the
+  ad-hoc builds, which run with hardenedRuntime: false — the hardened runtime is what these are
+  exceptions to. Notarization requires the hardened runtime, and the hardened runtime kills an
+  Electron app on launch without at least the JIT ones.
+
+  Deliberately *not* here: the camera, microphone, Bluetooth, USB, printing and location keys that
+  @electron/osx-sign's default darwin entitlements ask for. StandBye uses none of them, and each one
+  is a permission prompt the owner should never be shown.
+-->
+<plist version="1.0">
+  <dict>
+    <!-- V8 compiles JavaScript at runtime; without these the renderer crashes on launch. -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!-- Electron passes DYLD_* to its own helper processes. -->
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <true/>
+    <!-- The app loads native modules and launches the supervisor with the owner's own `node`, which
+         carries somebody else's signature (Homebrew, nvm, Volta) or none at all. Library validation
+         would refuse it. -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+  </dict>
+</plist>

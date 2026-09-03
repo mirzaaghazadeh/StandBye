@@ -172,8 +172,13 @@ export class Api {
       "status.get": (_p, conn) => (conn.teamId && hub.get(conn.teamId) ? this.crewFor(conn).status() : emptyStatus(hub)),
       "team.get": (_p, conn) => (conn.teamId ? this.crewFor(conn).team : null),
       "team.update": (p: Partial<TeamConfig>, conn) => { const t = this.crewFor(conn).updateTeam(p); hub.touched(); return t; },
-      "supervisor.pauseAll": (_p, conn) => { const { crew, scheduler } = this.rtFor(conn); crew.pausedAll = true; scheduler.queue.cancelAll(); crew.bus.emit("agents.updated", crew.listAgents()); hub.touched(); return crew.status(); },
-      "supervisor.resumeAll": (_p, conn) => { const { crew, scheduler } = this.rtFor(conn); crew.pausedAll = false; crew.bus.emit("agents.updated", crew.listAgents()); scheduler.tick(); hub.touched(); return crew.status(); },
+      // Two ways to stop, because they answer different questions. `pauseAll` is the emergency
+      // one: everything stops now, mid-run, and a run cut off half-way through a change is the
+      // price. `pauseWhenIdle` is the everyday one: nothing new starts, and the pause lands by
+      // itself once the work already going has finished, so nobody is interrupted mid-edit.
+      "supervisor.pauseAll": (_p, conn) => { const { crew, scheduler } = this.rtFor(conn); crew.pauseWhenIdle = false; crew.pausedAll = true; scheduler.queue.cancelAll(); crew.bus.emit("agents.updated", crew.listAgents()); hub.touched(); return crew.status(); },
+      "supervisor.pauseWhenIdle": (_p, conn) => { const { crew, scheduler } = this.rtFor(conn); crew.pauseWhenIdle = true; scheduler.queue.pauseWhenIdle(); crew.bus.emit("agents.updated", crew.listAgents()); hub.touched(); return crew.status(); },
+      "supervisor.resumeAll": (_p, conn) => { const { crew, scheduler } = this.rtFor(conn); crew.pauseWhenIdle = false; crew.pausedAll = false; crew.bus.emit("agents.updated", crew.listAgents()); scheduler.tick(); hub.touched(); return crew.status(); },
 
       // ----- agents -----
       "agents.list": (_p, conn) => (conn.teamId ? this.crewFor(conn).listAgents() : []),
@@ -331,7 +336,7 @@ export class Api {
 }
 
 function emptyStatus(hub: Hub) {
-  return { teamId: null, startedAt: hub.startedAt, pausedAll: false, runningRuns: 0, runsToday: 0, keys: hub.settingsCrew().keyStatus(), nextWake: null };
+  return { teamId: null, startedAt: hub.startedAt, pausedAll: false, pausePending: false, runningRuns: 0, runsToday: 0, keys: hub.settingsCrew().keyStatus(), nextWake: null };
 }
 
 function summarizeWorkspace(root: string): string {

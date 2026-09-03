@@ -9,7 +9,7 @@ import { checksumSidecarName, digestFromGitHubAsset, isSafeAssetName, pickAsset,
 /**
  * Keeping the app up to date, without a service and without a signing certificate.
  *
- * Standbye is not code-signed yet, which rules out the usual answer (electron-updater's Squirrel.Mac
+ * StandBye is not code-signed yet, which rules out the usual answer (electron-updater's Squirrel.Mac
  * path refuses to install over an unsigned bundle). So this asks GitHub what the latest release is,
  * downloads the one file that matches this machine, unpacks it while the app is still running, and
  * swaps it in from a small detached script once the app has exited. That last step is the only way
@@ -168,7 +168,7 @@ export class Updater {
       this.set({ stage: "checking", error: null });
       try {
         const res = await net.fetch(API_LATEST, {
-          headers: { Accept: "application/vnd.github+json", "User-Agent": `Standbye/${app.getVersion()}` },
+          headers: { Accept: "application/vnd.github+json", "User-Agent": `StandBye/${app.getVersion()}` },
         });
         // A repo whose only releases are drafts has no "latest", and that is not an error worth
         // showing anybody — it just means there is nothing newer to install.
@@ -192,7 +192,7 @@ export class Updater {
         this.asset = asset;
         const release: UpdateRelease = {
           version,
-          name: json.name?.trim() || `Standbye ${version}`,
+          name: json.name?.trim() || `StandBye ${version}`,
           notes: json.body?.trim() ?? "",
           url: json.html_url ?? RELEASES_PAGE,
           publishedAt: json.published_at ?? null,
@@ -210,7 +210,7 @@ export class Updater {
           await this.fetchAndStage(asset, release);
         } else if (!this.told.has(version)) {
           this.told.add(version);
-          this.opts.notify(`Standbye ${version} is available`, canInstall ? "Open Settings → Updates to install it." : "Download it from the releases page.", () => {
+          this.opts.notify(`StandBye ${version} is available`, canInstall ? "Open Settings → Updates to install it." : "Download it from the releases page.", () => {
             if (!canInstall) this.opts.openExternal(release.url);
           });
         }
@@ -255,7 +255,7 @@ export class Updater {
     if (!sidecarUrl) return;
     try {
       const res = await net.fetch(sidecarUrl, {
-        headers: { Accept: "application/octet-stream", "User-Agent": `Standbye/${app.getVersion()}` },
+        headers: { Accept: "application/octet-stream", "User-Agent": `StandBye/${app.getVersion()}` },
       });
       if (!res.ok) return;
       const value = sha512ForAsset(await res.text(), asset.name);
@@ -272,7 +272,7 @@ export class Updater {
       // updates directory and is handed to the installer — checking again is one line against a
       // crafted `../…` name that reached this point by any other route.
       if (!isSafeAssetName(asset.name)) {
-        throw new Error(`"${asset.name}" does not look like a Standbye release file, so it will not be installed`);
+        throw new Error(`"${asset.name}" does not look like a StandBye release file, so it will not be installed`);
       }
       this.set({ stage: "downloading", progress: 0, error: null });
       // Whatever a previous attempt left behind is dead weight; only one update is ever in flight.
@@ -287,7 +287,7 @@ export class Updater {
       this.set({ stage: "ready", progress: 1 });
       if (!this.told.has(`ready:${release.version}`)) {
         this.told.add(`ready:${release.version}`);
-        this.opts.notify(`Standbye ${release.version} is ready`, "It installs when you restart, or the next time you quit.", () => {});
+        this.opts.notify(`StandBye ${release.version} is ready`, "It installs when you restart, or the next time you quit.", () => {});
       }
     } catch (e) {
       this.staged = null;
@@ -297,7 +297,7 @@ export class Updater {
   }
 
   private async downloadTo(asset: ReleaseAsset, file: string): Promise<void> {
-    const res = await net.fetch(asset.url, { headers: { "User-Agent": `Standbye/${app.getVersion()}` } });
+    const res = await net.fetch(asset.url, { headers: { "User-Agent": `StandBye/${app.getVersion()}` } });
     if (!res.ok || !res.body) throw new Error(`Download failed: GitHub answered ${res.status}`);
     const total = Number(res.headers.get("content-length") ?? 0) || asset.size;
     const part = `${file}.part`;
@@ -390,7 +390,7 @@ function run(cmd: string, args: string[]): Promise<void> {
 /** Where this app is installed, as the thing that would be replaced. */
 function installedPath(): string {
   const exe = app.getPath("exe");
-  // /Applications/Standbye.app/Contents/MacOS/Standbye -> /Applications/Standbye.app
+  // /Applications/StandBye.app/Contents/MacOS/StandBye -> /Applications/StandBye.app
   if (process.platform === "darwin") return path.dirname(path.dirname(path.dirname(exe)));
   return process.env.APPIMAGE ?? exe;
 }

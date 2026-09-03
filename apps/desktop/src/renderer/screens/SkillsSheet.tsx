@@ -237,7 +237,7 @@ function SkillDetail({ skill, shelves, onGone, onMoved }: { skill: Skill; shelve
 function sourceLine(s: Skill): string {
   const { kind, ref, version } = s.source;
   if (kind === "learned") return "Written by the agent";
-  if (kind === "bundled") return "Ships with Standbye";
+  if (kind === "bundled") return "Ships with StandBye";
   if (kind === "manual" || !ref) return "Written here";
   if (kind === "git") return `From ${ref}${version ? ` @ ${version}` : ""}`;
   if (kind === "claude-code") return `Imported from Claude Code`;

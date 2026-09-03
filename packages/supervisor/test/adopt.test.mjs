@@ -15,7 +15,7 @@ process.env.CREW_DISABLE_CLAUDE_LOGIN = "1";
 const draft = () => soloDevTeam(PROVIDERS, "Navid", "demo");
 
 /**
- * A team sitting in `<dataDir>/teams/<id>` with a workspace, exactly as an older Standbye
+ * A team sitting in `<dataDir>/teams/<id>` with a workspace, exactly as an older StandBye
  * left it: the workspace is recorded in team.json but nothing was ever written into it.
  */
 function legacyTeam(dataDir, workspaceRoot) {

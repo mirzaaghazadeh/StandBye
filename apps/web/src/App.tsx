@@ -31,7 +31,7 @@ export function Nav() {
   return (
     <header className="nav">
       <div className="wrap nav-in">
-        <a href="/" className="brand"><Logo />Standbye</a>
+        <a href="/" className="brand"><Logo />StandBye</a>
         <nav className="nav-links">
           <a href="/#how">How it works</a>
           <a href="/#team">The team</a>
@@ -75,11 +75,11 @@ function Hero() {
         </div>
         <h1>A standing team of AI agents.<br className="br-lg" />Working while you're away.</h1>
         <p className="lede">
-          Describe the team you wish you had. Standbye turns it into agents that check in on a schedule, talk to each other in channels,
+          Describe the team you wish you had. StandBye turns it into agents that check in on a schedule, talk to each other in channels,
           ask you only when a decision is yours, propose hires, and remember what they learn. Not cron jobs with a chat window. A team.
         </p>
         <div className="cta">
-          <a className="btn btn-primary btn-xl" href="/download/"><Ic.File size={14} />Download Standbye</a>
+          <a className="btn btn-primary btn-xl" href="/download/"><Ic.File size={14} />Download StandBye</a>
           <a className="btn btn-xl" href={GITHUB} target="_blank" rel="noreferrer"><Ic.Branch size={14} />View the source</a>
         </div>
         <div className="fine">Free. Runs on your Mac, PC or Linux box with your Claude login or API keys. You pay the model providers directly, nothing to us.</div>
@@ -94,7 +94,7 @@ function Hero() {
 
 function HowItWorks() {
   const steps = [
-    { icon: <Ic.Sparkle size={18} />, t: "Describe the team", d: "“A tech lead, a backend engineer, a reviewer and a docs writer for my Rails app.” Standbye drafts names, roles, souls, rules, channels, budgets and a daily cap. Edit anything, or start from the built-in solo dev team." },
+    { icon: <Ic.Sparkle size={18} />, t: "Describe the team", d: "“A tech lead, a backend engineer, a reviewer and a docs writer for my Rails app.” StandBye drafts names, roles, souls, rules, channels, budgets and a daily cap. Edit anything, or start from the built-in solo dev team." },
     { icon: <Ic.Clock size={18} />, t: "They check in", d: "Every N minutes inside work hours each agent glances at its channels, questions and tasks on a cheap check-in model. Nothing new costs about a cent. Real work escalates to the full model. Mentions, hand-offs and your answers wake the right agent at once." },
     { icon: <Ic.Question size={18} />, t: "You decide what's yours", d: "Approvals, questions and hire proposals land in your inbox with a recommended option and a deadline. The agent keeps working on something else. Mark an answer “remember” and nobody asks again." },
   ];
@@ -214,7 +214,7 @@ function Guardrails() {
         <div className="two two-rev">
           <div>
             <h2 style={{ marginTop: 0 }}>Every limit is enforced by the app, not the model</h2>
-            <p className="muted">A model that promises to behave is not a guardrail. Standbye checks every tool call itself before it happens.</p>
+            <p className="muted">A model that promises to behave is not a guardrail. StandBye checks every tool call itself before it happens.</p>
             <ul className="checks">
               <li><b>Allow, ask, block</b> rules per tool pattern. “Ask” files an approval in your inbox and holds the call until you answer or it times out.</li>
               <li><b>Workspace fence.</b> File and shell tools cannot leave the repo folder.</li>
@@ -237,7 +237,7 @@ function Faq() {
     ["Can agents push to my repo?", "Only if you let them. Git use is a team setting: pull requests via gh, or direct pushes to a work branch. Pushes to main default to ask."],
     ["What happens when I'm asleep?", "Questions carry a default and a deadline. When the deadline passes the default applies and the agent moves on. Reports wait for you in the inbox."],
     ["Where does the data live?", "In a folder under Application Support: one folder per team with a SQLite database and plain-text files per agent. Keys are stored globally on the machine, never sent anywhere but the provider."],
-    ["Is it really free?", "Yes. Standbye is open source. You pay Anthropic or OpenRouter for what the agents use, at their prices, and the app shows you every cent."],
+    ["Is it really free?", "Yes. StandBye is open source. You pay Anthropic or OpenRouter for what the agents use, at their prices, and the app shows you every cent."],
   ];
   return (
     <section id="faq" className="sec-block">
@@ -250,7 +250,7 @@ function Faq() {
           </details>
         ))}
         <div className="cta cta-end">
-          <a className="btn btn-primary btn-xl" href="/download/"><Ic.File size={14} />Download Standbye</a>
+          <a className="btn btn-primary btn-xl" href="/download/"><Ic.File size={14} />Download StandBye</a>
           <a className="btn btn-xl" href={GITHUB} target="_blank" rel="noreferrer"><Ic.Branch size={14} />Star on GitHub</a>
         </div>
       </div>
@@ -285,7 +285,7 @@ export function Footer() {
   return (
     <footer className="foot">
       <div className="wrap foot-in">
-        <span className="brand"><Logo />Standbye</span>
+        <span className="brand"><Logo />StandBye</span>
         <span className="muted">A standing team of AI agents.</span>
         <span className="fine mono">v{snapshot.version} · {snapshot.head}</span>
         <span className="grow" />

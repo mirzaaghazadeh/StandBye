@@ -198,7 +198,12 @@ export class Hub {
       }
     }
     const scheduler = new Scheduler(crew);
-    const unsubscribe = crew.bus.onAny((e) => this.emit({ ...e, teamId: id } as PushEvent));
+    const offAny = crew.bus.onAny((e) => this.emit({ ...e, teamId: id } as PushEvent));
+    // The team list carries the team's name and whether it is paused, and team.json can change
+    // without anyone calling the API — a wind-down that reaches its last run pauses the team from
+    // inside the queue. Re-publish the list whenever the file behind it moves.
+    const offTeam = crew.bus.on("team.updated", () => this.emitTeams());
+    const unsubscribe = (): void => { offAny(); offTeam(); };
     const rt = { crew, scheduler, unsubscribe };
     this.teams.set(id, rt);
     this.dirs.set(id, dir);
@@ -267,7 +272,8 @@ export class Hub {
           id, name: rt.crew.team?.name ?? id, ownerName: rt.crew.team?.ownerName ?? "", workspaceRoot: rt.crew.team?.workspaceRoot ?? null,
           dir: this.dirOf(id), portable: this.isPortable(id),
           agentCount: agents.length, working: agents.filter((a) => a.status === "working").length, needsYou: agents.filter((a) => a.status === "needs_you").length,
-          spendTodayUsd: rt.crew.spend().todayUsd, pausedAll: rt.crew.pausedAll, createdAt: rt.crew.team?.createdAt ?? "",
+          spendTodayUsd: rt.crew.spend().todayUsd, pausedAll: rt.crew.pausedAll, pausePending: rt.crew.pauseWhenIdle,
+          createdAt: rt.crew.team?.createdAt ?? "",
         };
       })
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));

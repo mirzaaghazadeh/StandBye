@@ -1,4 +1,4 @@
-// The skills Standbye ships with land on the user shelf on first start — and then belong to the
+// The skills StandBye ships with land on the user shelf on first start — and then belong to the
 // owner. The sync must never undo a deletion, never overwrite an edit, and never take a name
 // somebody else's skill already has.
 import test from "node:test";

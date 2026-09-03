@@ -1,6 +1,6 @@
-# Contributing to Standbye
+# Contributing to StandBye
 
-Thanks for looking. Standbye is a small codebase with strong opinions, and this page is the short
+Thanks for looking. StandBye is a small codebase with strong opinions, and this page is the short
 version of them.
 
 ## Getting set up

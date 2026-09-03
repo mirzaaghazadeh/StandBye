@@ -56,7 +56,7 @@ export function BoardScreen(): ReactElement {
   }
 
   return (
-    <div className="pane">
+    <>
       <Toolbar
         title="Board"
         subtitle={tasks.length === 0 ? "Work the team will pick up, card by card" : `${byColumn.todo.length} to do · ${byColumn.doing.length} in progress · ${byColumn.done.length} done`}
@@ -127,6 +127,6 @@ export function BoardScreen(): ReactElement {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

@@ -37,7 +37,7 @@ export const openaiRunner: Runner = async (input) => {
 
   // OpenRouter's own provider is worth keeping for one reason: it returns the real cost of the
   // call, so budgets are exact rather than estimated from a price table. The attribution headers
-  // are what make this run show up as Standbye in the owner's OpenRouter activity log.
+  // are what make this run show up as StandBye in the owner's OpenRouter activity log.
   const openrouter = spec.id === "openrouter";
   const model: LanguageModel = openrouter
     ? createOpenRouter({ apiKey, headers: ATTRIBUTION_HEADERS })(input.model, { usage: { include: true } })

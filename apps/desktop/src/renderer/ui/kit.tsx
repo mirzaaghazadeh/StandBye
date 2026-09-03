@@ -1,5 +1,6 @@
 import type { Agent, AgentStatus, QuestionKind, RunStatus } from "@crew/shared";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Ic } from "./icons";
 
 // ---------- avatars ----------
@@ -83,6 +84,75 @@ export function Button({ primary, danger, lg, sm, icon, children, ...rest }: { p
 
 export function IconButton({ on, children, ...rest }: { on?: boolean; children: ReactNode } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return <button className={"ibtn" + (on ? " ibtn-on" : "")} {...rest}>{children}</button>;
+}
+
+export interface MenuItem {
+  label: string;
+  /** The second line: what the item actually does, when the label alone would be a guess. */
+  detail?: string;
+  danger?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}
+
+/**
+ * The "…" beside a button: the other things you could do here, one of which is usually the one
+ * that used to be the default. Rendered in a portal, fixed to the trigger, so it floats over the
+ * window instead of stretching a toolbar that has no room for it.
+ */
+export function MenuButton({ items, title, align = "right", width = 260 }: { items: MenuItem[]; title?: string; align?: "left" | "right"; width?: number }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const btn = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const place = (): void => {
+      const r = btn.current?.getBoundingClientRect();
+      if (!r) return;
+      // Pinned inside the window, so a button near the right edge does not open off-screen.
+      const left = align === "right" ? r.right - width : r.left;
+      setPos({ top: r.bottom + 4, left: Math.max(8, Math.min(left, window.innerWidth - width - 8)) });
+    };
+    place();
+    const onDoc = (e: MouseEvent): void => { const t = e.target as Node; if (!panel.current?.contains(t) && !btn.current?.contains(t)) setOpen(false); };
+    const onKey = (e: KeyboardEvent): void => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    window.addEventListener("resize", place);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", place);
+    };
+  }, [open, align, width]);
+
+  return (
+    <>
+      <button ref={btn} className={"ibtn" + (open ? " ibtn-on" : "")} title={title ?? "More"} aria-label={title ?? "More"} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <Ic.More size={15} />
+      </button>
+      {open && createPortal(
+        <div ref={panel} role="menu" style={{ position: "fixed", top: pos.top, left: pos.left, width, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, boxShadow: "0 10px 30px rgba(0,0,0,0.18)", zIndex: 100, padding: "5px 0" }}>
+          {items.map((it) => (
+            <button
+              key={it.label}
+              role="menuitem"
+              className="li"
+              disabled={it.disabled}
+              style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 12px", background: "none", border: "none", cursor: "default", opacity: it.disabled ? 0.45 : 1 }}
+              onClick={() => { setOpen(false); it.onClick(); }}
+            >
+              <span style={{ display: "block", fontSize: 12.5, fontWeight: 500, color: it.danger ? "var(--red, #b3261e)" : "var(--ink-1)" }}>{it.label}</span>
+              {it.detail && <span style={{ display: "block", fontSize: 10.5, color: "var(--ink-5)", marginTop: 1 }}>{it.detail}</span>}
+            </button>
+          ))}
+        </div>,
+        document.body,
+      )}
+    </>
+  );
 }
 
 export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: ReactNode }[]; onChange: (v: T) => void }) {

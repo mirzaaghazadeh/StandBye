@@ -1,4 +1,4 @@
-// /docs/openrouter/: how to run a Standbye team on an OpenRouter key. Linked from the providers
+// /docs/openrouter/: how to run a StandBye team on an OpenRouter key. Linked from the providers
 // band on the landing page and from the app's entry in openrouter.ai/awesome.
 import { Ic } from "@kit/icons";
 import { Pill } from "@kit/kit";
@@ -24,7 +24,7 @@ export function OpenRouterDocs() {
               <Pill>Bring your own key</Pill>
               <Pill mono>{catalog.total} tool-capable models</Pill>
             </div>
-            <h1>Standbye on OpenRouter</h1>
+            <h1>StandBye on OpenRouter</h1>
             <p className="lede">
               One key, every model your team might want. Paste it once and each agent can sit on a different
               one — the lead on something that reasons, the check-ins on something that costs a tenth as much.
@@ -35,7 +35,7 @@ export function OpenRouterDocs() {
         <section className="sec-block" style={{ paddingTop: 8 }}>
           <div className="wrap wrap-narrow">
             <h2>Set it up</h2>
-            <p className="doc-lead">Four steps, about two minutes. You need Standbye installed and a repo to point it at.</p>
+            <p className="doc-lead">Four steps, about two minutes. You need StandBye installed and a repo to point it at.</p>
 
             <div className="doc-steps">
               <div className="card doc-step">
@@ -53,14 +53,14 @@ export function OpenRouterDocs() {
               <div className="card doc-step">
                 <span className="step-i">2</span>
                 <div>
-                  <h3>Paste it into Standbye</h3>
+                  <h3>Paste it into StandBye</h3>
                   <p>
                     Open <b>Settings → Providers</b>, find <b>OpenRouter</b>, paste the key into the API key field and
                     press <b>Test connection</b>. The row turns <b style={{ color: "var(--green)" }}>Ready</b>. If it does not, the
                     line next to it is the one thing to fix — a missing key, no credit, a typo.
                   </p>
                   <p className="fine">
-                    The key is written to <span className="mono">providers.json</span> in Standbye's data folder on
+                    The key is written to <span className="mono">providers.json</span> in StandBye's data folder on
                     your machine. It is sent to <span className="mono">{OR.baseUrl}</span> and nowhere else.
                   </p>
                 </div>
@@ -72,7 +72,7 @@ export function OpenRouterDocs() {
                   <h3>Choose two models</h3>
                   <p>
                     <b>Default model</b> is what an agent thinks with when it has real work. <b>Check-ins on</b> is the
-                    cheap one it wakes up on. Standbye starts you
+                    cheap one it wakes up on. StandBye starts you
                     on {DEFAULT_MAIN ? <span className="mono">{DEFAULT_MAIN.id}</span> : null} and
                     {" "}{DEFAULT_CHECKIN ? <span className="mono">{DEFAULT_CHECKIN.id}</span> : null}; the picker lists
                     everything OpenRouter currently serves, so change either one whenever you like.
@@ -125,7 +125,7 @@ export function OpenRouterDocs() {
           <div className="wrap wrap-narrow">
             <h2>What it costs, and what stops it</h2>
             <p className="doc-lead">
-              OpenRouter reports the real figure for every call, so what Standbye shows you is what you were charged —
+              OpenRouter reports the real figure for every call, so what StandBye shows you is what you were charged —
               not an estimate from a price table. Each run records its own cost, and every limit below is enforced by
               the app before the call goes out, not asked of the model.
             </p>
@@ -152,7 +152,7 @@ export function OpenRouterDocs() {
             <code className="code">{`export ${OR.envKey}=${OR.keyPlaceholder?.replace("…", "your-key") ?? "your-key"}
 node packages/supervisor/dist/index.js --data ~/standbye --port 8787 --token <token>`}</code>
             <p className="fine" style={{ marginTop: 12 }}>
-              A saved key wins over the environment; with no saved key, Standbye falls back
+              A saved key wins over the environment; with no saved key, StandBye falls back
               to <span className="mono">{OR.envKey}</span>. Talk to the supervisor over WebSocket JSON-RPC, or attach
               the desktop app to it later.
             </p>
@@ -169,10 +169,10 @@ node packages/supervisor/dist/index.js --data ~/standbye --port 8787 --token <to
               </div>
               <div className="card">
                 <h3><Ic.Shield size={14} /> Your key, your machine</h3>
-                <p>Standbye is BYOK and has no server. Calls go from your machine straight to OpenRouter; nothing is proxied through us, and there is nothing for us to bill you for.</p>
+                <p>StandBye is BYOK and has no server. Calls go from your machine straight to OpenRouter; nothing is proxied through us, and there is nothing for us to bill you for.</p>
               </div>
               <div className="card">
-                <h3><Ic.Dollar size={14} /> Runs show up as Standbye</h3>
+                <h3><Ic.Dollar size={14} /> Runs show up as StandBye</h3>
                 <p>Every billed call is attributed, so your OpenRouter activity log tells team runs apart from whatever else uses the same key. The unbilled model-list fetch is not attributed.</p>
               </div>
               <div className="card">
@@ -188,7 +188,7 @@ node packages/supervisor/dist/index.js --data ~/standbye --port 8787 --token <to
             <h2>Get the app</h2>
             <p className="lede">Free, open source, and it runs on your own machine.</p>
             <div className="cta">
-              <a className="btn btn-primary btn-xl" href="/download/"><Ic.Download size={14} />Download Standbye</a>
+              <a className="btn btn-primary btn-xl" href="/download/"><Ic.Download size={14} />Download StandBye</a>
               <a className="btn btn-xl" href={GITHUB} target="_blank" rel="noreferrer"><Ic.Branch size={14} />Source on GitHub</a>
             </div>
           </div>

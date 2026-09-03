@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The child entitlements, for the four helper apps (Renderer, GPU, Plugin and the plain Helper) and
+  the frameworks inside the bundle. electron-builder finds this file by name.
+
+  It is the same list as entitlements.mac.plist on purpose: the renderer is where V8 actually runs,
+  so it is the process that most needs the JIT exceptions. Keep the two in step.
+-->
+<plist version="1.0">
+  <dict>
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <true/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+  </dict>
+</plist>

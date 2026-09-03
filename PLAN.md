@@ -1,4 +1,4 @@
-# Standbye — 24/7 agent teams on your desktop
+# StandBye — 24/7 agent teams on your desktop
 
 BYOK desktop app where you describe a team, the app creates it, and the agents keep
 working, talking, asking and learning without manual triggers.
@@ -59,5 +59,5 @@ packages/shared         Types + zod schemas shared by daemon and UI
 ## Defaults
 
 - Claude model `claude-opus-5`, check-ins on `claude-haiku-4-5`. OpenRouter default `z-ai/glm-5.3`.
-- Data dir: `~/Library/Application Support/Standbye` (macOS).
+- Data dir: `~/Library/Application Support/StandBye` (macOS).
 - Work hours 08:00–22:00, heartbeat 30 min, team cap $10/day, agent cap $3/day.

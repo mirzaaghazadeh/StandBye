@@ -180,7 +180,7 @@ function ProviderDetail({ spec, state }: { spec: ProviderSpec; state?: ProviderS
       )}
       {spec.auth === "cloud" && (
         <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>
-          Uses this Mac's {spec.id === "bedrock" ? "AWS" : "Google Cloud"} credentials. Nothing is stored by Standbye.
+          Uses this Mac's {spec.id === "bedrock" ? "AWS" : "Google Cloud"} credentials. Nothing is stored by StandBye.
         </div>
       )}
       {(spec.auth === "key" || spec.auth === "login") && (
@@ -233,7 +233,7 @@ function ProviderDetail({ spec, state }: { spec: ProviderSpec; state?: ProviderS
       {/* ---- how it is invoked, for CLI providers ---- */}
       {spec.kind === "cli" && spec.cli && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <a style={{ fontSize: 11 }} onClick={() => setAdvanced(!advanced)}>{advanced ? "Hide" : "Show"} the command Standbye runs</a>
+          <a style={{ fontSize: 11 }} onClick={() => setAdvanced(!advanced)}>{advanced ? "Hide" : "Show"} the command StandBye runs</a>
           {advanced && (
             <>
               <pre className="mono sel" style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 6, padding: 8, fontSize: 10.5, margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>{command || "…"}</pre>

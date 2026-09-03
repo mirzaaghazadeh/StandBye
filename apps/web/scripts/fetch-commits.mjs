@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Snapshots this repo's recent git log into src/commits.json for the "Standbye builds Standbye" section.
+// Snapshots this repo's recent git log into src/commits.json for the "StandBye builds StandBye" section.
 // Run `pnpm --filter @crew/web commits` and commit the result. Without a .git directory (the Docker build)
 // the existing snapshot is kept, so the build never depends on git.
 import { execFileSync } from "node:child_process";

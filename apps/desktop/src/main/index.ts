@@ -6,7 +6,15 @@ import { SupervisorHost } from "./supervisor.js";
 import { Updater } from "./updates.js";
 
 const isDev = !app.isPackaged;
-const dataDir = process.env.CREW_DATA_DIR ?? path.join(app.getPath("appData"), "Standbye");
+// The app spelled itself "Standbye" until 0.3.0. Both names are the same folder on a normal Mac or
+// Windows disk, but on a case-sensitive volume the old one is where the owner's teams actually are,
+// so it wins when it is the folder that exists. Keep this in step with the supervisor's own
+// defaultDataDir(), which does the same thing for a supervisor started by hand.
+const appDataParent = app.getPath("appData");
+const legacyDataDir = path.join(appDataParent, "Standbye");
+const defaultDataDir = path.join(appDataParent, "StandBye");
+const dataDir = process.env.CREW_DATA_DIR
+  ?? (!fs.existsSync(defaultDataDir) && fs.existsSync(legacyDataDir) ? legacyDataDir : defaultDataDir);
 const host = new SupervisorHost(dataDir, (line) => console.log(line));
 
 let win: BrowserWindow | null = null;
@@ -249,6 +257,27 @@ function updateTrayItems(): Electron.MenuItemConstructorOptions[] {
   return [{ label: `Update to ${v} Available…`, click: () => showWindow("/settings/updates") }];
 }
 
+/**
+ * Stopping the team from the menu bar. The shortcut stays on the everyday stop — let the runs in
+ * flight finish, start nothing new — and the one that cuts a run off mid-change is spelled out
+ * underneath it, because from a menu there is nothing to read but the label.
+ */
+function pauseItems(): Electron.MenuItemConstructorOptions[] {
+  if (status?.pausedAll) return [{ label: "Resume All Agents", click: () => void host.rpc("supervisor.resumeAll") }];
+  const running = status?.runningRuns ?? 0;
+  if (status?.pausePending) {
+    return [
+      { label: running > 0 ? `Pausing when ${running} run(s) finish` : "Pausing…", enabled: false },
+      { label: "Pause Everything Now", click: () => void host.rpc("supervisor.pauseAll") },
+      { label: "Keep Working", click: () => void host.rpc("supervisor.resumeAll") },
+    ];
+  }
+  return [
+    { label: "Pause When Runs Finish", accelerator: "CmdOrCtrl+Shift+P", click: () => void host.rpc("supervisor.pauseWhenIdle") },
+    { label: "Pause Everything Now", click: () => void host.rpc("supervisor.pauseAll") },
+  ];
+}
+
 function rebuildTray(): void {
   if (!tray) return;
   const all = teamsForTray.flatMap((t) => t.agents);
@@ -270,16 +299,14 @@ function rebuildTray(): void {
     { label: needs ? `${needs} need your answer…` : "Inbox", click: () => showWindow("/inbox") },
     { label: spend ? `Spend today $${spend.todayUsd.toFixed(2)} / $${spend.capUsd}` : "Spend today", enabled: false },
     { type: "separator" },
-    status?.pausedAll
-      ? { label: "Resume All Agents", click: () => void host.rpc("supervisor.resumeAll") }
-      : { label: "Pause All Agents", accelerator: "CmdOrCtrl+Shift+P", click: () => void host.rpc("supervisor.pauseAll") },
+    ...pauseItems(),
     { label: "Open Team Window", accelerator: "CmdOrCtrl+1", click: () => showWindow() },
     ...updateTrayItems(),
     { type: "separator" },
     { label: "Quit (agents sleep until you reopen)", role: "quit" },
   ]);
   tray.setContextMenu(menu);
-  tray.setToolTip(`Standbye · ${working} working · ${needs} need you`);
+  tray.setToolTip(`StandBye · ${working} working · ${needs} need you`);
 }
 
 // ---------- events from the supervisor ----------
@@ -355,11 +382,11 @@ ipcMain.handle("crew:dataDir", () => dataDir);
 
 // ---------- lifecycle ----------
 
-app.setName("Standbye");
+app.setName("StandBye");
 
 // Two copies of the app would fight over the tray and the supervisor lock; the second one hands
 // its launch to the first instead. (On Windows this is what makes double-clicking the shortcut
-// twice reopen the window rather than start a second Standbye.)
+// twice reopen the window rather than start a second StandBye.)
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
@@ -378,7 +405,7 @@ void app.whenReady().then(async () => {
     status = await host.rpc<SupervisorStatus>("status.get");
     spend = await host.rpc<SpendSummary>("spend.get");
   } catch (e) {
-    dialog.showErrorBox("Standbye could not start its supervisor", e instanceof Error ? e.message : String(e));
+    dialog.showErrorBox("StandBye could not start its supervisor", e instanceof Error ? e.message : String(e));
   }
   tray = new Tray(trayIcon());
   // On Windows and Linux the context menu is right-click only, so left-click opens the window.

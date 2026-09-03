@@ -10,12 +10,24 @@ export interface SupervisorOptions {
 
 export function defaultDataDir(): string {
   if (process.platform === "darwin") {
-    return path.join(os.homedir(), "Library", "Application Support", "Standbye");
+    return keepExisting(path.join(os.homedir(), "Library", "Application Support"), "StandBye", "Standbye");
   }
   if (process.platform === "win32") {
-    return path.join(process.env.APPDATA ?? os.homedir(), "Standbye");
+    return keepExisting(process.env.APPDATA ?? os.homedir(), "StandBye", "Standbye");
   }
   return path.join(process.env.XDG_DATA_HOME ?? path.join(os.homedir(), ".local", "share"), "standbye");
+}
+
+/**
+ * The app used to spell itself "Standbye". Both spellings are the same folder on a normal Mac or
+ * Windows disk, but a case-sensitive volume would hand an existing owner an empty data dir and
+ * lose their teams, so the old folder wins whenever it is the one that is actually there.
+ */
+function keepExisting(parent: string, name: string, legacy: string): string {
+  const next = path.join(parent, name);
+  const old = path.join(parent, legacy);
+  if (!fs.existsSync(next) && fs.existsSync(old)) return old;
+  return next;
 }
 
 export function parseArgs(argv: string[]): SupervisorOptions {

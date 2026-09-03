@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src=".github/assets/icon.png" width="112" alt="Standbye">
+<img src=".github/assets/icon.png" width="112" alt="StandBye">
 
-# Standbye
+# StandBye
 
 ### A standing team of AI agents. Working while you're away.
 
-Describe the team you wish you had. Standbye turns it into agents that check in on a schedule, talk
+Describe the team you wish you had. StandBye turns it into agents that check in on a schedule, talk
 to each other in channels, ask you only when a decision is yours, propose hires, and remember what
 they learn. **Not cron jobs with a chat window. A team.**
 
@@ -20,7 +20,7 @@ they learn. **Not cron jobs with a chat window. A team.**
 
 <br>
 
-<img src=".github/assets/demo.gif" width="900" alt="The Standbye Home screen cycling through six teams — dev, marketing, sales, support, research and a founder's office — each showing who is working, who needs you, what each agent is doing and what today cost">
+<img src=".github/assets/demo.gif" width="900" alt="The StandBye Home screen cycling through six teams — dev, marketing, sales, support, research and a founder's office — each showing who is working, who needs you, what each agent is doing and what today cost">
 
 <sub>The Home screen: who's working, who needs you, what each agent is doing, what today cost.<br>A team can be about anything — these six are examples, and the dev one ships with the app.</sub>
 
@@ -31,7 +31,7 @@ they learn. **Not cron jobs with a chat window. A team.**
 ## How it works
 
 **1 · Describe the team.** *"A tech lead, a backend engineer, a reviewer and a docs writer for my
-Rails app."* Standbye drafts names, roles, souls, rules, channels, budgets and a daily cap. Edit
+Rails app."* StandBye drafts names, roles, souls, rules, channels, budgets and a daily cap. Edit
 anything, or start from the built-in solo dev team.
 
 **2 · They check in.** Every N minutes inside work hours each agent glances at its channels,
@@ -81,7 +81,7 @@ Opus and merged a PR cost 74.
 
 ## Every limit is enforced by the app, not the model
 
-A model that promises to behave is not a guardrail. Standbye checks every tool call itself, before
+A model that promises to behave is not a guardrail. StandBye checks every tool call itself, before
 it happens.
 
 <img src=".github/assets/permissions.png" width="560" align="right" alt="Permission rules per tool pattern with allow, ask and block, above per-agent daily budgets">
@@ -100,7 +100,7 @@ Ties resolve toward the most restrictive rule — an equally specific *allow* ne
 
 ## Providers
 
-Bring your own key. Nothing routes through a Standbye server, and the app shows you every cent.
+Bring your own key. Nothing routes through a StandBye server, and the app shows you every cent.
 **34 providers** in six groups, each agent picking its own main model and a cheap check-in model:
 
 | Group | Providers |
@@ -115,7 +115,7 @@ Bring your own key. Nothing routes through a Standbye server, and the app shows 
 A flat-rate coding plan or a model running on your own machine costs **$0**, which is the truth —
 there the turn cap and the run timeout are the ceiling, not the budget.
 
-A hosted option — subscribe and pick Standbye as the provider instead of bringing a key — is on the
+A hosted option — subscribe and pick StandBye as the provider instead of bringing a key — is on the
 way. Same app, same release, one more entry in this table.
 
 ## Download
@@ -125,17 +125,29 @@ From [standbye.navid.tr/download](https://standbye.navid.tr/download) or the
 
 | Platform | File | Notes |
 | --- | --- | --- |
-| **macOS** (Apple silicon) | `Standbye-*-mac-arm64.dmg` | macOS 13+ |
-| **macOS** (Intel) | `Standbye-*-mac-x64.dmg` | macOS 13+ |
-| **Windows** | `Standbye-*-win-x64-setup.exe` | Windows 10/11. A portable `.zip` is also attached |
-| **Linux** | `Standbye-*-linux-x86_64.AppImage` | Also `.deb`, and `arm64` builds of both |
+| **macOS** (Apple silicon) | `StandBye-*-mac-arm64.dmg` | macOS 13+ |
+| **macOS** (Intel) | `StandBye-*-mac-x64.dmg` | macOS 13+ |
+| **Windows** | `StandBye-*-win-x64-setup.exe` | Windows 10/11. A portable `.zip` is also attached |
+| **Linux** | `StandBye-*-linux-x86_64.AppImage` | Also `.deb`, and `arm64` builds of both |
 
-Standbye needs **Node.js 22 or newer** on the machine — the app launches its bundled supervisor with
+StandBye needs **Node.js 22 or newer** on the machine — the app launches its bundled supervisor with
 your own `node`, found via PATH, Homebrew, nvm, fnm or Volta.
 
 > [!NOTE]
-> Builds aren't code-signed yet. On macOS the first launch is right-click → **Open**; on Windows,
-> **More info → Run anyway**. Signing certificates are on the list.
+> Builds aren't notarized yet. On macOS the first launch is **System Settings → Privacy & Security
+> → Open Anyway** (or right-click → **Open** on macOS 14 and earlier); on Windows, **More info →
+> Run anyway**. Signing certificates are on the list.
+>
+> **Downloaded 0.1.0 and got "Standbye is damaged and can't be opened"?** (0.1.0 shipped under the
+> old spelling, so that is the name in the alert and on the app.) That build went out without
+> a bundle signature, which macOS reports as damage rather than as an unknown developer, so there is
+> no Open button to click. Drag it to Applications and clear the download flag once:
+>
+> ```bash
+> xattr -dr com.apple.quarantine /Applications/Standbye.app
+> ```
+>
+> Releases after 0.1.0 are ad-hoc signed and show the normal Open Anyway prompt instead.
 
 ### First run
 
@@ -209,7 +221,7 @@ Setup notes are in [CONTRIBUTING.md](CONTRIBUTING.md); the architecture is mappe
 <summary><b>Does it need a server?</b></summary><br>
 
 No. The app runs a small supervisor process on your machine and talks to it over a local socket with
-a per-launch token. There is no Standbye backend.
+a per-launch token. There is no StandBye backend.
 </details>
 
 <details>
@@ -229,14 +241,14 @@ moves on. Reports wait in the inbox without blocking anyone.
 <details>
 <summary><b>Is it really free?</b></summary><br>
 
-Yes. Standbye is open source under Apache-2.0. You pay Anthropic, OpenRouter or whoever else for
+Yes. StandBye is open source under Apache-2.0. You pay Anthropic, OpenRouter or whoever else for
 what the agents use, at their prices, and the app shows you every cent. A flat-rate plan or a local
 model costs nothing at all.
 </details>
 
 ## Privacy
 
-Standbye collects **nothing**. No analytics, no telemetry, no account, no phoning home. Your keys are
+StandBye collects **nothing**. No analytics, no telemetry, no account, no phoning home. Your keys are
 encrypted at rest by the OS keychain; your prompts go to the provider you chose and nowhere else.
 Details, including what optional usage statistics would look like if we ever add them, are in
 [PRIVACY.md](PRIVACY.md).
@@ -250,8 +262,8 @@ security problem? Please report it privately, per [SECURITY.md](SECURITY.md).
 
 [Apache License 2.0](LICENSE). The code is yours to fork, modify and sell.
 
-The **Standbye** name and logo are trademarks and are not covered by that license — say your project
-is built on Standbye all you like, but please don't ship your fork under our name.
+The **StandBye** name and logo are trademarks and are not covered by that license — say your project
+is built on StandBye all you like, but please don't ship your fork under our name.
 See [TRADEMARK.md](TRADEMARK.md).
 
 <div align="center">

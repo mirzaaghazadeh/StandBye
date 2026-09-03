@@ -25,7 +25,7 @@ export interface ReleaseAsset {
  * A release asset's name is about to become a path under the updates directory and be handed to
  * the installer. GitHub keeps asset names to simple file names, but a release is just JSON that
  * anyone with write access to the repo (or a stolen maintainer token) can produce — so accept only
- * what electron-builder actually writes (`Standbye-1.2.3-mac-arm64.zip`): no separators, spaces,
+ * what electron-builder actually writes (`StandBye-1.2.3-mac-arm64.zip`): no separators, spaces,
  * shell-adjacent characters, or dotfiles.
  */
 const SAFE_ASSET_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
@@ -115,10 +115,10 @@ export function digestFromGitHubAsset(digest: unknown): ExpectedDigest | null {
  *
  *   version: 1.2.3
  *   files:
- *     - url: Standbye-1.2.3-mac-arm64.zip
+ *     - url: StandBye-1.2.3-mac-arm64.zip
  *       sha512: 9aF…==
  *       size: 94711234
- *   path: Standbye-1.2.3-mac-arm64.zip
+ *   path: StandBye-1.2.3-mac-arm64.zip
  *   sha512: 9aF…==
  *
  * so line-scanning is enough; this is not a YAML parser. A file it cannot read yields null and the

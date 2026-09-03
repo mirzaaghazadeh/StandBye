@@ -1,4 +1,4 @@
-// "Standbye builds Standbye": the app is maintained by a Standbye team running on this repository.
+// "StandBye builds StandBye": the app is maintained by a StandBye team running on this repository.
 // The log is the repo's real git history, snapshotted by scripts/fetch-commits.mjs.
 import { Pill } from "@kit/kit";
 import snapshot from "./commits.json";
@@ -11,7 +11,7 @@ export function Dogfood() {
           <div className="eyebrow" style={{ marginBottom: 12 }}><Pill bg="rgba(46,155,95,0.25)" ink="#8fd7ab"><span className="dot" style={{ background: "#2e9b5f" }} />Running on this repo right now</Pill></div>
           <h2>This app is built by a team running inside this app.</h2>
           <p className="muted" style={{ fontSize: 17 }}>
-            Standbye's own code is maintained by a Standbye team: a lead, an engineer, a reviewer and a docs writer, around the clock, on the same guardrails you get.
+            StandBye's own code is maintained by a StandBye team: a lead, an engineer, a reviewer and a docs writer, around the clock, on the same guardrails you get.
             They plan, ship, review and document. The owner answers questions in the inbox. What you're downloading is what they made.
           </p>
           <div className="dog-stats">

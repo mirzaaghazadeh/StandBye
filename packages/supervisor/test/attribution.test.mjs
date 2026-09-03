@@ -1,4 +1,4 @@
-// A run the owner pays for should be identifiable as Standbye in their provider's dashboard.
+// A run the owner pays for should be identifiable as StandBye in their provider's dashboard.
 // OpenRouter reads HTTP-Referer and X-Title and shows the title, linked, beside every request.
 import test from "node:test";
 import assert from "node:assert/strict";

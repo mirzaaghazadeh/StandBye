@@ -63,7 +63,7 @@ export interface State {
   /** Workspace diffs per run id, fetched on demand from run.diff. */
   runDiffs: Record<string, RunDiff>;
   spend: SpendSummary | null;
-  /** Whether a newer Standbye exists and how far along installing it is. Owned by the main process. */
+  /** Whether a newer StandBye exists and how far along installing it is. Owned by the main process. */
   update: UpdateState | null;
   selectedAgentId: string | null;
   /** Folder chosen by "Open folder…" that turned out to have no team yet. */
@@ -326,8 +326,15 @@ class Store {
   async createTask(title: string, detail: string | null, column: TaskColumn): Promise<void> { await this.rpc("tasks.create", { title, detail, column }); }
   async updateTask(id: string, patch: { title?: string; detail?: string | null; column?: TaskColumn; assignee?: string | null }): Promise<void> { await this.rpc("tasks.update", { id, patch }); }
   async deleteTask(id: string): Promise<void> { await this.rpc("tasks.delete", { id }); this.toast("Task deleted."); }
-  async pauseAll(): Promise<void> { await this.rpc("supervisor.pauseAll"); this.toast("All agents paused."); }
+  async pauseAll(): Promise<void> { await this.rpc("supervisor.pauseAll"); this.toast("All agents paused. Runs in progress were stopped."); }
+  /** The everyday stop: nothing new starts and the pause lands when the last run ends. */
+  async pauseWhenIdle(): Promise<void> {
+    const s = await this.rpc<SupervisorStatus>("supervisor.pauseWhenIdle");
+    this.toast(s.pausedAll ? "All agents paused." : `Pausing when ${s.runningRuns === 1 ? "the run in progress finishes" : `the ${s.runningRuns} runs in progress finish`}.`);
+  }
   async resumeAll(): Promise<void> { await this.rpc("supervisor.resumeAll"); this.toast("Agents resumed."); }
+  /** Same call as resume, different sentence: nothing was paused yet, so nothing is resuming. */
+  async cancelPause(): Promise<void> { await this.rpc("supervisor.resumeAll"); this.toast("Carrying on. The team was not paused."); }
   async pauseAgent(id: string, paused: boolean): Promise<void> { await this.rpc(paused ? "agent.pause" : "agent.resume", { id }); }
   async wakeAgent(id: string, prompt: string): Promise<void> { await this.rpc("agent.wake", { id, prompt }); this.toast("Sent."); }
   async checkinAgent(id: string): Promise<void> { await this.rpc("agent.checkin", { id }); this.toast("Check-in queued."); }
