@@ -251,7 +251,70 @@ export interface TeamConfig {
   chatDepthCap: number;
   workspaceRoot: string | null;
   ownerName: string;
+  /** How far the team may go on its own. Defaults to "pr". */
+  autonomy?: Autonomy;
   createdAt: string;
+}
+
+/**
+ * How much the team decides for itself.
+ *
+ * This is the owner's dial, not the model's: every level is enforced by the app the same way
+ * permissions and budgets are, so an agent cannot talk its way past it.
+ *
+ *  - `propose`  find work and rank it, but ask before writing any of it. A person is in the loop
+ *               for every item.
+ *  - `pr`       pick work off the backlog and build it on a branch, ending in a pull request.
+ *               Nothing reaches a protected branch without the owner. The default.
+ *  - `auto`     pick, build and land work on the team's own work branch without asking. Staging
+ *               and production are still gated by the git rules.
+ */
+export type Autonomy = "propose" | "pr" | "auto";
+
+export const AUTONOMY_LABEL: Record<Autonomy, string> = {
+  propose: "Propose only",
+  pr: "Build, then open a pull request",
+  auto: "Build and land it",
+};
+
+/** One line the owner can read in Settings, and the agents are told verbatim. */
+export const AUTONOMY_RULE: Record<Autonomy, string> = {
+  propose: "Find work and write it to the backlog, but do not write code for an item until the owner says yes. Ask with ask_user.",
+  pr: "Take work off the backlog and build it on its own branch, ending in a pull request for the owner. Never merge it yourself and never push to a protected branch.",
+  auto: "Take work off the backlog, build it, and land it on the team's work branch once the tests pass. Staging and production still need the owner.",
+};
+
+// ---------- Backlog ----------
+
+/**
+ * Where an item is up to. A team that decides its own work needs somewhere for an idea to live
+ * between being noticed and being built — otherwise every idea is lost at the end of the run
+ * that had it.
+ */
+export type BacklogStatus = "idea" | "ready" | "claimed" | "in_review" | "done" | "dropped";
+
+export interface BacklogItem {
+  id: string;
+  title: string;
+  /** What it actually is, concretely enough for someone else to pick up. */
+  detail: string;
+  /** The case for doing it: what is wrong or missing today, and who it hurts. */
+  rationale: string;
+  status: BacklogStatus;
+  /** Agent id, or "user" when the owner added it. */
+  addedBy: string;
+  /** Who is building it now. */
+  claimedBy: string | null;
+  /** The lead's ordering; lower is sooner. */
+  rank: number;
+  size: "small" | "medium" | "large";
+  /** Set once it is being built. */
+  branch: string | null;
+  pr: string | null;
+  /** Filled in when it is finished or dropped, so the reason survives. */
+  outcome: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**
@@ -260,6 +323,14 @@ export interface TeamConfig {
  * under the app's data dir.
  */
 export const TEAM_DIR_NAME = ".standbye";
+
+/**
+ * How the app names itself to a provider that shows the owner which app made a call.
+ * OpenRouter's activity log is the one that matters today: it prints the title and links the
+ * URL, so without these every run the owner pays for is an anonymous line in their dashboard.
+ */
+export const APP_NAME = "Standbye";
+export const APP_URL = "https://standbye.navid.tr";
 
 /** One row in the team switcher. Every team has its own folder, database, agents, channels and workspace. */
 export interface TeamSummary {
@@ -542,7 +613,7 @@ export type SkillScope = "user" | "team" | "agent";
 export const SKILL_SCOPES: SkillScope[] = ["user", "team", "agent"];
 
 /** Where a skill came from, so the app can re-pull it later and show provenance. */
-export type SkillSourceKind = "manual" | "learned" | "folder" | "zip" | "git" | "claude-code";
+export type SkillSourceKind = "manual" | "learned" | "folder" | "zip" | "git" | "claude-code" | "bundled";
 
 export interface SkillSource {
   kind: SkillSourceKind;

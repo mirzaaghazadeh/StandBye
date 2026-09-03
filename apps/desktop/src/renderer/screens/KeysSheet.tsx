@@ -4,7 +4,8 @@ import { Button, KV, Segmented } from "../ui/kit";
 import { ProvidersPanel } from "../components/ProvidersPanel";
 import { GitSettingsPanel } from "../components/GitSettingsPanel";
 import { Ic } from "../ui/icons";
-import type { GitSettings } from "@crew/shared";
+import type { Autonomy, GitSettings } from "@crew/shared";
+import { AUTONOMY_LABEL, AUTONOMY_RULE } from "@crew/shared";
 
 type Tab = "team" | "providers" | "data";
 
@@ -64,10 +65,11 @@ function TeamSettings() {
   const [depth, setDepth] = useState(String(team.chatDepthCap));
   const [workspace, setWorkspace] = useState(team.workspaceRoot ?? "");
   const [git, setGit] = useState<GitSettings | null>(team.git ?? null);
-  useEffect(() => { setName(team.name); setOwner(team.ownerName); setCharter(team.charter); setCap(String(team.dailyCapUsd)); setDepth(String(team.chatDepthCap)); setWorkspace(team.workspaceRoot ?? ""); setGit(team.git ?? null); }, [team.id]);
-  const dirty = name !== team.name || owner !== team.ownerName || charter !== team.charter || Number(cap) !== team.dailyCapUsd || Number(depth) !== team.chatDepthCap || (workspace.trim() || null) !== team.workspaceRoot || JSON.stringify(git) !== JSON.stringify(team.git ?? null);
+  const [autonomy, setAutonomy] = useState<Autonomy>(team.autonomy ?? "pr");
+  useEffect(() => { setName(team.name); setOwner(team.ownerName); setCharter(team.charter); setCap(String(team.dailyCapUsd)); setDepth(String(team.chatDepthCap)); setWorkspace(team.workspaceRoot ?? ""); setGit(team.git ?? null); setAutonomy(team.autonomy ?? "pr"); }, [team.id]);
+  const dirty = name !== team.name || owner !== team.ownerName || charter !== team.charter || Number(cap) !== team.dailyCapUsd || Number(depth) !== team.chatDepthCap || (workspace.trim() || null) !== team.workspaceRoot || JSON.stringify(git) !== JSON.stringify(team.git ?? null) || autonomy !== (team.autonomy ?? "pr");
   const save = async () => {
-    const t = await store.rpc<typeof team>("team.update", { name: name.trim() || team.name, ownerName: owner.trim() || team.ownerName, charter: charter.trim(), dailyCapUsd: Math.max(0, Number(cap) || 0), chatDepthCap: Math.max(1, Math.round(Number(depth) || 6)), workspaceRoot: workspace.trim() || null, git });
+    const t = await store.rpc<typeof team>("team.update", { name: name.trim() || team.name, ownerName: owner.trim() || team.ownerName, charter: charter.trim(), dailyCapUsd: Math.max(0, Number(cap) || 0), chatDepthCap: Math.max(1, Math.round(Number(depth) || 6)), workspaceRoot: workspace.trim() || null, git, autonomy });
     store.toast(t.workspaceRoot !== team.workspaceRoot ? "Saved. New runs use the new workspace." : "Team settings saved.");
   };
 
@@ -87,6 +89,23 @@ function TeamSettings() {
         <div className="grp-t" style={{ marginTop: 4 }}>Charter</div>
         <textarea className="field" style={{ width: "100%", minHeight: 70 }} value={charter} onChange={(e) => setCharter(e.target.value)} />
         <div style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 4 }}>The standing goal every agent sees in its context. Two or three sentences.</div>
+      </div>
+      <div style={{ border: "1px solid var(--border)", borderRadius: 7, background: "var(--surface)", padding: "8px 12px" }}>
+        <div className="grp-t" style={{ marginTop: 4 }}>How much they decide alone</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "2px 0 8px" }}>
+          {(["propose", "pr", "auto"] as Autonomy[]).map((level) => (
+            <label key={level} style={{ display: "flex", gap: 8, alignItems: "flex-start", cursor: "default" }}>
+              <input type="radio" name="autonomy" checked={autonomy === level} onChange={() => setAutonomy(level)} style={{ marginTop: 2 }} />
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: "block", fontWeight: 500, fontSize: 12.5 }}>{AUTONOMY_LABEL[level]}</span>
+                <span style={{ display: "block", fontSize: 11, color: "var(--ink-4)", lineHeight: 1.45 }}>{AUTONOMY_RULE[level]}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: "var(--ink-4)", paddingBottom: 4 }}>
+          Agents keep their own backlog either way — they notice work, write it down and rank it. This decides how far they may take it without you.
+        </div>
       </div>
       <div style={{ border: "1px solid var(--border)", borderRadius: 7, background: "var(--surface)", padding: "8px 12px" }}>
         <KV k="Team cap"><span className="mono" style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 3 }}>$<input className="field mono" style={{ width: 64 }} value={cap} onChange={(e) => setCap(e.target.value)} /><span style={{ color: "var(--ink-5)", fontSize: 11 }}>/ day, all agents together</span></span></KV>

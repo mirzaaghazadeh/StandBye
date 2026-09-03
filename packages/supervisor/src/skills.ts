@@ -22,7 +22,7 @@ import { log } from "./log.js";
 const IGNORED_DIRS = new Set([".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build", ".DS_Store"]);
 const RESOURCE_LIMIT = 200;
 /** Provenance we keep beside SKILL.md. Dotted so it never looks like part of the skill. */
-const SOURCE_FILE = ".standbye-source.json";
+export const SOURCE_FILE = ".standbye-source.json";
 
 // ---------------------------------------------------------------- frontmatter
 
@@ -340,7 +340,7 @@ function lastLine(e: unknown): string {
 
 // ---------------------------------------------------------------- copying
 
-function copySkillDir(from: string, to: string): void {
+export function copySkillDir(from: string, to: string): void {
   fs.rmSync(to, { recursive: true, force: true });
   fs.mkdirSync(path.dirname(to), { recursive: true });
   fs.cpSync(from, to, {
@@ -551,6 +551,7 @@ export class SkillLibrary {
     const skill = readSkillDir(path.join(this.rootFor(target), normalizeSkillName(name)), target.scope, target.ownerId ?? null);
     if (!skill) throw new Error(`No skill "${name}" on that shelf`);
     const { kind, ref } = skill.source;
+    if (kind === "bundled") throw new Error(`"${name}" ships with Standbye and updates when the app does. Edit it here and it stays yours.`);
     if (!ref || kind === "manual" || kind === "learned") throw new Error(`"${name}" was written here, so there is nothing to update it from.`);
     // Always refetch: "update" is a request for whatever is there now, not for a held copy.
     const out = this.install(kind as SkillInstallKind, ref, target, [skill.name], true);

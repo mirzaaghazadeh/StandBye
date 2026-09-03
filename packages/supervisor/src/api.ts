@@ -128,6 +128,13 @@ export class Api {
         conn.teamId = rt.crew.id;
         return rt.crew.team;
       },
+      // ----- backlog -----
+      "backlog.list": (_p, conn) => this.crewFor(conn).backlog.list(),
+      "backlog.add": (p: { title: string; detail?: string; rationale?: string; size?: "small" | "medium" | "large" }, conn) =>
+        this.crewFor(conn).backlog.add({ ...p, addedBy: "user", status: "ready" }),
+      "backlog.update": (p: { id: string; patch: Record<string, unknown> }, conn) => this.crewFor(conn).backlog.update(p.id, p.patch as never),
+      "backlog.remove": (p: { id: string }, conn) => { this.crewFor(conn).backlog.update(p.id, { status: "dropped", outcome: "Removed by the owner" }); return true; },
+
       /** Does this folder already hold a team? Lets the UI choose between opening and creating. */
       "teams.probeFolder": (p: { path: string }) => hub.probeFolder(p.path),
       /** Take a team off the list: it stops working, keeps everything, and can be put back. */

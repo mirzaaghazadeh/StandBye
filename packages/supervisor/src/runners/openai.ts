@@ -6,7 +6,7 @@ import { trimConversation } from "./context.js";
 import { log } from "../log.js";
 import { DEFAULTS } from "../config.js";
 import { estimateCostUsd } from "../pricing.js";
-import { providerBaseUrl, providerKey } from "../providers.js";
+import { ATTRIBUTION_HEADERS, providerBaseUrl, providerKey } from "../providers.js";
 import { CHECKIN_TOOLS, TEAM_TOOLS, type AnyTeamTool, type ToolContext } from "../tools/team-tools.js";
 import { workspaceTools } from "./workspace.js";
 import { classifyFailure, type FailureKind, type Runner } from "./types.js";
@@ -36,10 +36,11 @@ export const openaiRunner: Runner = async (input) => {
   }
 
   // OpenRouter's own provider is worth keeping for one reason: it returns the real cost of the
-  // call, so budgets are exact rather than estimated from a price table.
+  // call, so budgets are exact rather than estimated from a price table. The attribution headers
+  // are what make this run show up as Standbye in the owner's OpenRouter activity log.
   const openrouter = spec.id === "openrouter";
   const model: LanguageModel = openrouter
-    ? createOpenRouter({ apiKey })(input.model, { usage: { include: true } })
+    ? createOpenRouter({ apiKey, headers: ATTRIBUTION_HEADERS })(input.model, { usage: { include: true } })
     : createOpenAICompatible({ name: spec.id, baseURL, apiKey: apiKey || undefined, includeUsage: true })(input.model);
 
   const teamTools: readonly AnyTeamTool[] =

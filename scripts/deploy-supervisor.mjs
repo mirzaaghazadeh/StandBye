@@ -30,6 +30,9 @@ const crossBuilding = targetPlatform !== process.platform || targetArch !== proc
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
 fs.cpSync(path.join(src, "dist"), path.join(out, "dist"), { recursive: true, filter: (p) => !p.endsWith(".map") && !p.endsWith(".d.ts") });
+// The skills Standbye ships with, seeded onto the user shelf on first start. They sit beside dist/
+// here exactly as they do in the repo, which is how bundledSkillsDir() finds them in both places.
+fs.cpSync(path.join(src, "skills"), path.join(out, "skills"), { recursive: true });
 
 const pkg = JSON.parse(fs.readFileSync(path.join(src, "package.json"), "utf8"));
 const deps = { ...pkg.dependencies };

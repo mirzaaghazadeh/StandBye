@@ -181,6 +181,88 @@ export const TEAM_TOOLS = [
     },
   }),
   def({
+    name: "list_backlog",
+    description: "The team's backlog: what has been noticed, what is ready, and who is building what. Read this before deciding what to do next — someone may already be on it.",
+    schema: {},
+    handler: async (_a, ctx) => {
+      const open = ctx.crew.backlog.open();
+      if (!open.length) return "The backlog is empty. If you can see something worth doing, add it with add_idea.";
+      return open
+        .map((i) => `[${i.id}] ${i.status}${i.claimedBy ? ` (${i.claimedBy})` : ""} · ${i.size} · rank ${i.rank}\n  ${i.title}\n  ${i.detail || "(no detail)"}\n  why: ${i.rationale || "(not stated)"}`)
+        .join("\n\n");
+    },
+  }),
+  def({
+    name: "add_idea",
+    description:
+      "Put something worth doing on the backlog so it is not lost when this run ends. Use it for a real defect, a missing test, a rough edge in the product, or a feature that serves the charter. Say plainly what is wrong today and who it hurts — an idea with no case for it will be dropped. Check list_backlog first; do not add a duplicate.",
+    schema: {
+      title: z.string().min(4).max(120),
+      detail: z.string().max(2000).describe("Concretely what to do, with file paths where you know them, so a teammate could pick it up."),
+      rationale: z.string().max(1000).describe("What is wrong or missing today, and who it hurts. This is the case for doing it."),
+      size: z.enum(["small", "medium", "large"]).optional(),
+    },
+    handler: async ({ title, detail, rationale, size }, ctx) => {
+      const dup = ctx.crew.backlog.open().find((i) => i.title.trim().toLowerCase() === title.trim().toLowerCase());
+      if (dup) return `Already on the backlog as [${dup.id}] (${dup.status}). Nothing added.`;
+      const item = ctx.crew.backlog.add({ title, detail, rationale, size, addedBy: ctx.agentId });
+      return `Added [${item.id}] "${item.title}" to the backlog as an idea, ranked ${item.rank}. The lead decides when it gets built.`;
+    },
+  }),
+  def({
+    name: "rank_backlog",
+    description:
+      "Order the backlog and mark what is ready to build. This is the lead's job: decide what actually serves the charter next, and say why in one line. Lower rank happens sooner.",
+    schema: {
+      item_id: z.string(),
+      rank: z.number().int().min(0).max(10000).optional(),
+      status: z.enum(["idea", "ready", "dropped"]).optional(),
+      note: z.string().max(400).optional().describe("Why, in one line. Recorded on the item."),
+    },
+    handler: async ({ item_id, rank, status, note }, ctx) => {
+      const item = ctx.crew.backlog.get(item_id);
+      if (!item) return `No backlog item ${item_id}.`;
+      const next = ctx.crew.backlog.update(item_id, {
+        ...(rank !== undefined ? { rank } : {}),
+        ...(status ? { status } : {}),
+        ...(status === "dropped" && note ? { outcome: note } : {}),
+      });
+      return `[${next.id}] is now ${next.status} at rank ${next.rank}.${note ? ` Noted: ${note}` : ""}`;
+    },
+  }),
+  def({
+    name: "claim_item",
+    description:
+      "Take a backlog item and start building it. Refused if a teammate already has it, so two agents woken by the same standup cannot do the same work twice. Only claim what you are about to work on in this run.",
+    schema: { item_id: z.string(), branch: z.string().max(120).optional().describe("The branch you will work on, if you have made one.") },
+    handler: async ({ item_id, branch }, ctx) => {
+      try {
+        const item = ctx.crew.backlog.claim(item_id, ctx.agentId);
+        if (branch) ctx.crew.backlog.update(item.id, { branch });
+        return `You now own [${item.id}] "${item.title}". ${item.detail}\n\nWhen it is built, call finish_item.`;
+      } catch (e) {
+        return `Could not claim it: ${e instanceof Error ? e.message : String(e)}`;
+      }
+    },
+  }),
+  def({
+    name: "finish_item",
+    description:
+      "Close out a backlog item: done when it is built and the tests pass, in_review when it is waiting on a pull request or a teammate, dropped when it turned out not to be worth doing. Say what actually happened.",
+    schema: {
+      item_id: z.string(),
+      status: z.enum(["done", "in_review", "dropped"]),
+      outcome: z.string().max(1000).describe("What you did, or why it was dropped. Someone reads this later instead of re-deriving it."),
+      pr: z.string().max(300).optional(),
+    },
+    handler: async ({ item_id, status, outcome, pr }, ctx) => {
+      const item = ctx.crew.backlog.get(item_id);
+      if (!item) return `No backlog item ${item_id}.`;
+      const next = ctx.crew.backlog.update(item_id, { status, outcome, ...(pr ? { pr } : {}), ...(status === "done" ? { claimedBy: null } : {}) });
+      return `[${next.id}] "${next.title}" is ${next.status}.`;
+    },
+  }),
+  def({
     name: "remember",
     description: "Save something you learned that will matter next time: a convention, a decision, a gotcha, a preference of the owner. One sentence. Don't save task progress.",
     schema: { note: z.string().min(5).max(500) },

@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import type { Agent, Message, Question, Run, RunTrigger } from "@crew/shared";
+import type { Agent, Autonomy, Message, Question, Run, RunTrigger } from "@crew/shared";
+import { AUTONOMY_RULE } from "@crew/shared";
 import type { Crew } from "./crew.js";
 import { gitPrompt } from "./git.js";
 
@@ -31,6 +32,70 @@ function workspaceContext(agent: Agent, crew: Crew): string {
   const conventions = projectConventions(root);
   if (conventions) lines.push("", conventions);
   return lines.join("\n");
+}
+
+/**
+ * How the team decides its own work, and how far it may go with it.
+ *
+ * This is the difference between a team that waits to be told and one that runs itself. The
+ * backlog is the memory: without somewhere for an idea to live between being noticed and being
+ * built, every idea dies with the run that had it, and each morning starts from nothing.
+ *
+ * The limit is the owner's dial, enforced by the app like permissions and budgets — it is stated
+ * here so an agent knows where it stands, not so it can choose.
+ */
+function autonomySection(crew: Crew, agent: Agent, owner: string): string {
+  const level: Autonomy = crew.team?.autonomy ?? "pr";
+  const lead = isLead(agent);
+  const board = crew.backlog.summary();
+  const lines = [
+    "# Deciding what to do",
+    `${owner} is not always here. Between them asking for things, it is on you to notice what this project needs and to keep the backlog honest.`,
+    `What you may do without asking: ${AUTONOMY_RULE[level]}`,
+    "The backlog is how work survives between runs. add_idea when you notice something real; list_backlog before you start anything, so you do not repeat a teammate; claim_item before you build; finish_item when it is done, in review, or not worth doing.",
+    "An idea needs a case: what is wrong or missing today and who it hurts. \"Add tests\" is not an idea; \"approval.ts has no test for the deadlock we just fixed, so it can silently come back\" is.",
+    "Do not invent work to look busy. A quiet day where nothing needed doing is a good day, and saying so costs the team nothing.",
+  ];
+  if (lead) {
+    lines.push(
+      `You are the lead, so ranking is yours: decide what actually serves the charter next with rank_backlog, mark it ready, and hand it out with assign_task. Ask ${owner} only when the call is genuinely theirs — money, product direction, or anything irreversible.`,
+    );
+  }
+  if (level === "propose") {
+    lines.push(`Because the team is set to propose-only, do not write code for a backlog item until ${owner} has said yes to that item.`);
+  }
+  if (board) lines.push("", "## The backlog right now", board);
+  return lines.join("\n");
+}
+
+/**
+ * What an idle check-in should do with itself.
+ *
+ * A check-in that finds nothing new used to answer "nothing new" and stop, which is most
+ * wake-ups — and it is exactly the moment an agent has time to notice what the project needs.
+ * The rule here is deliberately narrow: escalate when there is real work waiting, or when the
+ * backlog is empty and nobody has looked lately. Otherwise stop. A check-in runs on the cheap
+ * model and cannot do the work itself; its only job is to decide whether the full model should.
+ */
+function idleWork(crew: Crew, agent: Agent): string {
+  const ready = crew.backlog.open().filter((i) => i.status === "ready" && !i.claimedBy);
+  const mine = crew.backlog.open().filter((i) => i.claimedBy === agent.id);
+  if (mine.length) {
+    return `You still own ${mine.map((i) => `[${i.id}] ${i.title}`).join(", ")}. Escalate and finish it.`;
+  }
+  if (ready.length) {
+    const top = ready[0]!;
+    return `The backlog has work ready and unclaimed: [${top.id}] ${top.title}. Escalate to pick it up.`;
+  }
+  if (!crew.backlog.open().length) {
+    return "The backlog is empty. If you have not looked lately, escalate to go and find what this project needs — read the recent commits, the failing or missing tests, the TODOs, the rough edges you have hit yourself — and write what you find down with add_idea. If you looked recently and found nothing, just finish.";
+  }
+  return "Everything on the backlog is either unranked or already taken, so there is nothing for you to start. Finish.";
+}
+
+/** The lead is whoever the team calls one; teams built from the template have exactly one. */
+function isLead(agent: Agent): boolean {
+  return /\blead\b|maintainer/i.test(agent.role);
 }
 
 /** Files a repo uses to tell a newcomer how to work in it, best first. */
@@ -151,6 +216,8 @@ export function systemPrompt(crew: Crew, agent: Agent, mode: "full" | "checkin",
     "When a decision belongs to the owner, ask once with options and a default, then keep working on something else.",
     "Always end a run by calling `done` with a one-line summary.",
     "",
+    autonomySection(crew, agent, owner),
+    "",
     decisions.length ? "# Decisions already made (do not re-ask)\n" + decisions.map((d) => `- ${d.title} → ${d.answer}`).join("\n") : "",
     "",
     files.memory ? "# Your memory\n" + tail(files.memory, 40) : "",
@@ -220,7 +287,7 @@ export function runPrompt(crew: Crew, agent: Agent, run: Run): string {
     sections.push("", "## Answers to questions you asked", ...answeredMine.map((q) => `- "${q.title}" → ${q.answer} (${q.answeredBy === "user" ? owner : q.answeredBy === "default" ? "default applied" : crew.findAgent(q.answeredBy!)?.name ?? q.answeredBy})`));
   }
   if (!fresh.length && !openForMe.length && !answeredMine.length && run.trigger.kind === "heartbeat") {
-    sections.push("", "Nothing new in your channels and no open questions.");
+    sections.push("", "Nothing new in your channels and no open questions.", idleWork(crew, agent));
   }
   return sections.join("\n");
 }

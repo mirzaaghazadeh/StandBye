@@ -12,6 +12,7 @@ import { Bus } from "./bus.js";
 import { Db } from "./db.js";
 import { Store } from "./store.js";
 import { SkillLibrary } from "./skills.js";
+import { Backlog } from "./backlog.js";
 import { DEFAULTS } from "./config.js";
 import { DEFAULT_DEV_RULES } from "./permissions.js";
 import { defaultSettings, hasClaudeLogin, preferredProvider, readSettings, statusFor, writeSettings, type Keys } from "./providers.js";
@@ -48,6 +49,8 @@ export class Crew {
   readonly store: Store;
   /** User, team and agent skills, and everything that installs or edits them. */
   readonly skills: SkillLibrary;
+  /** What the team has decided is worth doing, in the team folder so it travels with the project. */
+  readonly backlog: Backlog;
   readonly bus = new Bus();
   readonly startedAt = new Date().toISOString();
   team: TeamConfig | null;
@@ -77,6 +80,7 @@ export class Crew {
       agent: (id) => store.agentSkillsDir(id),
       agentDir: (id) => store.agentDir(id),
     });
+    this.backlog = new Backlog(opts.dataDir);
     const stale = this.db.recoverStaleRuns();
     if (stale > 0) log(`marked ${stale} stale run(s) as failed after restart`, { team: this.team?.id });
     this.restoreChannels();

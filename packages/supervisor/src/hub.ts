@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import type { Agent, ArchivedTeam, GitSettings, PushEvent, TeamDraft, TeamSummary } from "@crew/shared";
 import { TEAM_DIR_NAME } from "@crew/shared";
 import { Crew, type Keys } from "./crew.js";
+import { syncBundledSkills } from "./bundled-skills.js";
 import { Scheduler } from "./scheduler.js";
 import type { SupervisorOptions } from "./config.js";
 
@@ -63,6 +64,9 @@ export class Hub {
 
   constructor(readonly opts: SupervisorOptions) {
     fs.mkdirSync(this.teamsDir, { recursive: true });
+    // The shelf every team reads from, seeded before any crew opens it. A failure here must never
+    // stop a supervisor from starting: the teams matter, the shipped how-tos are a convenience.
+    try { syncBundledSkills(this.opts.dataDir); } catch (e) { log(`could not sync the bundled skills: ${e instanceof Error ? e.message : String(e)}`); }
     this.migrateLegacy();
     this.adoptProjectTeams();
     const archived = new Set(this.archiveIndex().map((a) => a.id));

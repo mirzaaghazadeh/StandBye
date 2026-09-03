@@ -6,7 +6,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { z } from "zod";
 import { PROVIDERS, providerLabel, providerSpec, TeamDraftSchema, type Provider, type ProviderStatus, type TeamDraft } from "@crew/shared";
-import { providerBaseUrl, providerKey } from "./providers.js";
+import { ATTRIBUTION_HEADERS, providerBaseUrl, providerKey } from "./providers.js";
 import type { Crew } from "./crew.js";
 import { soloDevTeam } from "./templates.js";
 
@@ -147,7 +147,7 @@ async function viaOpenAiCompatible(id: string, baseURL: string, apiKey: string, 
   if (!baseURL) throw new Error(`${providerLabel(id)} has no base URL set.`);
   if (!model) throw new Error(`${providerLabel(id)} has no default model set. Pick one in Settings › Providers.`);
   const provider = id === "openrouter"
-    ? createOpenRouter({ apiKey })
+    ? createOpenRouter({ apiKey, headers: ATTRIBUTION_HEADERS })
     : createOpenAICompatible({ name: id, baseURL, apiKey: apiKey || undefined });
   const { output } = await generateText({
     model: provider(model),
