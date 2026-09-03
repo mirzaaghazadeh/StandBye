@@ -32,6 +32,7 @@ async function freshStore(overrides = {}) {
     "channels.list": () => [{ id: "general", name: "general" }],
     "questions.list": () => [],
     "runs.list": () => [],
+    "tasks.list": () => [],
     "spend.get": () => ({ totalUsd: 0 }),
     "models.list": () => ({}),
     "messages.list": () => [],

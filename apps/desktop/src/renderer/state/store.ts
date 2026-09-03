@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { dmChannelId } from "@crew/shared";
 import type {
-  Agent, AgentDraft, AgentFiles, ArchivedTeam, Channel, MessageDraft, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunDiff, RunStep, SkillScope, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft, TeamSummary, UpdateState,
+  Agent, AgentDraft, AgentFiles, ArchivedTeam, Channel, MessageDraft, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunDiff, RunStep, SkillScope, SpendSummary, SupervisorStatus, Task, TeamConfig, TeamDraft, TeamSummary, UpdateState,
 } from "@crew/shared";
 
 /** Matches shown per search. One extra is requested from the supervisor so overflow can be labelled. */
@@ -57,6 +57,7 @@ export interface State {
   thinking: Record<string, string>;
   questions: Question[];
   runs: Run[];
+  tasks: Task[];
   steps: Record<string, RunStep[]>;
   /** Workspace diffs per run id, fetched on demand from run.diff. */
   runDiffs: Record<string, RunDiff>;
@@ -80,7 +81,7 @@ export interface State {
 
 const initial: State = {
   ready: false, error: null, route: { name: "home" }, sheet: { kind: "none" }, status: null,
-  keys: {}, providers: null, models: null, teams: [], archived: [], activeTeamId: null, team: null, agents: [], channels: [], messages: {}, drafts: {}, thinking: {}, search: null, questions: [], runs: [], steps: {}, runDiffs: {},
+  keys: {}, providers: null, models: null, teams: [], archived: [], activeTeamId: null, team: null, agents: [], channels: [], messages: {}, drafts: {}, thinking: {}, search: null, questions: [], runs: [], tasks: [], steps: {}, runDiffs: {},
   spend: null, update: null, selectedAgentId: null, pendingWorkspace: null, seen: {}, waking: {}, firstStepsDismissed: false, skillsStamp: 0, builderDraft: null, builderBusy: false, toast: null,
 };
 
@@ -122,15 +123,15 @@ class Store {
     if (!activeTeamId || !teams.some((t) => t.id === activeTeamId)) activeTeamId = teams[0]?.id ?? null;
     if (activeTeamId) await this.rpc("teams.select", { id: activeTeamId });
     writeLocal("standbye.activeTeam", activeTeamId ?? "");
-    const [status, providers, team, agents, channels, questions, runs, spend] = await Promise.all([
+    const [status, providers, team, agents, channels, questions, runs, tasks, spend] = await Promise.all([
       this.rpc<SupervisorStatus>("status.get"), this.rpc<ProviderStatus>("providers.get"), this.rpc<TeamConfig | null>("team.get"), this.rpc<Agent[]>("agents.list"),
-      this.rpc<Channel[]>("channels.list"), this.rpc<Question[]>("questions.list", {}), this.rpc<Run[]>("runs.list", { limit: 200 }), this.rpc<SpendSummary>("spend.get"),
+      this.rpc<Channel[]>("channels.list"), this.rpc<Question[]>("questions.list", {}), this.rpc<Run[]>("runs.list", { limit: 200 }), this.rpc<Task[]>("tasks.list"), this.rpc<SpendSummary>("spend.get"),
     ]);
     // Drop any in-flight search response: the search reset below must stick.
     this.searchSeq++;
     this.set({
       firstStepsDismissed: readLocal("standbye.firstSteps." + (activeTeamId ?? "")) === "done",
-      teams, activeTeamId, status, keys: readyMap(providers), providers, team, agents, channels, questions, runs, spend, messages: {}, drafts: {}, thinking: {}, steps: {}, runDiffs: {}, search: null,
+      teams, activeTeamId, status, keys: readyMap(providers), providers, team, agents, channels, questions, runs, tasks, spend, messages: {}, drafts: {}, thinking: {}, steps: {}, runDiffs: {}, search: null,
       selectedAgentId: agents.some((a) => a.id === this.state.selectedAgentId) ? this.state.selectedAgentId : agents[0]?.id ?? null,
     });
     if (!team && this.state.sheet.kind === "none") this.set({ sheet: { kind: "onboarding" } });
