@@ -8,6 +8,7 @@ import { makeCrew, tempDir } from "./helpers.mjs";
 import { Crew } from "../dist/crew.js";
 import { Scheduler } from "../dist/scheduler.js";
 import { runPrompt } from "../dist/prompt.js";
+import { describeTrigger } from "../dist/runner.js";
 
 process.env.CREW_DISABLE_CLAUDE_LOGIN = "1";
 
@@ -42,6 +43,11 @@ test("a run cut off by a restart is picked up again", async (t) => {
     assert.ok(resumed, "a resumed run was queued");
     assert.equal(resumed.trigger.runId, run.id);
     assert.equal(resumed.trigger.was.kind, "task", "it remembers what it had been asked to do");
+  });
+
+  await t.test("describeTrigger covers the resumed run", () => {
+    const resumed = reopened.db.listRuns({ agentId: agent.id, limit: 5 }).find((r) => r.trigger.kind === "resumed");
+    assert.equal(describeTrigger(resumed), "Picking the run up again");
   });
 
   await t.test("the agent is told what the last attempt got through", () => {

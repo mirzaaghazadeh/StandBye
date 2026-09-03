@@ -114,5 +114,6 @@ export function describeTrigger(run: Run): string {
     case "question": return "Answering a teammate";
     case "escalated": return t.reason;
     case "manual": return t.prompt.slice(0, 80);
+    case "resumed": return "Picking the run up again";
   }
 }
