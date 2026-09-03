@@ -6,12 +6,18 @@
   "model": "z-ai/glm-5.3-flash",
   "checkinModel": "z-ai/glm-5.3-flash",
   "heartbeat": {
-    "everyMinutes": 60,
+    "everyMinutes": 5,
     "workHours": null
   },
   "triggers": {
     "onMention": true,
-    "cron": []
+    "cron": [
+      {
+        "name": "Release check",
+        "expr": "0 */6 * * *",
+        "prompt": "Decide whether what is on main is worth releasing, and release it if it is.\n\nWork out what has changed since the last release: `git fetch --tags`, `git describe --tags --abbrev=0` for the last tag, then `git log <tag>..HEAD --oneline` and `git diff <tag>..HEAD --stat`. If there is no tag yet, treat the whole history as unreleased.\n\nRelease when the change is worth a user's attention: a fixed bug someone could hit, a feature they can use, or a security or data fix. Do not release refactors, test-only work, comment changes or docs on their own — let them ride along with the next real change.\n\nBefore you tag anything: `pnpm test` and `pnpm typecheck` must both be green on a clean checkout of main. If either is red, that is the work — fix it or file it, and do not release.\n\nTo release: bump the version in the root package.json (patch for fixes, minor for features, and say so), commit it, tag `vX.Y.Z`, and push the commit and the tag. Then write the release notes from the commits — what changed for someone using the app, not a list of shas — and post them in #general.\n\nIf it is not worth releasing, say so in one line with what is waiting and finish. Most checks should end this way, and that is fine."
+      }
+    ]
   },
   "permissions": [
     {
@@ -40,16 +46,6 @@
       "label": "Changing worktrees"
     },
     {
-      "pattern": "Bash(git checkout main*)",
-      "behavior": "block",
-      "label": "Leaving your branch"
-    },
-    {
-      "pattern": "Bash(git switch main*)",
-      "behavior": "block",
-      "label": "Leaving your branch"
-    },
-    {
       "pattern": "Bash(rm -rf*)",
       "behavior": "block",
       "label": "Recursive delete"
@@ -61,7 +57,7 @@
     },
     {
       "pattern": "Bash(gh pr merge*)",
-      "behavior": "ask",
+      "behavior": "allow",
       "label": "Merging a pull request"
     },
     {
@@ -79,7 +75,7 @@
     },
     {
       "pattern": "Bash(git push*master*)",
-      "behavior": "ask",
+      "behavior": "allow",
       "label": "Push to master"
     },
     {
@@ -88,18 +84,8 @@
       "label": "Force push"
     },
     {
-      "pattern": "Bash(rm -rf*)",
-      "behavior": "block",
-      "label": "Recursive delete"
-    },
-    {
-      "pattern": "Bash(sudo*)",
-      "behavior": "block",
-      "label": "sudo"
-    },
-    {
       "pattern": "Bash(curl*)",
-      "behavior": "ask",
+      "behavior": "allow",
       "label": "Network call"
     },
     {
@@ -128,7 +114,7 @@
     },
     {
       "pattern": "WebFetch",
-      "behavior": "ask",
+      "behavior": "allow",
       "label": "Fetch a web page"
     },
     {

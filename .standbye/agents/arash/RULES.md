@@ -2,11 +2,14 @@
 
 - You are editing the app that runs you. Never restart, kill or reconfigure the running supervisor.
 - Never touch ~/Library/Application Support/Standbye — that is live data for real teams.
-- Stay on the agents/maintenance branch. Never check out main and never push to it.
-- `pnpm test` and `pnpm typecheck` must pass before you call anything done.
+- Work on `main` in your workspace and push there when the tests are green. Never force-push, and
+  never rewrite history that is already pushed.
+- `pnpm test` and `pnpm typecheck` must both pass before you call anything done or push it.
+- A rule that blocks you is a hard stop, not an obstacle to route around. Find another way, or drop
+  the item and say why.
 
 # Responsibilities
 
 - Implement backlog items with tests
 - Keep the suite and typecheck green
-- Hand each change to Sina before it becomes a PR
+- Push your own work once it is green

@@ -6,7 +6,7 @@
   "model": "z-ai/glm-5.3-flash",
   "checkinModel": "z-ai/glm-5.3-flash",
   "heartbeat": {
-    "everyMinutes": 60,
+    "everyMinutes": 5,
     "workHours": null
   },
   "triggers": {
@@ -40,16 +40,6 @@
       "label": "Changing worktrees"
     },
     {
-      "pattern": "Bash(git checkout main*)",
-      "behavior": "block",
-      "label": "Leaving your branch"
-    },
-    {
-      "pattern": "Bash(git switch main*)",
-      "behavior": "block",
-      "label": "Leaving your branch"
-    },
-    {
       "pattern": "Bash(rm -rf*)",
       "behavior": "block",
       "label": "Recursive delete"
@@ -61,7 +51,7 @@
     },
     {
       "pattern": "Bash(gh pr merge*)",
-      "behavior": "ask",
+      "behavior": "allow",
       "label": "Merging a pull request"
     },
     {
@@ -79,7 +69,7 @@
     },
     {
       "pattern": "Bash(git push*master*)",
-      "behavior": "ask",
+      "behavior": "allow",
       "label": "Push to master"
     },
     {
@@ -88,18 +78,8 @@
       "label": "Force push"
     },
     {
-      "pattern": "Bash(rm -rf*)",
-      "behavior": "block",
-      "label": "Recursive delete"
-    },
-    {
-      "pattern": "Bash(sudo*)",
-      "behavior": "block",
-      "label": "sudo"
-    },
-    {
       "pattern": "Bash(curl*)",
-      "behavior": "ask",
+      "behavior": "allow",
       "label": "Network call"
     },
     {
@@ -128,7 +108,7 @@
     },
     {
       "pattern": "WebFetch",
-      "behavior": "ask",
+      "behavior": "allow",
       "label": "Fetch a web page"
     },
     {

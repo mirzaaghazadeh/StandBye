@@ -1,0 +1,14 @@
+[
+  {
+    "id": "general",
+    "name": "general",
+    "purpose": "Everyone. Announcements, standups, anything cross-cutting.",
+    "members": [
+      "mina",
+      "arash",
+      "sina"
+    ],
+    "kind": "group",
+    "dmAgentId": null
+  }
+]
