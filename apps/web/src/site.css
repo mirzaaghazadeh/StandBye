@@ -260,6 +260,23 @@ a.land-r:hover { background: #f6f4f0; color: var(--ink); }
 .phone-tab-on { color: var(--accent); background: var(--accent-soft); }
 .phone-tabs .badge { position: absolute; top: -2px; right: -4px; }
 
+/* docs: /docs/openrouter/ and any provider guide after it */
+.doc-lead { font-size: 16px; color: var(--ink-3); max-width: 640px; }
+.doc-steps { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+.doc-step { display: grid; grid-template-columns: 26px 1fr; gap: 16px; align-items: start; padding: 18px 20px; }
+.doc-step .step-i { width: 26px; height: 26px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.doc-step p { margin: 0; }
+.doc-step p + p { margin-top: 10px; }
+.doc-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 24px; }
+.doc-two h3 { display: flex; align-items: center; gap: 7px; }
+.doc-two h3 svg { color: var(--ink-4); }
+.doc-kv { margin-top: 22px; display: flex; flex-direction: column; gap: 0; padding: 4px 20px; }
+.doc-kv > div { display: grid; grid-template-columns: 190px 1fr; gap: 18px; padding: 12px 0; border-bottom: 1px solid var(--border-faint); font-size: 14px; }
+.doc-kv > div:last-child { border-bottom: none; }
+.doc-kv span { color: var(--ink-3); }
+/* The block scrolls on its own so a long command never widens the page. */
+.code { display: block; margin-top: 22px; padding: 14px 16px; border-radius: 10px; background: var(--ink); color: var(--bg); font-size: 12.5px; line-height: 1.7; white-space: pre; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
 /* faq */
 .faq { border-bottom: 1px solid var(--border); padding: 4px 0; }
 .faq summary { font-weight: 600; font-size: 15px; padding: 10px 0; list-style: none; display: flex; align-items: center; gap: 10px; }
@@ -303,7 +320,8 @@ a.land-r:hover { background: #f6f4f0; color: var(--ink); }
   .mock .tb { gap: 6px; padding: 0 10px; }
   .mock .tb .ibtn:disabled { display: none; }
   .br-lg { display: none; }
-  .doors, .mix, .plats, .dl-steps, .pgrid, .dog-log { grid-template-columns: 1fr; }
+  .doors, .mix, .plats, .dl-steps, .pgrid, .dog-log, .doc-two { grid-template-columns: 1fr; }
+  .doc-kv > div { grid-template-columns: 1fr; gap: 4px; }
   .hero-stack { height: 480px; }
   .hero-team-t { display: none; }
   .dog { padding: 52px 0; }

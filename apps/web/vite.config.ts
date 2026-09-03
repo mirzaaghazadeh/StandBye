@@ -24,7 +24,14 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
-    // Two pages: / and /download/. nginx serves dist/download/index.html for the second.
-    rollupOptions: { input: { index: resolve(__dirname, "index.html"), download: resolve(__dirname, "download/index.html") } },
+    // Three pages: /, /download/ and /docs/openrouter/. nginx's `try_files $uri $uri/` serves each
+    // folder's index.html; the input keys only name the chunks, the output path follows the source.
+    rollupOptions: {
+      input: {
+        index: resolve(__dirname, "index.html"),
+        download: resolve(__dirname, "download/index.html"),
+        docsOpenrouter: resolve(__dirname, "docs/openrouter/index.html"),
+      },
+    },
   },
 });

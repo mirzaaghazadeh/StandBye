@@ -66,7 +66,9 @@ export function Providers() {
       <Row items={ROW_A} />
       <Row items={ROW_B} reverse />
       <div className="wrap wrap-wide">
-        <div className="fine" style={{ textAlign: "center", marginTop: 14 }}>Hover to pause. Brand marks belong to their owners.</div>
+        <div className="fine" style={{ textAlign: "center", marginTop: 14 }}>
+          Hover to pause. Brand marks belong to their owners. · <a href="/docs/openrouter/">Setting up OpenRouter</a>
+        </div>
       </div>
     </section>
   );
