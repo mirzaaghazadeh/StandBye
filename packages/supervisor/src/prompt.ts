@@ -179,11 +179,12 @@ function skillsCatalog(crew: Crew, agent: Agent, hasNativeSkillTool: boolean): s
 }
 
 /** Build the system prompt for an agent: soul, rules, team, memory, how the tools work. */
-export function systemPrompt(crew: Crew, agent: Agent, mode: "full" | "checkin", opts: { hasNativeSkillTool?: boolean } = {}): string {
+export function systemPrompt(crew: Crew, agent: Agent, mode: "full" | "checkin" | "reply", opts: { hasNativeSkillTool?: boolean } = {}): string {
   const files = crew.store.readAgentFiles(agent.id);
   const team = crew.team;
   const owner = team?.ownerName ?? "the owner";
   if (mode === "checkin") return checkinPrompt(agent, files, owner);
+  if (mode === "reply") return replyPrompt(crew, agent, files, owner);
   const teammates = crew
     .listAgents()
     .filter((a) => a.id !== agent.id)
@@ -233,6 +234,41 @@ export function systemPrompt(crew: Crew, agent: Agent, mode: "full" | "checkin",
   ];
 
   return parts.filter((p) => p !== undefined).join("\n").replace(/\n{3,}/g, "\n\n");
+}
+
+/**
+ * Answering the owner in their private chat.
+ *
+ * Measured: a "what are you working on?" took 28 seconds and ~17,500 input tokens, because it was
+ * given the whole working apparatus — the file tree, the project's conventions, the backlog, the
+ * skills catalogue, the git workflow, and every file and shell tool — to type two sentences. None
+ * of that helps someone answer a question about what they are doing.
+ *
+ * So a reply gets what a person needs to answer: who they are, what they have been doing, what
+ * they remember, and the conversation. If the message turns out to be real work, it escalates —
+ * the same move a check-in makes, and for the same reason.
+ */
+function replyPrompt(crew: Crew, agent: Agent, files: { soul?: string; rules?: string; memory?: string }, owner: string): string {
+  const identity = (files.soul ?? "").split(/\n\s*\n/).find((p) => p.trim() && !p.trim().startsWith("#"))?.trim();
+  const recent = crew.db
+    .listRuns({ agentId: agent.id, limit: 5 })
+    .filter((r) => r.summary && (r.status === "done" || r.status === "needs_you"))
+    .map((r) => `- ${hhmm(r.createdAt)}: ${r.summary}`);
+  return [
+    `You are ${agent.name}, ${agent.role} on ${owner}'s team.`,
+    identity ?? "",
+    "",
+    `# ${owner} is talking to you`,
+    "This is your private chat. Answer them, then finish — that is the whole run.",
+    "Reply from what you already know: what you have been doing is below, and your memory is further down. Do not go and look things up, read files or run commands to answer a question about your own work.",
+    "Be brief and specific. No status echoes, no preamble.",
+    "",
+    `If they are actually asking for work — a change, an investigation, something that needs the code — call \`escalate\` with a one-line reason instead of answering. That hands it to your full self, with the workspace and the tools. Answering a question is not work; being asked to fix something is.`,
+    "",
+    recent.length ? "# What you have been doing\n" + recent.join("\n") : "# What you have been doing\nNothing yet.",
+    "",
+    files.memory ? "# Your memory\n" + tail(files.memory, 25) : "",
+  ].filter(Boolean).join("\n").replace(/\n{3,}/g, "\n\n");
 }
 
 /**

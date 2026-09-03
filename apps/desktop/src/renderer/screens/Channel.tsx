@@ -129,6 +129,7 @@ function WorkingNow({ channelId, dmAgentId, messages }: { channelId: string; dmA
   const runs = useStore((s) => s.runs);
   const steps = useStore((s) => s.steps);
   const agents = useStore((s) => s.agents);
+  const thinking = useStore((s) => s.thinking);
   const ids = new Set(messages.map((m) => m.id));
   const active = runs.filter((r) => {
     if (r.status !== "running" && r.status !== "queued") return false;
@@ -147,7 +148,15 @@ function WorkingNow({ channelId, dmAgentId, messages }: { channelId: string; dmA
             <Avatar agent={a} name={r.agentId} size={18} />
             <span className="who">{a?.name ?? r.agentId}</span>
             <span className="dots"><i /><i /><i /></span>
-            <span className="what" title={last?.text}>{r.status === "queued" ? "waiting for a free slot" : last ? `${last.kind}: ${last.text}` : "reading the conversation"}</span>
+            <span className="what" title={thinking[r.id] ?? last?.text}>
+              {r.status === "queued"
+                ? "waiting for a free slot"
+                // What it is reasoning about beats what it last did: during the long pause before
+                // the first tool call, the step list is empty and only the thinking says anything.
+                : thinking[r.id]
+                  ? <em style={{ fontStyle: "normal", opacity: 0.85 }}>{thinking[r.id]}</em>
+                  : last ? `${last.kind}: ${last.text}` : "reading the conversation"}
+            </span>
             <a onClick={() => store.navigate({ name: "runs", runId: r.id })} style={{ fontSize: 11 }}>open run</a>
           </div>
         );

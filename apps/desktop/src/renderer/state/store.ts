@@ -52,6 +52,8 @@ export interface State {
   search: { channelId: string; q: string; results: Message[]; busy: boolean; error: string | null; truncated: boolean } | null;
   /** channelId -> the reply an agent is writing right now, shown until the real message lands. */
   drafts: Record<string, MessageDraft>;
+  /** runId -> what that agent is reasoning about, so a wait shows thinking rather than a spinner. */
+  thinking: Record<string, string>;
   questions: Question[];
   runs: Run[];
   steps: Record<string, RunStep[]>;
@@ -77,7 +79,7 @@ export interface State {
 
 const initial: State = {
   ready: false, error: null, route: { name: "home" }, sheet: { kind: "none" }, status: null,
-  keys: {}, providers: null, models: null, teams: [], archived: [], activeTeamId: null, team: null, agents: [], channels: [], messages: {}, drafts: {}, search: null, questions: [], runs: [], steps: {}, runDiffs: {},
+  keys: {}, providers: null, models: null, teams: [], archived: [], activeTeamId: null, team: null, agents: [], channels: [], messages: {}, drafts: {}, thinking: {}, search: null, questions: [], runs: [], steps: {}, runDiffs: {},
   spend: null, update: null, selectedAgentId: null, pendingWorkspace: null, seen: {}, waking: {}, firstStepsDismissed: false, skillsStamp: 0, builderDraft: null, builderBusy: false, toast: null,
 };
 
@@ -127,11 +129,12 @@ class Store {
     this.searchSeq++;
     this.set({
       firstStepsDismissed: readLocal("standbye.firstSteps." + (activeTeamId ?? "")) === "done",
-      teams, activeTeamId, status, keys: readyMap(providers), providers, team, agents, channels, questions, runs, spend, messages: {}, steps: {}, runDiffs: {}, search: null,
+      teams, activeTeamId, status, keys: readyMap(providers), providers, team, agents, channels, questions, runs, spend, messages: {}, drafts: {}, thinking: {}, steps: {}, runDiffs: {}, search: null,
       selectedAgentId: agents.some((a) => a.id === this.state.selectedAgentId) ? this.state.selectedAgentId : agents[0]?.id ?? null,
     });
     if (!team && this.state.sheet.kind === "none") this.set({ sheet: { kind: "onboarding" } });
     void this.loadModels();
+    void this.loadConversations(agents);
   }
 
   async switchTeam(id: string): Promise<void> {
@@ -168,6 +171,7 @@ class Store {
         const { [e.data.channelId]: _gone, ...drafts } = s.drafts;
         return { messages: { ...s.messages, [e.data.channelId]: [...(s.messages[e.data.channelId] ?? []), e.data].slice(-500) }, drafts };
       }); break;
+      case "run.thinking": this.set((s) => ({ thinking: { ...s.thinking, [e.data.runId]: e.data.text } })); break;
       case "message.draft": this.set((s) => {
         // `done` with no message following means the agent thought better of it; the real
         // message.created above is what normally clears the draft.
@@ -176,7 +180,8 @@ class Store {
       }); break;
       case "question.created": this.set((s) => ({ questions: [e.data, ...s.questions] })); break;
       case "question.updated": this.set((s) => ({ questions: s.questions.map((q) => (q.id === e.data.id ? e.data : q)) })); break;
-      case "run.updated": this.set((s) => ({ runs: s.runs.some((r) => r.id === e.data.id) ? s.runs.map((r) => (r.id === e.data.id ? e.data : r)) : [e.data, ...s.runs] })); break;
+      case "run.updated": if (["done","noop","failed","cancelled"].includes(e.data.status)) this.set((s) => { const { [e.data.id]: _x, ...rest } = s.thinking; return { thinking: rest }; });
+        this.set((s) => ({ runs: s.runs.some((r) => r.id === e.data.id) ? s.runs.map((r) => (r.id === e.data.id ? e.data : r)) : [e.data, ...s.runs] })); break;
       case "run.step": this.set((s) => ({ steps: { ...s.steps, [e.data.runId]: [...(s.steps[e.data.runId] ?? []), e.data].slice(-300) } })); break;
       case "team.updated": this.set({ team: e.data }); if (e.data) void this.rpc<Channel[]>("channels.list").then((channels) => this.set({ channels })); break;
       case "spend.updated": this.set({ spend: e.data }); break;
@@ -218,6 +223,23 @@ class Store {
   }
 
   // ---------- data loaders ----------
+
+  /**
+   * Pull the direct chats in on connect rather than waiting for a click.
+   *
+   * Reopening the app cleared every loaded conversation and only fetched one when you opened it,
+   * so the private chats looked wiped: no last message, no unread mark, an empty room until it
+   * filled in. They are small and there is one per agent, so they are simply loaded.
+   */
+  private async loadConversations(agents: Agent[]): Promise<void> {
+    await Promise.all(agents.map(async (a) => {
+      const channelId = dmChannelId(a.id);
+      try {
+        const messages = await this.rpc<Message[]>("messages.list", { channelId, limit: 60 });
+        if (messages.length) this.set((s) => ({ messages: { ...s.messages, [channelId]: messages } }));
+      } catch { /* an agent with no chat yet */ }
+    }));
+  }
 
   async loadMessages(channelId: string): Promise<void> {
     const messages = await this.rpc<Message[]>("messages.list", { channelId, limit: 200 });

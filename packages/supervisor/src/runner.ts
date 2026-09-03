@@ -1,4 +1,4 @@
-import type { Agent, ProviderKind, Run } from "@crew/shared";
+import type { Agent, ProviderKind, Run, RunTrigger } from "@crew/shared";
 import { providerSpec } from "@crew/shared";
 import type { Crew } from "./crew.js";
 import { gitHead, gitRules } from "./git.js";
@@ -38,7 +38,12 @@ export async function executeRun(crew: Crew, runId: string, signal: AbortSignal)
   const runner = RUNNERS[spec.kind];
   const config = crew.providerConfig(agent.provider);
 
-  const mode: "full" | "checkin" = run.trigger.kind === "heartbeat" ? "checkin" : "full";
+  // Three shapes of run, not two. A heartbeat decides whether anything needs doing; a reply in a
+  // direct chat answers a person who is waiting; everything else is work. The owner asking a
+  // question should not pay for the whole working apparatus — the tree, the conventions, the
+  // backlog, the file and shell tools — just to be answered.
+  const mode: "full" | "checkin" | "reply" =
+    run.trigger.kind === "heartbeat" ? "checkin" : isDirectChat(crew, run.trigger) ? "reply" : "full";
   const model = mode === "checkin" ? agent.checkinModel || agent.model : agent.model;
   const startedAt = new Date().toISOString();
   // One rev-parse where the run's steps open: this HEAD is the base the run's diff is
@@ -116,4 +121,11 @@ export function describeTrigger(run: Run): string {
     case "manual": return t.prompt.slice(0, 80);
     case "resumed": return "Picking the run up again";
   }
+}
+
+/** The owner writing in their private chat with this agent: a conversation, not a work order. */
+function isDirectChat(crew: Crew, t: RunTrigger): boolean {
+  if (t.kind !== "mention" || t.by !== "user") return false;
+  const m = crew.db.getMessage(t.messageId);
+  return Boolean(m && crew.db.getChannel(m.channelId)?.kind === "dm");
 }

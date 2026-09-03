@@ -7,7 +7,7 @@ export interface RunnerInput {
   crew: Crew;
   agent: Agent;
   run: Run;
-  mode: "full" | "checkin";
+  mode: "full" | "checkin" | "reply";
   model: string;
   system: string;
   prompt: string;

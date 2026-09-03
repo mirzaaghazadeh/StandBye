@@ -42,6 +42,11 @@ export const DEFAULTS = {
   questionDefaultMinutes: 120,
   maxConcurrentRuns: 3,
   /**
+   * Replies in a direct chat run above that cap. Being answered should never wait on the team's
+   * work capacity — three long runs used to leave a "hello" queued indefinitely.
+   */
+  maxConcurrentReplies: 2,
+  /**
    * Ceiling on how often one agent may wake in a rolling hour. Budgets cap the money, this caps
    * the churn: without it a pair of agents can answer each other indefinitely on a cheap model.
    * The owner's own messages are never refused by it.

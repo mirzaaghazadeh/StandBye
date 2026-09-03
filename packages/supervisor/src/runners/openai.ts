@@ -43,10 +43,15 @@ export const openaiRunner: Runner = async (input) => {
     ? createOpenRouter({ apiKey, headers: ATTRIBUTION_HEADERS })(input.model, { usage: { include: true } })
     : createOpenAICompatible({ name: spec.id, baseURL, apiKey: apiKey || undefined, includeUsage: true })(input.model);
 
+  // What each shape of run can actually do. Handing a conversation the file and shell tools does
+  // not help it answer a question — it costs tokens, slows the first token down, and invites the
+  // model to go rummaging instead of replying.
   const teamTools: readonly AnyTeamTool[] =
     mode === "checkin"
       ? [...CHECKIN_TOOLS, ...TEAM_TOOLS.filter((t) => ["list_agents", "read_channel", "team_decisions", "done"].includes(t.name))]
-      : TEAM_TOOLS;
+      : mode === "reply"
+        ? [...CHECKIN_TOOLS, ...TEAM_TOOLS.filter((t) => ["post_message", "read_channel", "list_agents", "remember", "done"].includes(t.name))]
+        : TEAM_TOOLS;
 
   let finished = false;
   const wrappedCtx: ToolContext = {
@@ -78,12 +83,14 @@ export const openaiRunner: Runner = async (input) => {
 
   // Lives above the try so the catch can sweep half-finished drafts when the stream dies.
   const drafting = new Map<string, { channelId: string; json: string; sent: string }>();
+  let thinking = "";
+  let thoughtAt = 0;
   try {
     const loop = new ToolLoopAgent({
       model,
       instructions: input.system,
       tools,
-      stopWhen: [isStepCount(mode === "checkin" ? 6 : DEFAULTS.maxTurns), () => finished],
+      stopWhen: [isStepCount(mode === "checkin" ? 6 : mode === "reply" ? 8 : DEFAULTS.maxTurns), () => finished],
       // The whole conversation is re-sent every step, so old tool-result payloads are the
       // single biggest cost in a long run. Drop the bodies once the model has moved on.
       prepareStep: ({ messages }) => ({ messages: trimConversation(messages) }),
@@ -116,6 +123,18 @@ export const openaiRunner: Runner = async (input) => {
       // this an expired key or an empty balance would arrive as a nameless "other" failure and
       // the agent would never be paused for it.
       if (part.type === "error") throw part.error;
+      // Models that reason out loud emit it before anything else happens. Showing it is the
+      // difference between a spinner and watching someone think: the wait is the same, but you
+      // can see it is working on your question rather than stuck.
+      if (part.type === "reasoning-delta") {
+        thinking += part.text ?? "";
+        const now = Date.now();
+        if (now - thoughtAt > 400 && thinking.trim()) {
+          thoughtAt = now;
+          crew.bus.emit("run.thinking", { runId: run.id, agentId: agent.id, text: lastSentence(thinking) });
+        }
+        continue;
+      }
       if (part.type === "tool-input-start") {
         if (part.toolName === "post_message") drafting.set(part.id, { channelId: "", json: "", sent: "" });
         continue;
@@ -163,6 +182,22 @@ export const openaiRunner: Runner = async (input) => {
   }
   return { costUsd, inputTokens, outputTokens, cachedTokens, text, error, failure };
 };
+
+/**
+ * What it is thinking about *now*, not the whole train of thought.
+ *
+ * Reasoning arrives as fragments and accumulates without limit, so the line has to be the tail
+ * rather than the lot: the last sentence where there is one, otherwise the last stretch of it,
+ * trimmed at a word so it does not cut mid-syllable.
+ */
+function lastSentence(text: string): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  const parts = clean.split(/(?<=[.!?])\s+/).filter((p) => p.trim());
+  const tail = (parts[parts.length - 1] ?? clean).trim();
+  if (tail.length <= 140) return tail;
+  const cut = tail.slice(-140);
+  return "…" + cut.slice(cut.indexOf(" ") + 1);
+}
 
 function fail(error: string, failure: FailureKind) {
   return { costUsd: 0, inputTokens: 0, outputTokens: 0, text: "", error, failure };

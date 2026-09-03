@@ -632,6 +632,8 @@ export type PushEvent = (
    * `message.created` (or by `done: true` with no message, if the agent changed its mind).
    */
   | { event: "message.draft"; data: MessageDraft }
+  /** What an agent is reasoning about right now, for the line that would otherwise be a spinner. */
+  | { event: "run.thinking"; data: { runId: string; agentId: string; text: string } }
   | { event: "question.created"; data: Question }
   | { event: "question.updated"; data: Question }
   | { event: "run.updated"; data: Run }
