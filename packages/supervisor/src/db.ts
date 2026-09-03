@@ -178,6 +178,11 @@ export class Db {
       : (this.sqlite.prepare("SELECT COALESCE(SUM(cost_usd),0) AS c FROM runs WHERE created_at >= ?").get(startOfToday()) as { c: number });
     return row.c;
   }
+  /** How many times this agent has already woken in the window. Guards against chatter loops. */
+  runsSince(agentId: string, sinceIso: string): number {
+    const row = this.sqlite.prepare("SELECT COUNT(*) AS n FROM runs WHERE agent_id = ? AND created_at >= ? AND status NOT IN ('cancelled')").get(agentId, sinceIso) as { n: number };
+    return row.n;
+  }
   spentSince(agentId: string, sinceIso: string): number {
     const row = this.sqlite.prepare("SELECT COALESCE(SUM(cost_usd),0) AS c FROM runs WHERE agent_id = ? AND created_at >= ?").get(agentId, sinceIso) as { c: number };
     return row.c;

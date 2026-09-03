@@ -20,7 +20,9 @@ export async function executeRun(crew: Crew, runId: string, signal: AbortSignal)
   if (!run) throw new Error(`Run ${runId} not found`);
   const agent = crew.getAgent(run.agentId);
 
-  const budget = crew.budgetAllows(agent.id);
+  const t = run.trigger;
+  const fromOwner = t.kind === "manual" || (t.kind === "mention" && t.by === "user") || (t.kind === "task" && t.from === "user") || t.kind === "answer";
+  const budget = crew.budgetAllows(agent.id, fromOwner);
   if (!budget.ok) {
     return { run: crew.finishRun(run, "cancelled", budget.reason ?? "Budget reached") };
   }

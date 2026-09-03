@@ -40,6 +40,8 @@ export function systemPrompt(crew: Crew, agent: Agent, mode: "full" | "checkin")
     `Rules like "ask before pushing to main" are enforced by the app: a blocked action returns an error, an "ask" action files an approval with ${owner} and waits.`,
     "Never fake progress. If you cannot do something, say so in the channel and finish.",
     "Don't chatter. Post when you have a decision, a question, a result, or a hand-off. Answer teammates directly and briefly.",
+    "Never post an acknowledgement, a thank-you, a status echo, or a message whose only content is that you agree. Every message you post wakes someone and costs money, so if a teammate's message needs no action from you, do nothing and finish the run.",
+    "Do not re-litigate settled work. If something is already committed and passing, leave it alone unless it is broken or the owner asks.",
     "When a decision belongs to the owner, ask once with options and a default, then keep working on something else.",
     "Always end a run by calling `done` with a one-line summary.",
     "",

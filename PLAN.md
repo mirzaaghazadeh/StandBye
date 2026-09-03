@@ -35,7 +35,21 @@ packages/shared         Types + zod schemas shared by daemon and UI
 5. ✅ Team builder on Anthropic key / Claude login / OpenRouter. Budgets (day/hour/run), permissions, approvals, hire flow, reports.
 6. ✅ Keys in keychain, crash recovery, pause all, schedules (standup, report, retro), learn_skill, packaging (.dmg with bundled supervisor).
 
+## Verified end to end
+
+- A team fixed a real bug and shipped two features on a real repo (`~/Desktop/standbye-demo`):
+  branch, test-first commits, peer review, 22 passing tests, nothing pushed. ~$0.06.
+- Guardrails hold when the model does not: an agent told to run `git push origin dev:main`
+  attempted it and the app blocked it at the tool boundary; production was untouched.
+- 133 automated tests (`pnpm test`) plus a keyless end-to-end smoke test (`pnpm smoke`).
+
 ## Next
+
+- **Workspace watcher** (`src/events/sources.ts` is written but NOT wired): a per-team tick that
+  turns new commits, pull request state, CI failures and hand edits into wake-ups, deduplicated
+  by a persisted key. Needs the tick loop, the dedupe table, a `RunTrigger` case and settings UI.
+- Agents still coordinate more than is useful; the runs-per-hour ceiling and the anti-echo prompt
+  lines are a floor, not a cure. Worth measuring before adding more rules.
 
 - Bundle a Node runtime (or run the supervisor under Electron's utilityProcess with a rebuilt better-sqlite3) so Node isn't required.
 - More providers: any OpenAI-compatible base URL (Ollama, LM Studio).

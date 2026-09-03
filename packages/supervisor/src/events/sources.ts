@@ -1,3 +1,11 @@
+/**
+ * UNFINISHED — not wired into the scheduler yet, so nothing calls this at runtime.
+ *
+ * Probing layer for the workspace watcher: reads new commits, pull request state and CI
+ * results out of a team's repo so agents can react to what actually happens instead of only
+ * to check-ins and mentions. What is still missing is the tick loop, the dedupe table and the
+ * `RunTrigger` case. See PLAN.md → Next.
+ */
 import { execFile, execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";

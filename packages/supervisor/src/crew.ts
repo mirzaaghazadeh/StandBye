@@ -464,9 +464,21 @@ export class Crew {
   spend(): SpendSummary {
     return { todayUsd: this.db.spentToday(), capUsd: this.team?.dailyCapUsd ?? DEFAULTS.teamDailyCapUsd, perAgent: this.db.spentTodayByAgent(), checkinsUsd: this.db.checkinSpendToday() };
   }
-  budgetAllows(agentId: string): { ok: boolean; reason?: string } {
+  /**
+   * May this agent run right now? Covers money (daily / hourly / team cap) and churn
+   * (runs per hour), which is what stops two agents answering each other all night.
+   * `fromOwner` runs skip the churn ceiling: a direct instruction is never refused.
+   */
+  budgetAllows(agentId: string, fromOwner = false): { ok: boolean; reason?: string } {
     const agent = this.getAgent(agentId);
     if (!this.providers[agent.provider].enabled) return { ok: false, reason: `${agent.provider} is turned off in Settings` };
+    if (!fromOwner) {
+      const anHourAgo = new Date(Date.now() - 3_600_000).toISOString();
+      const recent = this.db.runsSince(agentId, anHourAgo);
+      if (recent >= DEFAULTS.maxRunsPerHour) {
+        return { ok: false, reason: `${agent.name} has already woken ${recent} times this hour. Pausing the chatter until the hour rolls over; message ${agent.name} directly to override.` };
+      }
+    }
     if (agent.budget.dailyUsd > 0 && agent.spentTodayUsd >= agent.budget.dailyUsd) return { ok: false, reason: `${agent.name} reached the daily budget ($${agent.budget.dailyUsd})` };
     if (agent.budget.hourlyUsd && this.db.spentSince(agentId, new Date(Date.now() - 3_600_000).toISOString()) >= agent.budget.hourlyUsd) {
       return { ok: false, reason: `${agent.name} reached the hourly budget ($${agent.budget.hourlyUsd})` };

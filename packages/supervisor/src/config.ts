@@ -41,6 +41,12 @@ export const DEFAULTS = {
   approvalTimeoutMinutes: 20,
   questionDefaultMinutes: 120,
   maxConcurrentRuns: 3,
+  /**
+   * Ceiling on how often one agent may wake in a rolling hour. Budgets cap the money, this caps
+   * the churn: without it a pair of agents can answer each other indefinitely on a cheap model.
+   * The owner's own messages are never refused by it.
+   */
+  maxRunsPerHour: 15,
   /** A full run is stopped after this long; check-ins much sooner. */
   runTimeoutMinutes: 20,
   checkinTimeoutMinutes: 4,

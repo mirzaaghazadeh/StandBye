@@ -12,6 +12,7 @@ Standbye: a BYOK macOS desktop app where the user describes a team of AI agents 
 pnpm install
 pnpm dev            # builds shared + supervisor, then electron-vite dev with hot reload
 pnpm typecheck      # tsc across all packages (run this before committing; there is no linter)
+pnpm test           # 133 unit/integration tests against dist/ (packages/supervisor/test/*.test.mjs)
 pnpm smoke          # no-key end-to-end test of the supervisor (scripts/smoke.mjs)
 pnpm package        # icon + bundled supervisor + macOS dmg/zip into apps/desktop/release
 pnpm --filter @crew/desktop gui   # Playwright drives the real app and screenshots each screen (apps/desktop/e2e/gui.mjs)
@@ -42,7 +43,8 @@ Three workspaces: `packages/shared` (types + zod schemas, the contract between t
 
 ## Conventions worth knowing
 
-- Every limit is enforced by the app, not the model: permission rules, per-agent budgets (day / rolling hour / per run), team daily cap, chat-depth cap on agent-to-agent mention threads, work hours.
+- Every limit is enforced by the app, not the model: permission rules, per-agent budgets (day / rolling hour / per run), team daily cap, chat-depth cap on agent-to-agent mention threads, a runs-per-hour ceiling that the owner's own messages bypass, work hours.
+- `decide()` resolves ties toward the most restrictive rule. Do not "fix" that: an equally specific allow used to beat a force-push block.
 - Reports (`ask_user` with `kind: "report"`) land in the inbox without blocking the agent; questions and approvals do.
 - `remember` appends to MEMORY.md, `learn_skill` writes `skills/<name>.md`; both are loaded into every subsequent run. Decisions the owner marks "remember" are shown to all agents so nobody re-asks.
 - The template lead ships with three schedules (weekday standup, end-of-day report, Friday retrospective); the builder is told to add the same.
