@@ -495,7 +495,12 @@ export type RunTrigger =
   | { kind: "answer"; questionId: string }
   | { kind: "question"; questionId: string; from: string }
   | { kind: "escalated"; reason: string }
-  | { kind: "manual"; prompt: string };
+  | { kind: "manual"; prompt: string }
+  /**
+   * A run that was cut off — the machine slept, the app quit, the supervisor was restarted —
+   * picked up again with what it had already done. `runId` is the run that was interrupted.
+   */
+  | { kind: "resumed"; runId: string; was: RunTrigger };
 
 export type RunStatus = "queued" | "running" | "done" | "failed" | "needs_you" | "noop" | "cancelled";
 

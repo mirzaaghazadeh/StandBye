@@ -33,6 +33,7 @@ function triggerLabel(t: RunTrigger, agents: Agent[], owner: string): string {
     case "question": return `${agentName(agents, t.from, owner)} asked them`;
     case "escalated": return "Found work";
     case "manual": return `${owner} messaged them`;
+    case "resumed": return `Picked up after a restart`;
   }
 }
 
@@ -46,6 +47,7 @@ function triggerDescription(t: RunTrigger, agents: Agent[], owner: string): stri
     case "question": return `${agentName(agents, t.from, owner)} asked this agent a question.`;
     case "escalated": return `Check-in found work: ${t.reason}`;
     case "manual": return t.prompt;
+    case "resumed": return `Started again after the app stopped part-way through: ${triggerDescription(t.was, agents, owner)}`;
   }
 }
 

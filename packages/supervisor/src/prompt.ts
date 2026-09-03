@@ -337,6 +337,23 @@ function triggerText(crew: Crew, t: RunTrigger, owner: string): string {
       return `## Your check-in found work to do\nReason: ${t.reason}\nDo it now.`;
     case "manual":
       return `## Message from ${owner}\n${t.prompt}`;
+    case "resumed": {
+      // The work is still on disk; only the conversation was lost. Say what the last attempt got
+      // through so the agent continues it instead of starting the same change a second time.
+      const steps = crew.db.listSteps(t.runId);
+      const did = steps
+        .filter((s) => s.kind !== "text" && s.kind !== "info")
+        .slice(-14)
+        .map((s) => `- ${s.kind}: ${String(s.text ?? "").slice(0, 140).replace(/\n/g, " ")}`);
+      return [
+        "## You were part-way through this when the app stopped",
+        triggerText(crew, t.was, owner).replace(/^## /, "### What you had been asked to do: "),
+        "",
+        did.length ? "### What that run got through, in order\n" + did.join("\n") : "That run had not done anything yet.",
+        "",
+        "Nothing was rolled back: any file it edited is still edited and any commit it made is still there. Check the working tree first (`git status`, `git log --oneline -3`) and carry on from where it stopped — do not start the same change again.",
+      ].join("\n");
+    }
   }
 }
 

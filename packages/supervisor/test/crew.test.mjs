@@ -286,11 +286,15 @@ test("restart recovery", async (t) => {
   const reopened = new Crew({ dataDir, globalDir: dataDir, keys: {} });
   t.after(() => { try { reopened.close(); } catch { /* ignore */ } });
 
-  await t.test("a run left running by a crash is marked failed, not left hanging", () => {
+  await t.test("a run left running by a crash is closed out, not left hanging", () => {
     const after = reopened.db.getRun(run.id);
     assert.equal(after.status, "failed");
-    assert.match(after.error, /Supervisor restarted/);
+    assert.match(after.error, /picked up again in a new run/);
     assert.ok(after.finishedAt);
+  });
+
+  await t.test("and it is handed back so the work is not thrown away", () => {
+    assert.ok(reopened.interrupted.some((r) => r.id === run.id), "the interrupted run is offered for resuming");
   });
 
   await t.test("the team and its agents come back", () => {

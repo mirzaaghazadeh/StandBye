@@ -73,6 +73,9 @@ export class Crew {
     return this.opts.api;
   }
 
+  /** Runs cut off by a restart, waiting for the scheduler to start them again. Read once. */
+  interrupted: Run[] = [];
+
   private readonly runtime = new Map<string, AgentRuntime>();
   private readonly waiters = new Map<string, (answer: string | null) => void>();
 
@@ -92,8 +95,10 @@ export class Crew {
       agentDir: (id) => store.agentDir(id),
     });
     this.backlog = new Backlog(opts.dataDir);
-    const stale = this.db.recoverStaleRuns();
-    if (stale > 0) log(`marked ${stale} stale run(s) as failed after restart`, { team: this.team?.id });
+    // Runs that were still going when the process stopped. They are closed out here and handed
+    // to the scheduler, which starts each one again with what the interrupted run got through.
+    this.interrupted = this.db.recoverStaleRuns();
+    if (this.interrupted.length) log(`${this.interrupted.length} run(s) were cut off by a restart; they will be picked up again`, { team: this.team?.id });
     this.restoreChannels();
     this.ensureGeneral();
     for (const a of this.store.listAgentConfigs()) this.ensureDm(a.id); // teams created before direct chats existed

@@ -1,4 +1,5 @@
 import { Cron } from "croner";
+import { log } from "./log.js";
 import type { Agent } from "@crew/shared";
 import { DEFAULTS } from "./config.js";
 import type { Crew } from "./crew.js";
@@ -28,6 +29,7 @@ export class Scheduler {
 
   start(): void {
     this.rebuildCrons();
+    this.resumeInterrupted();
     this.tick();
     this.timer = setInterval(() => this.tick(), 30_000);
   }
@@ -35,6 +37,26 @@ export class Scheduler {
     if (this.timer) clearInterval(this.timer);
     for (const jobs of this.crons.values()) jobs.forEach((j) => j.stop());
     this.queue.cancelAll();
+  }
+
+  /**
+   * Start again the runs a restart cut off.
+   *
+   * The work itself survived — the edits, the commits, the steps are all on disk — so throwing
+   * the run away meant an agent ninety steps into a change began the next one with no idea any
+   * of it had happened, and either redid it or contradicted it. Each interrupted run is queued
+   * again carrying its own id, and the prompt tells the agent what the last attempt got through.
+   * The owner's own wake-ups go to the front, so a resume never jumps a person's request.
+   */
+  private resumeInterrupted(): void {
+    const runs = this.crew.interrupted;
+    this.crew.interrupted = [];
+    for (const run of runs) {
+      const agent = this.crew.findAgent(run.agentId);
+      if (!agent || agent.paused) continue;
+      this.queue.enqueue(run.agentId, { kind: "resumed", runId: run.id, was: run.trigger });
+      log(`resuming ${agent.name}'s interrupted run ${run.id}`, { team: this.crew.id ?? undefined, agent: agent.id });
+    }
   }
 
   rebuildCrons(): void {

@@ -257,13 +257,26 @@ export class Db {
     const row = this.sqlite.prepare("SELECT * FROM runs WHERE agent_id = ? AND status NOT IN ('queued') ORDER BY created_at DESC LIMIT 1").get(agentId);
     return row ? rowToRun(row) : undefined;
   }
-  /** Mark runs left in 'running'/'queued' from a previous process as failed. */
-  recoverStaleRuns(): number {
+  /**
+   * Close out runs that were still going when the process stopped, and hand them back so they can
+   * be picked up again.
+   *
+   * Marking them failed and walking away used to throw away everything they had done: a run
+   * ninety steps into a change lost all of it because the machine slept. The work itself is on
+   * disk — the steps, the edits, the commits — so the run is ended here and resumed as a new one
+   * that is told what the last one got through.
+   */
+  recoverStaleRuns(): Run[] {
+    const stale = this.sqlite
+      .prepare("SELECT * FROM runs WHERE status IN ('running','queued','needs_you')")
+      .all()
+      .map((r) => rowToRun(r as never));
+    if (!stale.length) return [];
     const now = new Date().toISOString();
-    const r = this.sqlite
-      .prepare("UPDATE runs SET status='failed', error='Supervisor restarted while this run was active', finished_at=? WHERE status IN ('running','queued','needs_you')")
+    this.sqlite
+      .prepare("UPDATE runs SET status='failed', error='Stopped part-way through when the supervisor restarted; picked up again in a new run', finished_at=? WHERE status IN ('running','queued','needs_you')")
       .run(now);
-    return r.changes;
+    return stale;
   }
   insertStep(s: RunStep): void {
     this.sqlite.prepare("INSERT INTO run_steps (id, run_id, at, kind, text, detail) VALUES (?,?,?,?,?,?)").run(s.id, s.runId, s.at, s.kind, s.text, s.detail);
