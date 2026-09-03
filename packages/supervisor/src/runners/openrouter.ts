@@ -1,4 +1,6 @@
 import { ToolLoopAgent, isStepCount, tool, type ToolSet } from "ai";
+import { trimConversation } from "./context.js";
+import { log } from "../log.js";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { z } from "zod";
 import type { PermissionRule } from "@crew/shared";
@@ -52,6 +54,7 @@ export const openrouterRunner: Runner = async (input) => {
   let costUsd = 0;
   let inputTokens = 0;
   let outputTokens = 0;
+  let cachedTokens = 0; // input tokens the provider served from its cache rather than re-reading
   let error: string | undefined;
 
   try {
@@ -60,11 +63,15 @@ export const openrouterRunner: Runner = async (input) => {
       instructions: input.system,
       tools,
       stopWhen: [isStepCount(mode === "checkin" ? 6 : DEFAULTS.maxTurns), () => finished],
+      // The whole conversation is re-sent every step, so old tool-result payloads are the
+      // single biggest cost in a long run. Drop the bodies once the model has moved on.
+      prepareStep: ({ messages }) => ({ messages: trimConversation(messages) }),
       onStepFinish: (step) => {
         const meta = (step as { providerMetadata?: { openrouter?: { usage?: { cost?: number } } } }).providerMetadata;
         costUsd += Number(meta?.openrouter?.usage?.cost ?? 0);
         inputTokens += step.usage?.inputTokens ?? 0;
         outputTokens += step.usage?.outputTokens ?? 0;
+        cachedTokens += step.usage?.inputTokenDetails?.cacheReadTokens ?? 0;
         if (step.text?.trim()) { text = step.text.trim(); crew.addStep(run.id, "text", text); }
         for (const call of step.toolCalls ?? []) {
           if (!(call.toolName in tools) || teamTools.some((t) => t.name === call.toolName)) continue;
@@ -79,7 +86,12 @@ export const openrouterRunner: Runner = async (input) => {
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
   }
-  return { costUsd, inputTokens, outputTokens, text, error };
+  // Cache hits are the difference between paying for the prefix once and paying every step,
+  // so record the ratio: it is the number that tells us whether any of this is working.
+  if (inputTokens > 0) {
+    log(`run finished · in=${inputTokens} cached=${cachedTokens} (${Math.round((cachedTokens / inputTokens) * 100)}%) out=${outputTokens} cost=$${costUsd.toFixed(4)}`, { agent: agent.id, run: run.id });
+  }
+  return { costUsd, inputTokens, outputTokens, cachedTokens, text, error };
 };
 
 // ---------- workspace tools for non-Claude models ----------

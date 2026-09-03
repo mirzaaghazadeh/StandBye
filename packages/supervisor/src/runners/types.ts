@@ -36,6 +36,8 @@ export interface RunnerOutput {
   costUsd: number;
   inputTokens: number;
   outputTokens: number;
+  /** Input tokens served from the provider's cache rather than charged at full rate. */
+  cachedTokens?: number;
   /** Final assistant text, if any */
   text: string;
   error?: string;
