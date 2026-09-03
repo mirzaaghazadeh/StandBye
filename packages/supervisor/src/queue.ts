@@ -2,7 +2,7 @@ import type { Run, RunTrigger } from "@crew/shared";
 import { DEFAULTS } from "./config.js";
 import type { Crew } from "./crew.js";
 import { executeRun } from "./runner.js";
-import { KeepAwake } from "./power.js";
+import { KeepAwake, keepAwakeAllowed } from "./power.js";
 
 /**
  * One run at a time per agent, a few in parallel across the team.
@@ -21,9 +21,11 @@ export class Queue {
   // re-entry order; `resolve` is set once the run wants its slot back.
   private readonly suspended = new Map<string, { ac: AbortController; resolve?: () => void }>();
   /** The machine must not sleep out from under a run that is half-way through a change. */
-  private readonly awake = new KeepAwake();
+  private readonly awake: KeepAwake;
 
-  constructor(private readonly crew: Crew, private readonly onEscalate: (agentId: string, reason: string) => void) {}
+  constructor(private readonly crew: Crew, private readonly onEscalate: (agentId: string, reason: string) => void) {
+    this.awake = new KeepAwake(() => keepAwakeAllowed(crew.opts.globalDir));
+  }
 
   enqueue(agentId: string, trigger: RunTrigger): Run | null {
     const agent = this.crew.getAgent(agentId);

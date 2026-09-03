@@ -14,8 +14,9 @@ export function KeysSheet({ tab: initialTab }: { tab?: Tab }) {
   const [tab, setTab] = useState<Tab>(initialTab ?? (team ? "team" : "providers"));
   const [dataDir, setDataDir] = useState("");
   const [keepWorking, setKeepWorking] = useState(false);
+  const [keepAwake, setKeepAwake] = useState(true);
   useEffect(() => { void window.crew.dataDir().then(setDataDir); }, []);
-  useEffect(() => { void window.crew.settingsGet().then((s) => setKeepWorking(s.keepWorkingWhenClosed)); }, []);
+  useEffect(() => { void window.crew.settingsGet().then((s) => { setKeepWorking(s.keepWorkingWhenClosed); setKeepAwake(s.keepAwake !== false); }); }, []);
 
   return (
     // The providers browser is two panes, so it needs the room; the other tabs read better narrow.
@@ -47,6 +48,19 @@ export function KeysSheet({ tab: initialTab }: { tab?: Tab }) {
                     {keepWorking
                       ? "Agents keep checking in, running and spending after you quit. Reopening attaches to the same session."
                       : "Quitting stops the team. Nothing runs and nothing is spent until you open Standbye again."}
+                  </span>
+                </span>
+              </div>
+            </div>
+            <div style={{ marginTop: 8, border: "1px solid var(--border)", borderRadius: 7, background: "var(--surface)", padding: "10px 12px" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <Switch on={keepAwake} onChange={(v) => { setKeepAwake(v); void window.crew.settingsSet({ keepAwake: v }); }} />
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ display: "block", fontWeight: 500, fontSize: 12.5 }}>Keep this Mac awake while agents are working</span>
+                  <span style={{ display: "block", fontSize: 11, color: "var(--ink-4)", lineHeight: 1.45 }}>
+                    {keepAwake
+                      ? "Only while a run is actually going. The screen still locks and the display still dims; closing the lid still sleeps the Mac."
+                      : "Off. If this Mac sleeps mid-run the work is interrupted — it is picked up again afterwards, but the run is lost."}
                   </span>
                 </span>
               </div>

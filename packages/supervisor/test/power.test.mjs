@@ -39,6 +39,20 @@ test("the machine is held awake only while there is work in flight", async (t) =
     assert.equal(caffeinates(), before, "the Mac may sleep again");
   });
 
+  await t.test("the owner can switch it off, and it is honoured without a restart", async () => {
+    let allowed = true;
+    const off = new KeepAwake(() => allowed);
+    t.after(() => off.dispose());
+    off.set(1);
+    await new Promise((r) => setTimeout(r, 250));
+    const withIt = caffeinates();
+    allowed = false;
+    off.set(2);            // still working, but no longer permitted
+    await new Promise((r) => setTimeout(r, 250));
+    assert.ok(caffeinates() < withIt || process.platform !== "darwin", "it lets go when the setting says no");
+    off.dispose();
+  });
+
   await t.test("dispose never leaves one behind holding the machine awake for nobody", async () => {
     k.set(2);
     await new Promise((r) => setTimeout(r, 200));

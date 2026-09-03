@@ -1,5 +1,23 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 import { log } from "./log.js";
+
+/**
+ * The owner's answer to "may I stop this Mac sleeping while the team works?", read from the same
+ * file the desktop app writes. The daemon outlives the app, so it cannot ask it; the setting is
+ * read fresh each time rather than cached, so switching it off is honoured at the end of the
+ * current run instead of at the next restart. A missing file means yes: a team that cannot stay
+ * awake cannot work unattended, which is the whole point of it.
+ */
+export function keepAwakeAllowed(globalDir: string): boolean {
+  try {
+    const raw = JSON.parse(fs.readFileSync(path.join(globalDir, "app-settings.json"), "utf8")) as { keepAwake?: unknown };
+    return raw.keepAwake !== false;
+  } catch {
+    return true;
+  }
+}
 
 /**
  * Keeping the machine awake while there is work in flight.
@@ -19,11 +37,15 @@ export class KeepAwake {
   private proc: ChildProcess | null = null;
   private held = 0;
 
+  /** `enabled` is asked every time, so the owner switching it off is honoured without a restart. */
+  constructor(private readonly enabled: () => boolean = () => true) {}
+
   /** Called when the number of runs in flight changes. */
   set(active: number): void {
-    if (active === this.held) return;
+    const want = active > 0 && this.enabled();
+    if (active === this.held && want === Boolean(this.proc)) return;
     this.held = active;
-    if (active > 0) this.start();
+    if (want) this.start();
     else this.stop();
   }
 

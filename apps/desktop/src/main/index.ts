@@ -55,8 +55,8 @@ function saveKeys(keys: Record<string, string>): void {
 // Restart button or the next quit. Turning it off leaves the check in place and the install manual.
 
 const settingsFile = path.join(app.getPath("userData"), "app-settings.json");
-interface AppSettings { keepWorkingWhenClosed: boolean; autoUpdate: boolean }
-const DEFAULT_SETTINGS: AppSettings = { keepWorkingWhenClosed: false, autoUpdate: true };
+interface AppSettings { keepWorkingWhenClosed: boolean; autoUpdate: boolean; keepAwake: boolean }
+const DEFAULT_SETTINGS: AppSettings = { keepWorkingWhenClosed: false, autoUpdate: true, keepAwake: true };
 
 function loadSettings(): AppSettings {
   try { return { ...DEFAULT_SETTINGS, ...(JSON.parse(fs.readFileSync(settingsFile, "utf8")) as Partial<AppSettings>) }; }
@@ -136,7 +136,9 @@ function releaseAwake(): void {
 
 /** Called whenever the supervisor's status changes, and when the setting is toggled. */
 function updateAwake(): void {
-  if (loadSettings().keepWorkingWhenClosed) { holdAwake("the team is set to keep working"); return; }
+  const settings = loadSettings();
+  if (!settings.keepAwake) { releaseAwake(); return; }
+  if (settings.keepWorkingWhenClosed) { holdAwake("the team is set to keep working"); return; }
   const running = status?.runningRuns ?? 0;
   if (running > 0) holdAwake(`${running} run(s) in flight`);
   else releaseAwake();

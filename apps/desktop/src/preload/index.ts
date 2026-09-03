@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import type { PushEvent, UpdateState } from "@crew/shared";
 
 /** This Mac's settings, mirrored from `app-settings.json` in the main process. */
-interface AppSettings { keepWorkingWhenClosed: boolean; autoUpdate: boolean }
+interface AppSettings { keepWorkingWhenClosed: boolean; autoUpdate: boolean; keepAwake: boolean }
 
 const api = {
   platform: process.platform,
