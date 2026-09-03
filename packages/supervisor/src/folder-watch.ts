@@ -66,8 +66,11 @@ export function watchTeamFolder(dir: string, onChange: () => void, settleMs = 80
   try {
     watcher = fs.watch(dir, { recursive: true }, () => {
       if (timer) clearTimeout(timer);
-      timer = setTimeout(check, settleMs);
+      timer = setTimeout(check, settleMs).unref();
     });
+    // Watching a folder must never be the reason a process refuses to exit. A supervisor stays up
+    // because it has work to do, and a test run should end when its tests do.
+    watcher.unref();
   } catch {
     // Recursive watching is not available everywhere; the team still works, it just needs a
     // restart to notice a hand edit. Never let this stop a team from loading.

@@ -40,6 +40,11 @@ export class KeepAwake {
   /** `enabled` is asked every time, so the owner switching it off is honoured without a restart. */
   constructor(private readonly enabled: () => boolean = () => true) {}
 
+  /** Whether this instance is currently holding the machine awake. */
+  get holding(): boolean {
+    return this.proc !== null;
+  }
+
   /** Called when the number of runs in flight changes. */
   set(active: number): void {
     const want = active > 0 && this.enabled();
