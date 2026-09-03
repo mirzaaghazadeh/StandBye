@@ -25,8 +25,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # macOS x64 and Linux arm64 are cross-built, so every job runs on a runner image that is
-          # always available. better-sqlite3 ships prebuilds for all five, so nothing compiles here.
+          # better-sqlite3 bundles a prebuilt binary for every platform in its own tarball, so no
+          # job compiles anything and macOS x64 / Linux arm64 cross-build happily from the runner
+          # images that are always available. Electron itself is downloaded per target arch.
           - name: mac-arm64
             os: macos-latest
             platform: mac
@@ -54,13 +55,13 @@ jobs:
             arch: arm64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 10.17.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
@@ -70,7 +71,7 @@ jobs:
       - name: Build shared and supervisor
         run: pnpm -r build
 
-      # The supervisor tree carries a native better-sqlite3, so it is deployed per target arch.
+      # Passing the target here prunes the native binaries the other platforms would need.
       - name: Deploy supervisor for ${{ matrix.nodePlatform }}-${{ matrix.arch }}
         run: node scripts/deploy-supervisor.mjs --platform ${{ matrix.nodePlatform }} --arch ${{ matrix.arch }}
 
@@ -97,7 +98,7 @@ jobs:
             -exec cp {} out-artifacts/ \;
           ls -lh out-artifacts
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: standbye-${{ matrix.name }}
           path: out-artifacts/*
@@ -111,9 +112,9 @@ jobs:
     # Tags always publish; a manual run only publishes when explicitly asked.
     if: startsWith(github.ref, 'refs/tags/v') || inputs.publish
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           path: artifacts
           merge-multiple: true

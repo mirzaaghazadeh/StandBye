@@ -18,13 +18,13 @@ publish:
   owner: mirzaaghazadeh
   repo: StandBye
 
+# No `arch:` lists anywhere below: the release workflow builds one arch per job and passes it as a
+# CLI flag (--arm64 / --x64). An arch list in this file wins over that flag, which silently makes
+# every job build every arch.
 mac:
   category: public.app-category.developer-tools
-  target:
-    - target: dmg
-      arch: [arm64, x64]
-    - target: zip
-      arch: [arm64, x64]
+  target: [dmg, zip]
+  artifactName: Standbye-${version}-mac-${arch}.${ext}
   icon: build/icon.icns
   darkModeSupport: true
   # Unsigned for now: no Developer ID certificate. First launch needs right-click → Open.
@@ -35,12 +35,10 @@ dmg:
   title: Standbye ${version}
 
 win:
-  target:
-    - target: nsis
-      arch: [x64]
-    - target: zip
-      arch: [x64]
+  target: [nsis, zip]
+  artifactName: Standbye-${version}-win-${arch}.${ext}
   icon: build/icon.png
+  executableName: Standbye
   # Unsigned: SmartScreen warns on first run until we buy a code-signing certificate.
 nsis:
   artifactName: Standbye-${version}-win-${arch}-setup.${ext}
@@ -52,11 +50,11 @@ nsis:
   shortcutName: Standbye
 
 linux:
-  target:
-    - target: AppImage
-      arch: [x64, arm64]
-    - target: deb
-      arch: [x64, arm64]
+  target: [AppImage, deb]
+  # Without this the executable is named after the package (@crew/desktop), and AppImage refuses
+  # the "@" and "/". It is also the WM_CLASS the .desktop entry matches windows against.
+  executableName: standbye
+  desktopName: standbye.desktop
   icon: build/icon.png
   category: Development
   synopsis: BYOK desktop app for 24/7 AI agent teams
@@ -67,7 +65,9 @@ linux:
   desktop:
     entry:
       Name: Standbye
-      StartupWMClass: Standbye
+      # Electron reports the executable name as WM_CLASS, so this has to match executableName
+      # exactly or the running window won't link back to this launcher entry.
+      StartupWMClass: standbye
 appImage:
   artifactName: Standbye-${version}-linux-${arch}.${ext}
 deb:

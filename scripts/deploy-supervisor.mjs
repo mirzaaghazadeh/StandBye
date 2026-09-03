@@ -2,12 +2,13 @@
 // Produces apps/desktop/resources/supervisor: the built supervisor with a flat, symlink-free
 // node_modules so electron-builder can copy it verbatim into the app bundle.
 //
-// Runs on macOS, Windows and Linux. better-sqlite3 is native, so a tree is only valid for one
-// platform/arch pair; pass --platform/--arch to fetch prebuilds for a target other than this host
-// (the release workflow does that for linux-arm64, which it cross-builds from an x64 runner).
+// Runs on macOS, Windows and Linux. better-sqlite3 is native but ships a prebuilt binary for every
+// platform inside its own tarball, so nothing is compiled and nothing is downloaded per target —
+// pass --platform/--arch only to drop the binaries this build won't use, which is worth ~15 MB an
+// installer. Without them the tree is complete for every platform.
 //
-//   node scripts/deploy-supervisor.mjs                 # for this machine
-//   node scripts/deploy-supervisor.mjs --arch arm64    # cross-fetch arm64 prebuilds
+//   node scripts/deploy-supervisor.mjs                            # keep every prebuild
+//   node scripts/deploy-supervisor.mjs --platform linux --arch arm64
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -35,19 +36,13 @@ const deps = { ...pkg.dependencies };
 delete deps["@crew/shared"]; // copied in below as real files
 fs.writeFileSync(path.join(out, "package.json"), JSON.stringify({ name: pkg.name, version: pkg.version, private: true, type: "module", main: "dist/index.js", dependencies: deps }, null, 2));
 
-// npm is npm.cmd on Windows, which needs a shell to resolve.
-const r = spawnSync("npm", ["install", "--omit=dev", "--no-package-lock", "--no-audit", "--no-fund", "--loglevel=error"], {
+// npm is npm.cmd on Windows, which needs a shell to resolve. --ignore-scripts keeps npm from
+// invoking node-gyp on better-sqlite3, which has a binding.gyp but ships prebuilt binaries.
+const r = spawnSync("npm", ["install", "--omit=dev", "--ignore-scripts", "--no-package-lock", "--no-audit", "--no-fund", "--loglevel=error"], {
   cwd: out,
   stdio: "inherit",
   shell: process.platform === "win32",
-  env: {
-    ...process.env,
-    COREPACK_ENABLE_STRICT: "0",
-    npm_config_workspaces: "false",
-    // prebuild-install (better-sqlite3) reads these to pick which prebuilt binary to download.
-    npm_config_platform: targetPlatform,
-    npm_config_arch: targetArch,
-  },
+  env: { ...process.env, COREPACK_ENABLE_STRICT: "0", npm_config_workspaces: "false" },
 });
 if (r.status !== 0) { console.error("npm install failed"); process.exit(1); }
 
@@ -56,11 +51,23 @@ fs.mkdirSync(sharedOut, { recursive: true });
 fs.cpSync(path.join(shared, "dist"), path.join(sharedOut, "dist"), { recursive: true, filter: (p) => !p.endsWith(".map") });
 fs.copyFileSync(path.join(shared, "package.json"), path.join(sharedOut, "package.json"));
 
-// Prove the tree resolves before packaging. A cross-built tree can't be loaded on this host,
-// so there we just confirm the right native binary landed.
+// Keep only the prebuilt binaries this target can load. node-gyp-build picks by
+// `${platform}-${arch}.node`, with a musl variant on Linux; the rest are dead weight.
+const prebuilds = path.join(out, "node_modules/better-sqlite3/prebuilds");
+if (fs.existsSync(prebuilds)) {
+  const keep = new Set([`${targetPlatform}-${targetArch}.node`]);
+  if (targetPlatform === "linux") keep.add(`linuxmusl-${targetArch}.node`);
+  const have = fs.readdirSync(prebuilds);
+  if (![...keep].some((k) => have.includes(k))) {
+    console.error(`no prebuilt better-sqlite3 for ${targetPlatform}-${targetArch}; have: ${have.join(", ")}`);
+    process.exit(1);
+  }
+  for (const f of have) if (!keep.has(f)) fs.rmSync(path.join(prebuilds, f), { force: true });
+  console.log(`kept prebuilds: ${fs.readdirSync(prebuilds).join(", ")}`);
+}
+
+// Prove the tree resolves before packaging. A tree pruned for another target can't load here.
 if (crossBuilding) {
-  const native = path.join(out, "node_modules/better-sqlite3/build/Release/better_sqlite3.node");
-  if (!fs.existsSync(native)) { console.error(`no prebuilt better-sqlite3 for ${targetPlatform}-${targetArch}`); process.exit(1); }
   console.log(`supervisor tree built for ${targetPlatform}-${targetArch} (not loadable on this host)`);
 } else {
   const t = spawnSync(process.execPath, ["-e", "import('./dist/crew.js').then(()=>console.log('supervisor tree ok')).catch(e=>{console.error(e.message);process.exit(1)})"], { cwd: out, stdio: "inherit" });

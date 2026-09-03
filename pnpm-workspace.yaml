@@ -1,7 +1,9 @@
 packages:
   - apps/*
   - packages/*
+# better-sqlite3 is deliberately absent: it ships a prebuilt binary for every platform inside its
+# tarball (prebuilds/*.node, loaded by node-gyp-build), but it also has a binding.gyp, so allowing
+# it here makes pnpm run node-gyp — which needs a full C++ toolchain and fails on Windows runners.
 onlyBuiltDependencies:
-  - better-sqlite3
   - electron
   - esbuild

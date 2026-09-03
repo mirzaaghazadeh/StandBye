@@ -16,13 +16,14 @@ const desktop = path.join(root, "apps/desktop");
 const buildDir = path.join(desktop, "build");
 fs.mkdirSync(buildDir, { recursive: true });
 
-const html = `<!doctype html><meta charset="utf-8"><style>html,body{margin:0;background:transparent}</style>
+// svg{display:block} kills the inline baseline gap, which otherwise overflows the 1024px window by
+// a few pixels and leaves a scrollbar edge down the right and bottom of the capture.
+const html = `<!doctype html><meta charset="utf-8"><style>html,body{margin:0;background:transparent;overflow:hidden}svg{display:block}</style>
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D9683F"/><stop offset="1" stop-color="#A8441F"/></linearGradient>
-    <filter id="s" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000" flood-opacity="0.28"/></filter>
   </defs>
-  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#g)" filter="url(#s)"/>
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#g)"/>
   <g transform="translate(512 512) scale(25) translate(-16 -16.5)">
     <!-- an agent in front, the owner behind; the site logo (apps/web) uses the same mark -->
     <circle cx="21" cy="12" r="4" fill="#FFF6EE" opacity=".7"/>
@@ -34,7 +35,6 @@ const html = `<!doctype html><meta charset="utf-8"><style>html,body{margin:0;bac
     <circle cx="12.7" cy="12" r="1" fill="#B84C26"/>
     <path d="M5 25c1.5-4 4-6 6-6s4.5 2 6 6" fill="#FFF6EE"/>
   </g>
-  <circle cx="762" cy="262" r="64" fill="#2E9B5F" stroke="#FFF6EE" stroke-width="26"/>
 </svg>`;
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "standbye-icon-"));
