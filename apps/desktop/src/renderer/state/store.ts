@@ -41,6 +41,8 @@ export interface State {
   agents: Agent[];
   channels: Channel[];
   messages: Record<string, Message[]>;
+  /** The active in-conversation search, or null when search is off. The newest query always wins. */
+  search: { channelId: string; q: string; results: Message[]; busy: boolean } | null;
   /** channelId -> the reply an agent is writing right now, shown until the real message lands. */
   drafts: Record<string, MessageDraft>;
   questions: Question[];
@@ -66,7 +68,7 @@ export interface State {
 
 const initial: State = {
   ready: false, error: null, route: { name: "home" }, sheet: { kind: "none" }, status: null,
-  keys: {}, providers: null, models: null, teams: [], archived: [], activeTeamId: null, team: null, agents: [], channels: [], messages: {}, drafts: {}, questions: [], runs: [], steps: {},
+  keys: {}, providers: null, models: null, teams: [], archived: [], activeTeamId: null, team: null, agents: [], channels: [], messages: {}, drafts: {}, search: null, questions: [], runs: [], steps: {},
   spend: null, update: null, selectedAgentId: null, pendingWorkspace: null, seen: {}, waking: {}, firstStepsDismissed: false, skillsStamp: 0, builderDraft: null, builderBusy: false, toast: null,
 };
 
@@ -76,6 +78,8 @@ class Store {
   private state: State = initial;
   private readonly listeners = new Set<Listener>();
   private toastTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Bumped on every searchMessages call; responses from an older call are dropped. */
+  private searchSeq = 0;
 
   get = (): State => this.state;
   subscribe = (l: Listener): (() => void) => { this.listeners.add(l); return () => this.listeners.delete(l); };
@@ -112,7 +116,7 @@ class Store {
     ]);
     this.set({
       firstStepsDismissed: readLocal("standbye.firstSteps." + (activeTeamId ?? "")) === "done",
-      teams, activeTeamId, status, keys: readyMap(providers), providers, team, agents, channels, questions, runs, spend, messages: {}, steps: {},
+      teams, activeTeamId, status, keys: readyMap(providers), providers, team, agents, channels, questions, runs, spend, messages: {}, steps: {}, search: null,
       selectedAgentId: agents.some((a) => a.id === this.state.selectedAgentId) ? this.state.selectedAgentId : agents[0]?.id ?? null,
     });
     if (!team && this.state.sheet.kind === "none") this.set({ sheet: { kind: "onboarding" } });
@@ -207,6 +211,24 @@ class Store {
   async loadMessages(channelId: string): Promise<void> {
     const messages = await this.rpc<Message[]>("messages.list", { channelId, limit: 200 });
     this.set((s) => ({ messages: { ...s.messages, [channelId]: messages } }));
+  }
+
+  /**
+   * Search one conversation's history on the supervisor (FTS5). An empty query turns search off.
+   * Every call invalidates the previous one: a slow response to an older query is dropped instead
+   * of overwriting newer results.
+   */
+  async searchMessages(channelId: string, q: string): Promise<void> {
+    const seq = ++this.searchSeq;
+    const query = q.trim();
+    if (!query) { this.set({ search: null }); return; }
+    this.set({ search: { channelId, q: query, results: [], busy: true } });
+    try {
+      const results = await this.rpc<Message[]>("messages.search", { q: query, channelId });
+      if (seq === this.searchSeq) this.set({ search: { channelId, q: query, results, busy: false } });
+    } catch {
+      if (seq === this.searchSeq) this.set({ search: { channelId, q: query, results: [], busy: false } });
+    }
   }
   async loadSteps(runId: string): Promise<void> {
     const r = await this.rpc<{ run: Run | null; steps: RunStep[] }>("run.get", { id: runId });

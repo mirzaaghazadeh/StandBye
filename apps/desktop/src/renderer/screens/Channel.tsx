@@ -21,11 +21,13 @@ export function ChannelScreen({ channelId, dmAgentId }: { channelId: string; dmA
   const agents = useStore((s) => s.agents);
   const team = useStore((s) => s.team);
   const messages = useStore((s) => s.messages[channelId] ?? EMPTY_MESSAGES);
+  const search = useStore((s) => s.search);
   const [showInspector, setShowInspector] = useState(true);
+  const searching = search !== null && search.channelId === channelId;
   const listRef = useRef<HTMLDivElement>(null);
   const dmAgent = dmAgentId ? agents.find((a) => a.id === dmAgentId) : undefined;
 
-  useEffect(() => { void store.loadMessages(channelId); }, [channelId]);
+  useEffect(() => { void store.loadMessages(channelId); void store.searchMessages(channelId, ""); }, [channelId]);
   useEffect(() => { const el = listRef.current; if (el) el.scrollTop = el.scrollHeight; store.markSeen(channelId); }, [messages.length, channelId]);
 
   const members = dmAgent ? [dmAgent] : agents.filter((a) => channel?.members.includes(a.id));
@@ -35,17 +37,21 @@ export function ChannelScreen({ channelId, dmAgentId }: { channelId: string; dmA
     <>
       {dmAgent ? (
         <Toolbar title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Avatar agent={dmAgent} size={18} />{dmAgent.name}</span>} subtitle={`${dmAgent.role} · ${statusLine(dmAgent)}`}>
+          <SearchField key={channelId} channelId={channelId} />
           <Button onClick={() => { store.selectAgent(dmAgent.id); store.navigate({ name: "home" }); }}>Manage on Home</Button>
           <IconButton on={showInspector} onClick={() => setShowInspector((v) => !v)}><Ic.Sidebar size={15} /></IconButton>
         </Toolbar>
       ) : (
         <Toolbar title={`#${channel?.name ?? channelId}`} subtitle={`${members.map((m) => m.name).join(", ")}${members.length ? " and you" : "You"}${channel?.purpose ? ` · ${channel.purpose}` : ""}`}>
+          <SearchField key={channelId} channelId={channelId} />
           <IconButton on={showInspector} onClick={() => setShowInspector((v) => !v)}><Ic.Sidebar size={15} /></IconButton>
         </Toolbar>
       )}
       <div className="body">
         <div className="split-v" style={{ background: "var(--surface)" }}>
           <div ref={listRef} className="scroll" style={{ flex: 1, minHeight: 0, paddingBottom: 8 }}>
+            {searching ? <SearchResults channelId={channelId} /> : (
+            <>
             {messages.length === 0 && (
               <div className="empty" style={{ height: "100%", fontSize: 12, maxWidth: 420, margin: "0 auto", textAlign: "center", lineHeight: 1.6 }}>
                 {dmAgent ? <><Ic.Chat size={28} stroke="var(--ink-6)" strokeWidth={1.6} /><span>Your private chat with {dmAgent.name}.<br />Anything you write here wakes {dmAgent.name} straight away, and stays between the two of you.</span></>
@@ -64,6 +70,8 @@ export function ChannelScreen({ channelId, dmAgentId }: { channelId: string; dmA
               );
             })}
             <DraftRow channelId={channelId} />
+            </>
+            )}
           </div>
           <WorkingNow channelId={channelId} dmAgentId={dmAgentId} messages={messages} />
           <div style={{ flexShrink: 0, padding: "10px 18px 12px", borderTop: "1px solid var(--border-soft)" }}>
@@ -185,6 +193,62 @@ function MessageOutcome({ m }: { m: Message }) {
           {l.runId && <a onClick={() => store.navigate({ name: "runs", runId: l.runId })}>Open run</a>}
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * The toolbar search field. Typing is local state, debounced into the store; Escape or the ×
+ * clears it. Keyed by channelId at the call site, so switching conversations starts fresh.
+ */
+function SearchField({ channelId }: { channelId: string }) {
+  const [q, setQ] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => void store.searchMessages(channelId, q), 200);
+    return () => clearTimeout(t);
+  }, [q, channelId]);
+  return (
+    <div className="searchbox">
+      <Ic.Search size={13} />
+      <input
+        value={q}
+        placeholder="Search"
+        spellCheck={false}
+        onChange={(e) => setQ(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Escape") setQ(""); }}
+      />
+      {q && <button className="searchbox-x" title="Clear" onClick={() => setQ("")}><Ic.X size={11} /></button>}
+    </div>
+  );
+}
+
+/** Read-only results of the active search in this conversation. */
+function SearchResults({ channelId }: { channelId: string }) {
+  const search = useStore((s) => s.search);
+  const agents = useStore((s) => s.agents);
+  if (!search || search.channelId !== channelId) return null;
+  return (
+    <div className="search-results">
+      <div className="search-note">
+        {search.busy
+          ? `Searching for “${search.q}”…`
+          : `${search.results.length} ${search.results.length === 1 ? "match" : "matches"} for “${search.q}”`}
+      </div>
+      {!search.busy && search.results.length === 0 && (
+        <div className="empty">Nothing in this conversation matches “{search.q}”.</div>
+      )}
+      {search.results.map((m) => {
+        const a = m.authorId === "user" ? undefined : agents.find((x) => x.id === m.authorId);
+        return (
+          <div className="hit" key={m.id}>
+            {m.authorId === "user" ? <UserAvatar size={20} /> : <Avatar agent={a} name={m.authorName} size={20} />}
+            <div className="hit-b">
+              <div className="msg-h"><span className="msg-n">{m.authorName}</span><span className="msg-t">{hhmm(m.createdAt)}</span></div>
+              <div className="hit-t">{short(m.text, 240)}</div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

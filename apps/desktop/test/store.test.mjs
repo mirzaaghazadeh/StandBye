@@ -288,3 +288,52 @@ test("navigateByPath: settings/updates opens the keys sheet on the updates tab",
   assert.equal(store.get().sheet.kind, "keys");
   assert.equal(store.get().sheet.tab, "updates");
 });
+
+// ── search ───────────────────────────────────────────────────────────────────
+
+test("searchMessages queries the supervisor and stores the results for the channel", async () => {
+  const { store, rpcLog } = await freshStore({
+    "messages.search": () => [{ id: "m9", text: "found it" }],
+  });
+  await store.searchMessages("general", "deploy");
+  assert.ok(rpcLog.some((c) => c.method === "messages.search" && c.params.q === "deploy" && c.params.channelId === "general"));
+  assert.deepEqual(store.get().search, {
+    channelId: "general",
+    q: "deploy",
+    results: [{ id: "m9", text: "found it" }],
+    busy: false,
+  });
+});
+
+test("searchMessages with a blank query turns search off and never calls the supervisor", async () => {
+  const { store, rpcLog } = await freshStore({
+    "messages.search": () => [],
+  });
+  await store.searchMessages("general", "deploy");
+  await store.searchMessages("general", "   ");
+  assert.equal(rpcLog.filter((c) => c.method === "messages.search").length, 1);
+  assert.equal(store.get().search, null);
+});
+
+test("searchMessages: the newest query wins — a slow response to an older one is dropped", async () => {
+  const gates = [];
+  const { store } = await freshStore({
+    "messages.search": (p) => new Promise((resolve) => gates.push(() => resolve([{ id: "m1", text: p.q }]))),
+  });
+  const first = store.searchMessages("general", "alpha");
+  const second = store.searchMessages("general", "alpha beta");
+  gates[1](); // the newer query resolves first
+  await second;
+  assert.deepEqual(store.get().search.results, [{ id: "m1", text: "alpha beta" }]);
+  gates[0](); // the older query lands last and must not overwrite it
+  await first;
+  assert.deepEqual(store.get().search.results, [{ id: "m1", text: "alpha beta" }]);
+});
+
+test("searchMessages: a failed query leaves search on with empty results instead of throwing", async () => {
+  const { store } = await freshStore({
+    "messages.search": () => { throw new Error("boom"); },
+  });
+  await store.searchMessages("general", "deploy");
+  assert.deepEqual(store.get().search, { channelId: "general", q: "deploy", results: [], busy: false });
+});
