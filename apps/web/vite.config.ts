@@ -15,7 +15,10 @@ export default defineConfig({
       "@kit-styles": resolve(desktopUi, "styles.css"),
       "@templates": resolve(supervisorSrc, "templates.ts"),
     },
-    dedupe: ["react", "react-dom"],
+    // Those two files live outside this package, so their own bare imports resolve against
+    // apps/desktop / packages/supervisor — folders that have no node_modules in a filtered
+    // install like the Docker build. Deduping resolves them from this package instead.
+    dedupe: ["react", "react-dom", "@crew/shared", "simple-icons"],
   },
   server: { fs: { allow: [resolve(__dirname, "../..")] }, port: 5174 },
   build: {
