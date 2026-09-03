@@ -84,6 +84,7 @@ export class Crew {
     const stale = this.db.recoverStaleRuns();
     if (stale > 0) log(`marked ${stale} stale run(s) as failed after restart`, { team: this.team?.id });
     this.restoreChannels();
+    this.ensureGeneral();
     for (const a of this.store.listAgentConfigs()) this.ensureDm(a.id); // teams created before direct chats existed
   }
 
@@ -213,6 +214,39 @@ export class Crew {
     }
     this.ensureDm(id);
     return this.getAgent(id);
+  }
+
+  /**
+   * Every team has a room everyone is in. The app guaranteed each agent a direct chat but never
+   * this, so a team that lost its group channels kept running with nowhere shared to talk: agents
+   * told to "post in #general" found it missing and quietly fell back to messaging the owner, and
+   * nobody could see what anyone else was doing. Found on a live team with only DMs left.
+   */
+  private ensureGeneral(): Channel | null {
+    if (!this.team) return null;
+    const existing = this.db.getChannel("general");
+    const members = this.store.listAgentConfigs().map((a) => a.id);
+    if (existing) {
+      // Everyone belongs here, including agents hired after the channel was made.
+      const missing = members.filter((m) => !existing.members.includes(m));
+      if (!missing.length) return existing;
+      const next = { ...existing, members: [...existing.members, ...missing] };
+      this.db.upsertChannel(next);
+      this.syncChannels();
+      return next;
+    }
+    const channel: Channel = {
+      id: "general", name: "general",
+      purpose: "Everyone. Announcements, standups, anything cross-cutting.",
+      members, kind: "group", dmAgentId: null,
+    };
+    this.db.upsertChannel(channel);
+    for (const cfg of this.store.listAgentConfigs()) {
+      if (!cfg.channels.includes("general")) this.store.writeAgentConfig({ ...cfg, channels: [...cfg.channels, "general"] });
+    }
+    this.syncChannels();
+    log("restored #general: the team had no shared channel", { team: this.team.id });
+    return channel;
   }
 
   /** Every agent has a direct chat with the owner. It is a channel the agent is always a member of. */

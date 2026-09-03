@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { makeCrew } from "./helpers.mjs";
+import { Crew } from "../dist/crew.js";
 
 test("creating a channel", async (t) => {
   const { crew } = makeCrew(t);
@@ -99,4 +100,42 @@ test("direct chats are created for agents that predate them", async (t) => {
   assert.equal(dm.kind, "dm");
   assert.equal(dm.dmAgentId, "sol");
   assert.ok(reopened.getAgent("sol").channels.includes("dm-sol"));
+});
+
+test("a team always has a room everyone is in", async (t) => {
+  // Found on a live team that had lost its group channels: agents told to post in #general found
+  // it missing and quietly fell back to DMing the owner, so nobody could see anyone else's work.
+  const { crew, dataDir } = makeCrew(t);
+  const agents = crew.listAgents().map((a) => a.id);
+
+  await t.test("a healthy team has one already, with everybody in it", () => {
+    const g = crew.listChannels().find((c) => c.id === "general");
+    assert.ok(g, "#general exists");
+    for (const id of agents) assert.ok(g.members.includes(id), `${id} is in it`);
+  });
+
+  await t.test("a team that lost it gets it back when it is next opened", () => {
+    crew.db.deleteChannel("general");
+    assert.equal(crew.db.getChannel("general"), undefined, "it is really gone");
+    crew.close();
+
+    const reopened = new Crew({ dataDir, globalDir: dataDir, keys: {} });
+    t.after(() => { try { reopened.close(); } catch { /* closed */ } });
+    const g = reopened.listChannels().find((c) => c.id === "general");
+    assert.ok(g, "#general is back");
+    assert.equal(g.kind, "group");
+    for (const id of agents) assert.ok(g.members.includes(id), `${id} is back in it`);
+  });
+
+  await t.test("an agent hired later is added to it rather than left out", () => {
+    const crew2 = new Crew({ dataDir, globalDir: dataDir, keys: {} });
+    t.after(() => { try { crew2.close(); } catch { /* closed */ } });
+    const g = crew2.db.getChannel("general");
+    crew2.db.upsertChannel({ ...g, members: g.members.slice(0, 1) });
+    crew2.close();
+
+    const crew3 = new Crew({ dataDir, globalDir: dataDir, keys: {} });
+    t.after(() => { try { crew3.close(); } catch { /* closed */ } });
+    for (const id of agents) assert.ok(crew3.db.getChannel("general").members.includes(id), `${id} was added back`);
+  });
 });
