@@ -55,6 +55,8 @@ export function HomeScreen() {
                 {shown.map((a, i) => (
                   <AgentRow key={a.id} agent={a} alt={i % 2 === 1} selected={selected?.id === a.id} onSelect={() => store.selectAgent(a.id)} />
                 ))}
+                {shown.length === 0 && <div style={{ padding: "18px 12px", color: "var(--ink-5)", fontSize: 12 }}>No agent matches "{filter}".</div>}
+                <FirstSteps />
               </div>
               <div className="divider" />
               <NeedsYou />
@@ -67,6 +69,51 @@ export function HomeScreen() {
   );
 }
 
+/**
+ * Shown once, on a team that has not done anything yet: a brand new team is a table of idle
+ * agents, which tells a first-time owner nothing about how to start. Disappears for good as
+ * soon as the first run exists, or when dismissed.
+ */
+function FirstSteps() {
+  const runs = useStore((s) => s.runs);
+  const dismissed = useStore((s) => s.firstStepsDismissed);
+  const agents = useStore((s) => s.agents);
+  const team = useStore((s) => s.team);
+  const channels = useStore((s) => s.channels);
+  if (dismissed || runs.length > 0 || agents.length === 0) return null;
+  const lead = agents[0]!;
+  const firstChannel = channels.find((c) => c.kind !== "dm");
+  return (
+    <div className="first">
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Ic.Sparkle size={16} stroke="var(--accent)" />
+        <b style={{ fontWeight: 600 }}>Your team is ready. Here's how to start it.</b>
+        <span className="grow" />
+        <a onClick={() => store.dismissFirstSteps()} style={{ fontSize: 12 }}>Got it</a>
+      </div>
+      <ol>
+        <li>
+          <b>Give them the first job.</b> Write what you want done in{firstChannel ? <> <a onClick={() => store.navigate({ name: "channel", channelId: firstChannel.id })}>#{firstChannel.name}</a></> : " a channel"} and type <b>@</b> to pick who takes it, or talk to <a onClick={() => store.navigate({ name: "dm", agentId: lead.id })}>{lead.name}</a> directly.
+        </li>
+        <li><b>They keep going on their own.</b> Each agent checks in every {lead.heartbeat.everyMinutes} minutes{lead.heartbeat.workHours ? ` between ${lead.heartbeat.workHours.start} and ${lead.heartbeat.workHours.end}` : " around the clock"}, and wakes up when someone mentions it or hands it a task.</li>
+        <li><b>They ask you when a decision is yours.</b> Those land in the <a onClick={() => store.navigate({ name: "inbox" })}>Inbox</a> with a default they'll fall back to if you're away.</li>
+        <li><b>Watch the work.</b> <a onClick={() => store.navigate({ name: "runs" })}>Runs</a> shows every file read, command run and message posted, with what it cost. The team stops at ${team?.dailyCapUsd ?? 10} a day.</li>
+      </ol>
+    </div>
+  );
+}
+
+/** True when the clock is outside the agent's work hours, so "idle" means asleep rather than free. */
+export function asleepNow(agent: Agent): boolean {
+  const wh = agent.heartbeat.workHours;
+  if (!wh) return false;
+  const [sh = 0, sm = 0] = wh.start.split(":").map(Number);
+  const [eh = 24, em = 0] = wh.end.split(":").map(Number);
+  const now = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  return mins < sh * 60 + sm || mins >= eh * 60 + em;
+}
+
 function AgentRow({ agent, alt, selected, onSelect }: { agent: Agent; alt: boolean; selected: boolean; onSelect: () => void }) {
   const runs = useStore((s) => s.runs);
   const current = agent.currentRunId ? runs.find((r) => r.id === agent.currentRunId) : null;
@@ -76,7 +123,7 @@ function AgentRow({ agent, alt, selected, onSelect }: { agent: Agent; alt: boole
     : agent.status === "paused" ? "Paused"
     : agent.status === "failed" ? agent.statusText
     : agent.status === "over_budget" ? "Daily budget reached, sleeping until tomorrow"
-    : agent.nextWakeAt ? `Idle. Next check-in ${new Date(agent.nextWakeAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Idle";
+    : agent.nextWakeAt ? `${asleepNow(agent) ? "Outside work hours" : "Idle"}. Next check-in ${new Date(agent.nextWakeAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Idle";
   return (
     <div className={["tr", alt && "tr-alt", selected && "tr-sel"].filter(Boolean).join(" ")} onClick={onSelect} onDoubleClick={() => store.openSheet({ kind: "agent", agentId: agent.id })}>
       <span style={{ width: 190, display: "flex", alignItems: "center", gap: 8 }}>
@@ -106,7 +153,7 @@ function NeedsYou() {
         <a onClick={() => store.navigate({ name: "inbox" })} style={{ fontWeight: 400 }}>Open Inbox</a>
       </div>
       <div className="scroll" style={{ flex: 1 }}>
-        {open.length === 0 && <div style={{ padding: "18px 12px", color: "var(--ink-5)", fontSize: 12 }}>Nothing waiting on you.</div>}
+        {open.length === 0 && <div style={{ padding: "18px 12px", color: "var(--ink-5)", fontSize: 12 }}>Nothing waiting on you. When an agent needs a decision it lands here and in the Inbox, with a default it will fall back to if you're away.</div>}
         {open.map((q) => <NeedRow key={q.id} q={q} agent={agents.find((a) => a.id === q.fromAgentId)} />)}
         {answeredToday > 0 && (
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", color: "var(--ink-4)", fontSize: 12 }}>
@@ -131,17 +178,19 @@ export function NeedRow({ q, agent }: { q: Question; agent?: Agent }) {
           <KindPill kind={q.kind} />
           <span style={{ fontSize: 11, color: "var(--ink-4)" }}>{ago(q.createdAt)} ago{q.channelId ? ` in #${q.channelId}` : ""}</span>
         </div>
-        <div style={{ marginTop: 2 }}><b style={{ fontWeight: 500 }}>{q.title}</b>{q.body && q.body !== q.title ? ` ${q.body}` : ""}</div>
+        <div style={{ marginTop: 2, fontWeight: 500 }} className="cell" title={q.title}>{q.title}</div>
+        {q.body && q.body !== q.title && <div className="clamp2" style={{ color: "var(--ink-3)", marginTop: 1 }} title={q.body}>{q.body}</div>}
         <div className="mono" style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 3, display: "flex", gap: 12, minWidth: 0 }}>
           {q.defaultAt && <span className="cell" title={q.defaultAnswer ?? undefined}>If you don't answer: {(q.defaultAnswer ?? "").length > 40 ? (q.defaultAnswer ?? "").slice(0, 39) + "…" : q.defaultAnswer} at {new Date(q.defaultAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>}
           {q.kind === "question" && <Checkbox checked={remember} onChange={setRemember} label={<span style={{ fontFamily: "inherit" }}>remember as a decision</span>} />}
         </div>
       </div>
-      <div className="actions" style={{ flexShrink: 0, maxWidth: 380, justifyContent: "flex-end" }}>
-        {quick.map((o, i) => (
-          <Button key={o} title={o} primary={i === 0 && (o === q.recommended || (!q.recommended && i === 0))} onClick={() => void store.answerQuestion(q.id, o, remember)}>{o.length > 32 ? o.slice(0, 31).trimEnd() + "…" : o}</Button>
+      {/* Long options can't be judged from a truncated button, so they only get answered in the Inbox, where the full text is readable. */}
+      <div className="actions" style={{ flexShrink: 0, maxWidth: 300, justifyContent: "flex-end" }}>
+        {quick.every((o) => o.length <= 24) && quick.map((o, i) => (
+          <Button key={o} title={o} primary={i === 0 && (o === q.recommended || (!q.recommended && i === 0))} onClick={() => void store.answerQuestion(q.id, o, remember)}>{o}</Button>
         ))}
-        <Button onClick={() => store.navigate({ name: "inbox", questionId: q.id })}>Reply…</Button>
+        <Button primary={!quick.every((o) => o.length <= 24)} onClick={() => store.navigate({ name: "inbox", questionId: q.id })}>{quick.every((o) => o.length <= 24) ? "Reply…" : "Read & answer…"}</Button>
       </div>
     </div>
   );

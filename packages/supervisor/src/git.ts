@@ -45,7 +45,11 @@ export function defaultGitSettings(info: GitInfo): GitSettings | null {
 /** Permission rules that make the git settings binding, whatever the agent's own rules say. */
 export function gitRules(g: GitSettings | null | undefined): PermissionRule[] {
   if (!g || !g.enabled) return [];
-  const rules: PermissionRule[] = [];
+  // Force pushes lose to nothing, so they go first and are never overridden by a branch rule.
+  const rules: PermissionRule[] = [
+    { pattern: "Bash(git push --force*)", behavior: "block", label: "Force push" },
+    { pattern: "Bash(git push -f*)", behavior: "block", label: "Force push" },
+  ];
   for (const b of [g.productionBranch, g.stagingBranch]) if (b) rules.push({ pattern: `Bash(git push*${b}*)`, behavior: "block", label: `Push to ${b}` }, { pattern: `Bash(git checkout ${b}*)`, behavior: "ask", label: `Check out ${b}` });
   if (g.mode === "pr") {
     if (g.devBranch) rules.push({ pattern: `Bash(git push*${g.devBranch}*)`, behavior: "block", label: `Direct push to ${g.devBranch} (use a PR)` });
@@ -56,7 +60,6 @@ export function gitRules(g: GitSettings | null | undefined): PermissionRule[] {
     rules.push({ pattern: `Bash(git push*${g.workBranch}*)`, behavior: "allow" });
     rules.push({ pattern: "Bash(git push*)", behavior: "ask", label: "Push to another branch" });
   }
-  rules.push({ pattern: "Bash(git push --force*)", behavior: "block", label: "Force push" }, { pattern: "Bash(git push -f*)", behavior: "block", label: "Force push" });
   return rules;
 }
 

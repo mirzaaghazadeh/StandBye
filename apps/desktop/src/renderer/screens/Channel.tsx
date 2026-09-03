@@ -46,8 +46,9 @@ export function ChannelScreen({ channelId, dmAgentId }: { channelId: string; dmA
         <div className="split-v" style={{ background: "var(--surface)" }}>
           <div ref={listRef} className="scroll" style={{ flex: 1, minHeight: 0, paddingBottom: 8 }}>
             {messages.length === 0 && (
-              <div className="empty" style={{ height: "100%", fontSize: 12 }}>
-                {dmAgent ? `This is your private chat with ${dmAgent.name}. Anything you write here wakes ${dmAgent.name} and stays between the two of you.` : "No messages yet. Say something, or mention an agent with @."}
+              <div className="empty" style={{ height: "100%", fontSize: 12, maxWidth: 420, margin: "0 auto", textAlign: "center", lineHeight: 1.6 }}>
+                {dmAgent ? <><Ic.Chat size={28} stroke="var(--ink-6)" strokeWidth={1.6} /><span>Your private chat with {dmAgent.name}.<br />Anything you write here wakes {dmAgent.name} straight away, and stays between the two of you.</span></>
+                  : <><Ic.Hash size={28} stroke="var(--ink-6)" strokeWidth={1.6} /><span>Nothing here yet. Write what needs doing and type <b>@</b> to pick the agent who should take it. Everyone in this channel reads along and replies when it concerns them.</span></>}
               </div>
             )}
             {messages.map((m, i) => {
@@ -57,6 +58,7 @@ export function ChannelScreen({ channelId, dmAgentId }: { channelId: string; dmA
                 <div key={m.id}>
                   {newDay && <div className="day"><i /><b>{isToday(m.createdAt) ? "Today" : new Date(m.createdAt).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}</b><i /></div>}
                   <MessageRow m={m} />
+                  {m.authorId === "user" && m.mentions.length > 0 && <MessageOutcome m={m} />}
                 </div>
               );
             })}
@@ -116,6 +118,47 @@ function WorkingNow({ channelId, dmAgentId, messages }: { channelId: string; dmA
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * What became of a message you sent. Silent while an agent is working (the typing line covers that)
+ * and silent once it replies; speaks up only when the message went nowhere, which is the case that
+ * used to leave you staring at an empty channel.
+ */
+function MessageOutcome({ m }: { m: Message }) {
+  const runs = useStore((s) => s.runs);
+  const agents = useStore((s) => s.agents);
+  const waking = useStore((s) => s.waking[m.id]);
+  const lines = m.mentions.map((id) => {
+    const agent = agents.find((a) => a.id === id);
+    const name = agent?.name ?? id;
+    const run = runs.find((r) => r.trigger.kind === "mention" && r.trigger.messageId === m.id && r.agentId === id);
+    if (!run) {
+      if (waking) return { id, icon: "wake" as const, text: `Waking ${name}…` };
+      if (agent?.paused) return { id, icon: "warn" as const, text: `${name} is paused, so this is waiting. Resume ${name} on Home.` };
+      return { id, icon: "warn" as const, text: `${name} did not pick this up. Try again or check the Runs screen.`, retry: true };
+    }
+    if (run.status === "failed") return { id, icon: "fail" as const, text: `${name}'s run failed: ${run.error ?? "unknown error"}`, retry: true, runId: run.id };
+    if (run.status === "cancelled") return { id, icon: "warn" as const, text: `${name}'s run was cancelled before it finished.`, retry: true, runId: run.id };
+    if (run.status === "noop") return { id, icon: "ok" as const, text: `${name} looked and had nothing to add.`, runId: run.id };
+    return null; // queued, running, done: the typing line or the reply itself is the feedback
+  }).filter((x): x is NonNullable<typeof x> => Boolean(x));
+  if (lines.length === 0) return null;
+  return (
+    <div style={{ padding: "0 18px 4px 52px", display: "flex", flexDirection: "column", gap: 3 }}>
+      {lines.map((l) => (
+        <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: l.icon === "fail" ? "var(--red-ink)" : "var(--ink-4)", minWidth: 0 }}>
+          {l.icon === "wake" ? <span className="dots"><i /><i /><i /></span>
+            : l.icon === "fail" ? <Ic.X size={12} stroke="var(--red-ink)" />
+            : l.icon === "ok" ? <Ic.Check size={12} stroke="var(--ink-5)" strokeWidth={2.4} />
+            : <Ic.Question size={12} stroke="var(--amber)" />}
+          <span className="cell" title={l.text}>{l.text}</span>
+          {l.retry && <a onClick={() => void store.retryMessage(l.id, m.text)}>Ask again</a>}
+          {l.runId && <a onClick={() => store.navigate({ name: "runs", runId: l.runId })}>Open run</a>}
+        </div>
+      ))}
     </div>
   );
 }

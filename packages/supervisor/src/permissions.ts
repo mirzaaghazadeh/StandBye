@@ -10,11 +10,15 @@ export function decide(rules: PermissionRule[], toolName: string, input: Record<
   const matches = rules
     .map((rule) => ({ rule, score: matchScore(rule.pattern, toolName, sig) }))
     .filter((m) => m.score >= 0)
-    .sort((a, b) => b.score - a.score);
+    // Most specific wins; on a tie the most restrictive wins, so an allow rule can never
+    // quietly outrank an equally specific block (e.g. "git push*dev*" vs "git push -f*").
+    .sort((a, b) => b.score - a.score || CAUTION[b.rule.behavior] - CAUTION[a.rule.behavior]);
   const best = matches[0];
   if (!best) return { behavior: "allow" };
   return { behavior: best.rule.behavior, rule: best.rule };
 }
+
+const CAUTION: Record<PermissionBehavior, number> = { allow: 0, ask: 1, block: 2 };
 
 export function signature(toolName: string, input: Record<string, unknown>): string {
   const inner =

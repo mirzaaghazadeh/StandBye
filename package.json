@@ -9,6 +9,7 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "supervisor": "pnpm --filter @crew/supervisor start",
+    "test": "pnpm --filter @crew/shared build && pnpm --filter @crew/supervisor test",
     "smoke": "pnpm --filter @crew/shared build && pnpm --filter @crew/supervisor build && node scripts/smoke.mjs",
     "package": "pnpm build && pnpm --filter @crew/desktop package"
   },

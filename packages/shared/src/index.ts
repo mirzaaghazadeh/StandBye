@@ -136,11 +136,77 @@ export interface GitInfo {
   hasGh: boolean;
 }
 
+// ---------- Workspace watcher ----------
+
+/** Kinds of real-world facts the watcher turns into wake-ups. */
+export type WatchSource = "commit" | "pr" | "ci" | "files";
+
+/** Per-team watcher config. Polls the workspace locally; there is no inbound webhook. */
+export interface WatchSettings {
+  enabled: boolean;
+  /** Tick cadence in seconds (minimum 30). */
+  everySeconds: number;
+  /** New commits on the team's branches, and a working tree left dirty. */
+  commits: boolean;
+  /** Pull request opened / review requested / merged, via `gh`. */
+  pullRequests: boolean;
+  /** Failed checks, via `gh run list`. */
+  ci: boolean;
+  /** The owner editing files in the workspace by hand. */
+  files: boolean;
+  /** Run `git fetch` before looking at branches. Off by default: no surprise network calls. */
+  fetch: boolean;
+  /** Agent to wake. null = pick one (a reviewer for code events, otherwise the lead). */
+  notify: string | null;
+}
+
+export function defaultWatchSettings(hasWorkspace: boolean, isRepo: boolean, ghReady: boolean): WatchSettings {
+  return {
+    enabled: hasWorkspace,
+    everySeconds: 60,
+    commits: isRepo,
+    pullRequests: isRepo && ghReady,
+    ci: isRepo && ghReady,
+    files: hasWorkspace,
+    fetch: false,
+    notify: null,
+  };
+}
+
+/** One fact the watcher noticed. Deduplicated by `key`, so it is recorded at most once. */
+export interface WatchEvent {
+  key: string;
+  source: WatchSource;
+  summary: string;
+  detail: string;
+  /** Agent that was woken, or null when nobody could take it. */
+  agentId: string | null;
+  at: string;
+}
+
+export type GhAvailability = "ready" | "missing" | "unauthenticated" | "no-remote" | "not-github";
+
+export interface WatchStatus {
+  /** The team has a workspace on disk. Without one there is nothing to watch. */
+  available: boolean;
+  isRepo: boolean;
+  settings: WatchSettings;
+  gh: GhAvailability;
+  lastTickAt: string | null;
+  nextTickAt: string | null;
+  lastError: string | null;
+  /** Branch -> last commit the watcher has already accounted for. */
+  branchHeads: Record<string, string>;
+  /** Most recent facts, newest first. */
+  recent: WatchEvent[];
+}
+
 export interface TeamConfig {
   id: string;
   name: string;
   charter: string;
   git?: GitSettings | null;
+  watch?: WatchSettings | null;
   /** Hard daily cap for the whole team in USD. */
   dailyCapUsd: number;
   /** Max agent-to-agent reply depth for a single thread of mentions. */
@@ -230,7 +296,8 @@ export type RunTrigger =
   | { kind: "heartbeat" }
   | { kind: "schedule"; name: string; prompt: string }
   | { kind: "mention"; messageId: string; by: string; depth: number }
-  | { kind: "task"; title: string; details: string; from: string }
+  /** `event` is set when the workspace watcher raised the task rather than a person or teammate. */
+  | { kind: "task"; title: string; details: string; from: string; event?: WatchSource }
   | { kind: "answer"; questionId: string }
   | { kind: "question"; questionId: string; from: string }
   | { kind: "escalated"; reason: string }

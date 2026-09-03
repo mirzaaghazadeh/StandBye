@@ -22,16 +22,17 @@ function agentName(agents: Agent[], id: string, owner: string): string {
   return agents.find((a) => a.id === id)?.name ?? id;
 }
 
+/** Plain words: why this agent woke up. */
 function triggerLabel(t: RunTrigger, agents: Agent[], owner: string): string {
   switch (t.kind) {
-    case "heartbeat": return "Check-in";
-    case "schedule": return `Schedule · ${t.name}`;
-    case "mention": return `Mention · ${agentName(agents, t.by, owner)}`;
-    case "task": return `Task · ${agentName(agents, t.from, owner)}`;
-    case "answer": return "Answer";
-    case "question": return `Question · ${agentName(agents, t.from, owner)}`;
-    case "escalated": return "Escalated";
-    case "manual": return "Message from you";
+    case "heartbeat": return "Checked in";
+    case "schedule": return t.name;
+    case "mention": return `${agentName(agents, t.by, owner)} mentioned them`;
+    case "task": return `Task from ${agentName(agents, t.from, owner)}`;
+    case "answer": return "You answered";
+    case "question": return `${agentName(agents, t.from, owner)} asked them`;
+    case "escalated": return "Found work";
+    case "manual": return `${owner} messaged them`;
   }
 }
 
@@ -98,7 +99,7 @@ export function RunsScreen({ runId }: { runId?: string }) {
           <div className="th">
             <span style={{ width: 64 }}>Time</span>
             <span style={{ width: 110 }}>Agent</span>
-            <span style={{ width: 130 }}>Trigger</span>
+            <span style={{ width: 170 }}>Why it woke up</span>
             <span style={{ flex: 1 }}>Summary</span>
             <span style={{ width: 52, textAlign: "right" }}>Steps</span>
             <span style={{ width: 72, textAlign: "right" }}>Duration</span>
@@ -106,7 +107,13 @@ export function RunsScreen({ runId }: { runId?: string }) {
             <span style={{ width: 96, paddingLeft: 16 }}>Status</span>
           </div>
           <div className="scroll" style={{ flex: 1, minHeight: 0, background: "var(--surface)" }}>
-            {shown.length === 0 && <div style={{ padding: "18px 12px", color: "var(--ink-5)", fontSize: 12 }}>No runs match.</div>}
+            {shown.length === 0 && (
+              <div style={{ padding: "18px 12px", color: "var(--ink-5)", fontSize: 12 }}>
+                {runs.length === 0
+                  ? "No runs yet. Every time an agent wakes up — a check-in, a mention, a task, an answer from you — it appears here with every file it read, every command it ran and what it cost."
+                  : `No runs match these filters. ${runs.length} run${runs.length === 1 ? "" : "s"} in total.`}
+              </div>
+            )}
             {shown.map((r, i) => (
               <RunRow key={r.id} run={r} alt={i % 2 === 1} selected={selected?.id === r.id} agents={agents} owner={owner} onSelect={() => store.navigate({ name: "runs", runId: r.id })} />
             ))}
@@ -130,8 +137,8 @@ function RunRow({ run, alt, selected, agents, owner, onSelect }: { run: Run; alt
         <Avatar agent={agent} name={run.agentId} size={18} />
         <span className="cell">{agent?.name ?? run.agentId}</span>
       </span>
-      <span className="cell" style={{ width: 130, color: "var(--ink-3)" }}>{triggerLabel(run.trigger, agents, owner)}</span>
-      <span className="cell" style={{ flex: 1, color: run.status === "failed" ? "var(--red-ink)" : muted ? "var(--ink-4)" : undefined }}>{text}</span>
+      <span className="cell" style={{ width: 170, color: "var(--ink-3)" }} title={triggerLabel(run.trigger, agents, owner)}>{triggerLabel(run.trigger, agents, owner)}</span>
+      <span className="cell" style={{ flex: 1, color: run.status === "failed" ? "var(--red-ink)" : muted ? "var(--ink-4)" : undefined }} title={text}>{text}</span>
       <span className="mono" style={{ width: 52, textAlign: "right", fontSize: 11 }}>{run.stepCount || ""}</span>
       <span className="mono" style={{ width: 72, textAlign: "right", fontSize: 11, color: "var(--ink-4)" }}>{dur(run.startedAt, run.finishedAt)}</span>
       <span style={{ width: 60, textAlign: "right" }}><Money v={run.costUsd} muted={run.costUsd < 0.005} /></span>
@@ -170,9 +177,10 @@ function RunDetail({ run, agents, owner }: { run: Run | undefined; agents: Agent
         <>
           <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
             <div className="pane-h" style={{ height: 32 }}>
-              <span>Run {run.id}</span>
+              <Avatar agent={agent} name={run.agentId} size={18} />
+              <span>{agent?.name ?? run.agentId}</span>
               <span style={{ fontWeight: 400, color: "var(--ink-4)" }} className="cell">
-                {agent?.name ?? run.agentId} · {triggerLabel(run.trigger, agents, owner)} · {hhmm(run.startedAt ?? run.createdAt)}{run.finishedAt ? ` to ${hhmm(run.finishedAt)}` : " · running"}
+                {triggerLabel(run.trigger, agents, owner).replace(/^[A-Z]/, (c) => c.toLowerCase())} · {hhmm(run.startedAt ?? run.createdAt)}{run.finishedAt ? ` to ${hhmm(run.finishedAt)}` : " · still running"} · {steps.length} step{steps.length === 1 ? "" : "s"}
               </span>
               <span className="grow" />
               <span className="mono" style={{ fontWeight: 400, fontSize: 11, color: "var(--ink-4)" }}>
@@ -180,7 +188,11 @@ function RunDetail({ run, agents, owner }: { run: Run | undefined; agents: Agent
               </span>
             </div>
             <div className="scroll" style={{ flex: 1, padding: "6px 0", background: "var(--surface)" }}>
-              {steps.length === 0 && <div style={{ padding: "12px 14px", color: "var(--ink-5)", fontSize: 12 }}>{run.status === "queued" ? "Not started yet." : "No steps recorded."}</div>}
+              {steps.length === 0 && (
+                <div style={{ padding: "12px 14px", color: "var(--ink-5)", fontSize: 12 }}>
+                  {run.status === "queued" ? "Waiting for a free slot. Steps appear here the moment it starts." : run.status === "running" ? "Just started; the first step will appear in a moment." : "This run ended before it did anything."}
+                </div>
+              )}
               {steps.map((s) => <StepRow key={s.id} step={s} open={Boolean(open[s.id])} onToggle={() => setOpen((o) => ({ ...o, [s.id]: !o[s.id] }))} />)}
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { log } from "./log.js";
 import { WebSocketServer, WebSocket } from "ws";
 import fs from "node:fs";
 import path from "node:path";
@@ -37,7 +38,7 @@ export class Api {
       this.send(ws, { event: "teams.updated", data: hub.list() });
     });
     hub.onEvent((e) => this.broadcast(e));
-    console.error(`[crew] api listening on ws://127.0.0.1:${port}`);
+    log(`api listening on ws://127.0.0.1:${port}`);
   }
 
   close(): void {

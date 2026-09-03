@@ -1,3 +1,4 @@
+import { log } from "./log.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -57,7 +58,7 @@ export class Crew {
     this.store = new Store(opts.dataDir);
     this.team = this.store.readTeam();
     const stale = this.db.recoverStaleRuns();
-    if (stale > 0) console.error(`[crew] marked ${stale} stale run(s) as failed after restart`);
+    if (stale > 0) log(`marked ${stale} stale run(s) as failed after restart`, { team: this.team?.id });
     for (const a of this.store.listAgentConfigs()) this.ensureDm(a.id); // teams created before direct chats existed
   }
 
@@ -280,10 +281,11 @@ export class Crew {
     return this.db.listChannels();
   }
   ensureChannel(name: string, purpose = "", members: string[] = []): Channel {
-    const existing = this.db.getChannel(name);
-    if (existing) return existing;
+    // Validate before looking up, so "dm-kai" can never hand back someone's private chat.
     const id = name.replace(/^#/, "").toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-|-$/g, "");
     if (!id || id.startsWith("dm-")) throw new Error("Pick another channel name");
+    const existing = this.db.getChannel(id);
+    if (existing) return existing;
     const c: Channel = { id, name: id, purpose, members, kind: "group", dmAgentId: null };
     this.db.upsertChannel(c);
     for (const a of members) {

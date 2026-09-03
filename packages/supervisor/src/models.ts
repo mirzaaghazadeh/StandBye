@@ -1,3 +1,4 @@
+import { logError } from "./log.js";
 import Anthropic from "@anthropic-ai/sdk";
 import type { ModelInfo, Provider } from "@crew/shared";
 import type { Crew } from "./crew.js";
@@ -48,7 +49,7 @@ async function anthropicModels(crew: Crew): Promise<ModelInfo[]> {
       list.push({ id: m.id, name: m.display_name, provider: "anthropic", inputPerM: null, outputPerM: null, context: null, tools: true, tags: [] });
     }
   } catch (e) {
-    console.error(`[models] anthropic list failed: ${e instanceof Error ? e.message : String(e)}`);
+    logError(`anthropic list failed: ${e instanceof Error ? e.message : String(e)}`);
   }
   return list;
 }
@@ -72,7 +73,7 @@ async function openRouterModels(): Promise<ModelInfo[]> {
       })
       .sort((a, b) => a.name.localeCompare(b.name));
   } catch (e) {
-    console.error(`[models] openrouter list failed: ${e instanceof Error ? e.message : String(e)}`);
+    logError(`openrouter list failed: ${e instanceof Error ? e.message : String(e)}`);
     return [
       { id: "z-ai/glm-5.3", name: "Z.AI: GLM 5.3", provider: "openrouter", inputPerM: null, outputPerM: null, context: 1_310_720, tools: true, tags: ["default"] },
       { id: "z-ai/glm-5.3-flash", name: "Z.AI: GLM 5.3 Flash", provider: "openrouter", inputPerM: null, outputPerM: null, context: 1_310_720, tools: true, tags: ["cheap"] },

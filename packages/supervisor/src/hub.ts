@@ -1,3 +1,4 @@
+import { log } from "./log.js";
 import fs from "node:fs";
 import path from "node:path";
 import { nanoid } from "nanoid";
@@ -46,7 +47,7 @@ export class Hub {
       const from = path.join(this.opts.dataDir, f);
       if (fs.existsSync(from)) fs.renameSync(from, path.join(dest, f));
     }
-    console.error(`[hub] migrated legacy team ${team.id} into teams/`);
+    log(`migrated legacy team ${team.id} into teams/`);
   }
 
   private load(id: string): TeamRuntime {

@@ -3,7 +3,7 @@ import type { RunStepKind } from "@crew/shared";
 import { DEFAULTS } from "../config.js";
 import { CHECKIN_TOOLS, TEAM_TOOLS, type AnyTeamTool, type ToolContext } from "../tools/team-tools.js";
 import { gate } from "./approval.js";
-import type { Runner } from "./types.js";
+import { classifyFailure, classifyText, type FailureKind, type Runner } from "./types.js";
 
 /**
  * Claude runner: the Claude Agent SDK gives us the full Claude Code harness (file tools, bash,
@@ -13,7 +13,9 @@ export const anthropicRunner: Runner = async (input) => {
   const { crew, agent, run, mode, ctx, signal } = input;
   // With an API key we pass it through; without one the Claude Code CLI uses the Claude login on this machine.
   const apiKey = crew.keys.anthropic;
-  if (!apiKey && !crew.hasClaudeLogin()) return { costUsd: 0, inputTokens: 0, outputTokens: 0, text: "", error: "No Anthropic API key and no Claude login found. Add a key in Settings or run `claude` once to sign in." };
+  if (!apiKey && !crew.hasClaudeLogin()) {
+    return { costUsd: 0, inputTokens: 0, outputTokens: 0, text: "", error: "No Anthropic API key and no Claude login found. Add a key in Settings or run `claude` once to sign in.", failure: "auth" };
+  }
 
   const tools: readonly AnyTeamTool[] =
     mode === "checkin"
@@ -29,6 +31,7 @@ export const anthropicRunner: Runner = async (input) => {
   let inputTokens = 0;
   let outputTokens = 0;
   let error: string | undefined;
+  let failure: FailureKind | undefined;
 
   const canUseTool = async (toolName: string, toolInput: Record<string, unknown>): Promise<PermissionResult> => {
     if (toolName.startsWith("mcp__team__")) return { behavior: "allow" };
@@ -63,15 +66,27 @@ export const anthropicRunner: Runner = async (input) => {
         costUsd = msg.total_cost_usd ?? 0;
         inputTokens = msg.usage?.input_tokens ?? 0;
         outputTokens = msg.usage?.output_tokens ?? 0;
-        if (msg.subtype !== "success") error = `${msg.subtype}${"errors" in msg && msg.errors?.length ? ": " + msg.errors.join("; ") : ""}`;
-        else if (msg.is_error) error = msg.result;
-        else text = msg.result || text;
+        // The CLI reports API failures as text on the result, so classify the text.
+        if (msg.subtype !== "success") {
+          const detail = "errors" in msg && msg.errors?.length ? msg.errors.join("; ") : "";
+          if (msg.subtype === "error_max_turns") { error = `Stopped after ${DEFAULTS.maxTurns} steps without finishing.`; failure = "other"; }
+          else if (msg.subtype === "error_max_budget_usd") { error = `Hit the per-run budget ($${agent.budget.perRunUsd}).`; failure = "budget"; }
+          else { const f = classifyText(detail || msg.subtype, "anthropic"); error = f.text; failure = f.kind; }
+        } else if (msg.is_error) {
+          const f = classifyText(msg.result, "anthropic");
+          error = f.text;
+          failure = f.kind;
+        } else {
+          text = msg.result || text;
+        }
       }
     }
   } catch (e) {
-    error = e instanceof Error ? e.message : String(e);
+    const f = classifyFailure(e, "anthropic");
+    error = f.text;
+    failure = f.kind;
   }
-  return { costUsd, inputTokens, outputTokens, text, error };
+  return { costUsd, inputTokens, outputTokens, text, error, failure };
 };
 
 function teamServer(tools: readonly AnyTeamTool[], ctx: ToolContext) {

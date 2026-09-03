@@ -44,6 +44,9 @@ export interface State {
   selectedAgentId: string | null;
   /** channelId -> ISO time of the newest message the owner has looked at */
   seen: Record<string, string>;
+  /** messageId -> agents being woken by it, until their run shows up */
+  waking: Record<string, { agentIds: string[]; at: number }>;
+  firstStepsDismissed: boolean;
   builderDraft: TeamDraft | null;
   builderBusy: boolean;
   toast: string | null;
@@ -52,7 +55,7 @@ export interface State {
 const initial: State = {
   ready: false, error: null, route: { name: "home" }, sheet: { kind: "none" }, status: null,
   keys: { anthropic: false, openrouter: false }, providers: null, models: null, teams: [], activeTeamId: null, team: null, agents: [], channels: [], messages: {}, questions: [], runs: [], steps: {},
-  spend: null, selectedAgentId: null, seen: {}, builderDraft: null, builderBusy: false, toast: null,
+  spend: null, selectedAgentId: null, seen: {}, waking: {}, firstStepsDismissed: false, builderDraft: null, builderBusy: false, toast: null,
 };
 
 type Listener = () => void;
@@ -94,6 +97,7 @@ class Store {
       this.rpc<Channel[]>("channels.list"), this.rpc<Question[]>("questions.list", {}), this.rpc<Run[]>("runs.list", { limit: 200 }), this.rpc<SpendSummary>("spend.get"),
     ]);
     this.set({
+      firstStepsDismissed: readLocal("standbye.firstSteps." + (activeTeamId ?? "")) === "done",
       teams, activeTeamId, status, keys, providers, team, agents, channels, questions, runs, spend, messages: {}, steps: {},
       selectedAgentId: agents.some((a) => a.id === this.state.selectedAgentId) ? this.state.selectedAgentId : agents[0]?.id ?? null,
     });
@@ -185,7 +189,31 @@ class Store {
 
   // ---------- actions ----------
 
-  async sendMessage(channelId: string, text: string): Promise<void> { await this.rpc("messages.send", { channelId, text }); }
+  /**
+   * Send and immediately show that something is happening: the agents named in the message are
+   * marked "waking" until a run for them appears (or a few seconds pass), so the channel never
+   * looks like it swallowed the message.
+   */
+  async sendMessage(channelId: string, text: string): Promise<void> {
+    try {
+      const m = await this.rpc<Message>("messages.send", { channelId, text });
+      if (m.mentions.length) {
+        this.set((s) => ({ waking: { ...s.waking, [m.id]: { agentIds: m.mentions, at: Date.now() } } }));
+        setTimeout(() => this.set((s) => { const w = { ...s.waking }; delete w[m.id]; return { waking: w }; }), 12_000);
+      }
+    } catch (e) {
+      this.toast(`Could not send: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+  /** Ask an agent to have another go at a message whose run failed. */
+  async retryMessage(agentId: string, text: string): Promise<void> {
+    await this.rpc("agent.wake", { id: agentId, prompt: text });
+    this.toast("Asked again.");
+  }
+  dismissFirstSteps(): void {
+    writeLocal("standbye.firstSteps." + (this.state.activeTeamId ?? ""), "done");
+    this.set({ firstStepsDismissed: true });
+  }
   async answerQuestion(id: string, answer: string, remember: boolean): Promise<void> {
     await this.rpc("questions.answer", { id, answer, remember });
     this.toast(remember ? "Answer sent and saved as a team decision." : "Answer sent.");
