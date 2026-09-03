@@ -18,10 +18,11 @@ import { PROVIDERS, tempDir } from "./helpers.mjs";
 /** Wire up a hub + API on a scratch data dir and return an RPC client plus the hub. */
 async function connect(t) {
   const dataDir = tempDir("standbye-agents-create-");
-  const port = 18000 + Math.floor(Math.random() * 2000);
   const token = crypto.randomBytes(8).toString("hex");
-  const hub = new Hub({ dataDir, port, token });
-  const api = new Api(hub, port, token);
+  const hub = new Hub({ dataDir, port: 0, token });
+  const api = new Api(hub, 0, token);
+  await api.ready;
+  const port = api.port;
   const ws = new WebSocket(`ws://127.0.0.1:${port}?token=${token}`);
   await once(ws, "open");
 

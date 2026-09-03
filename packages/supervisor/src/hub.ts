@@ -86,6 +86,13 @@ export class Hub {
     }
   }
 
+  /** Called by the Api once the OS assigned the real port (port 0): teams created afterwards
+   *  pick it up. Teams loaded before the socket bound keep the requested port, which only ever
+   *  differs in tests on a fresh data dir. */
+  usePort(port: number): void {
+    this.opts.port = port;
+  }
+
   get teamsDir(): string {
     return path.join(this.opts.dataDir, "teams");
   }

@@ -13,15 +13,15 @@ import { tempDir, PROVIDERS } from "./helpers.mjs";
 
 process.env.CREW_DISABLE_CLAUDE_LOGIN = "1";
 
-const PORT = 47311;
 const TOKEN = "folder-rpc-token";
 
 /** A live supervisor plus a client speaking the same JSON-RPC the renderer speaks. */
 async function connect(t) {
   const dataDir = tempDir("standbye-rpc-");
-  const hub = new Hub({ dataDir, port: PORT, token: TOKEN });
-  const api = new Api(hub, PORT, TOKEN);
-  const ws = new WebSocket(`ws://127.0.0.1:${PORT}?token=${TOKEN}`);
+  const hub = new Hub({ dataDir, port: 0, token: TOKEN });
+  const api = new Api(hub, 0, TOKEN);
+  await api.ready;
+  const ws = new WebSocket(`ws://127.0.0.1:${api.port}?token=${TOKEN}`);
   const pending = new Map();
   const events = [];
   let seq = 0;

@@ -30,6 +30,8 @@ type Handler = (params: any, conn: Conn) => Promise<unknown> | unknown; // eslin
 export class Api {
   private readonly wss: WebSocketServer;
   private readonly handlers: Record<string, Handler>;
+  /** Resolves once the socket is bound; await before dialing a port the OS chose (port 0). */
+  readonly ready: Promise<void>;
 
   constructor(private readonly hub: Hub, port: number, private readonly token: string) {
     this.handlers = this.buildHandlers();
@@ -42,7 +44,18 @@ export class Api {
       this.send(ws, { event: "teams.updated", data: hub.list() });
     });
     hub.onEvent((e) => this.broadcast(e));
-    log(`api listening on ws://127.0.0.1:${port}`);
+    this.ready = new Promise<void>((resolve) => this.wss.once("listening", () => {
+      // Port 0 means the OS picked the port (tests); teams created from now on learn the real one.
+      if (this.port !== port) hub.usePort(this.port);
+      log(`api listening on ws://127.0.0.1:${this.port}`);
+      resolve();
+    }));
+  }
+
+  /** The port the socket is actually bound to; 0 until the listening event fires. */
+  get port(): number {
+    const addr = this.wss.address();
+    return addr !== null && typeof addr === "object" ? addr.port : 0;
   }
 
   close(): void {
