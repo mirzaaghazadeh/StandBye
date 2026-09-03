@@ -8,7 +8,7 @@ import { AgentDraftSchema, PROVIDERS, providerSpec, TeamDraftSchema } from "@cre
 import { probeProvider } from "./providers.js";
 import { previewCommand } from "./runners/cli.js";
 import { skillOrigins } from "./skills.js";
-import { draftTeam } from "./builder.js";
+import { draftTeam, draftTeammate } from "./builder.js";
 import { defaultGitSettings, gitInfo } from "./git.js";
 import type { Crew } from "./crew.js";
 import type { Hub } from "./hub.js";
@@ -147,6 +147,13 @@ export class Api {
       "teams.archived": () => hub.archived(),
       "builder.draft": async (p: { description: string; ownerName: string; workspaceRoot: string | null; provider?: Provider; mode?: "describe" | "template" }) =>
         draftTeam(hub.settingsCrew(), { ...p, workspaceSummary: p.workspaceRoot ? summarizeWorkspace(p.workspaceRoot) : undefined }),
+
+      /** Draft ONE teammate for the selected team. No template fallback: a template cannot know what this team is missing, so with no ready provider this rejects and the UI offers the manual form. */
+      "builder.draftTeammate": (p: { description: string; ownerName: string; provider?: Provider }, conn) => {
+        const crew = this.crewFor(conn);
+        if (!crew.team) throw new Error("No team is selected — open a team first.");
+        return draftTeammate(crew, p);
+      },
 
       // ----- selected team -----
       "status.get": (_p, conn) => (conn.teamId && hub.get(conn.teamId) ? this.crewFor(conn).status() : emptyStatus(hub)),
