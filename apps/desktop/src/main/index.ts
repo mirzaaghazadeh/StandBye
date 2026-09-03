@@ -197,6 +197,20 @@ function createWindow(): void {
   win.webContents.setWindowOpenHandler(({ url }) => { void shell.openExternal(url); return { action: "deny" }; });
   if (isDev && process.env.ELECTRON_RENDERER_URL) void win.loadURL(process.env.ELECTRON_RENDERER_URL);
   else void win.loadFile(path.join(__dirname, "../renderer/index.html"));
+
+  // Without this a renderer that throws on boot shows an empty window and says nothing anywhere:
+  // no stack, no failed request, nothing in the log. Errors from the page and a failed load are
+  // the two things that turn "it opened blank" into a line you can act on.
+  win.webContents.on("console-message", (e) => {
+    if (e.level !== "error" && e.level !== "warning") return;
+    console.error(`[renderer] ${e.message}${e.sourceId ? ` (${e.sourceId}:${e.lineNumber})` : ""}`);
+  });
+  win.webContents.on("did-fail-load", (_e, code, description, url) => {
+    console.error(`[renderer] failed to load ${url}: ${description} (${code})`);
+  });
+  win.webContents.on("render-process-gone", (_e, details) => {
+    console.error(`[renderer] the page went away: ${details.reason} (exit ${details.exitCode})`);
+  });
 }
 
 function showWindow(route?: string): void {
