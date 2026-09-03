@@ -59,6 +59,27 @@ export const TEAM_TOOLS = [
     },
   }),
   def({
+    name: "search_messages",
+    description:
+      "Search the team's message history by keyword, across all channels or in one channel. Cheaper than re-reading whole channels into context when you need to find a decision or a detail from the past. Returns the newest matches first.",
+    schema: {
+      q: z.string().min(1).max(200).describe("Keywords to look for"),
+      channel: z.string().optional().describe("Restrict the search to one channel"),
+      limit: z.number().int().min(1).max(100).optional().describe("Max results (default 30)"),
+    },
+    handler: async ({ q, channel, limit }, ctx) => {
+      let channelId: string | undefined;
+      if (channel) {
+        const c = ctx.crew.db.getChannel(channel.replace(/^#/, ""));
+        if (!c) return `No channel named ${channel}. Channels: ${ctx.crew.listChannels().map((x) => x.name).join(", ")}`;
+        channelId = c.id;
+      }
+      const msgs = ctx.crew.db.searchMessages(q, { channelId, limit: limit ?? 30 });
+      if (msgs.length === 0) return `Nothing in the history matches ${JSON.stringify(q)}.`;
+      return msgs.map((m) => `[${m.createdAt.slice(5, 16).replace("T", " ")}] ${m.authorName} in #${m.channelId}: ${m.text}`).join("\n");
+    },
+  }),
+  def({
     name: "post_message",
     description:
       "Post a message to a channel. Mention a teammate with @Name to get their attention; they will read it and reply when it concerns them. Keep it short and specific. Don't post progress chatter; post decisions, questions, results and hand-offs.",

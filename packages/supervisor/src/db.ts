@@ -58,6 +58,34 @@ export const MIGRATIONS: Migration[] = [
       if (!cols.includes("dm_agent_id")) sqlite.exec("ALTER TABLE channels ADD COLUMN dm_agent_id TEXT");
     },
   },
+  {
+    name: "messages-fts",
+    // Full-text index over messages, kept in sync by triggers on the content table and
+    // backfilled from whatever is already stored, so an existing team's archive is
+    // searchable the moment it opens. FTS5 syntax is never accepted from callers: the
+    // search methods quote every token themselves, so user input cannot throw a MATCH
+    // error or smuggle in operators (see Db.searchMessages).
+    apply(sqlite) {
+      sqlite.exec(`
+        CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+          text, content='messages', content_rowid='rowid', tokenize='porter unicode61'
+        );
+        CREATE TRIGGER IF NOT EXISTS messages_fts_ai AFTER INSERT ON messages BEGIN
+          INSERT INTO messages_fts(rowid, text) VALUES (new.rowid, new.text);
+        END;
+        CREATE TRIGGER IF NOT EXISTS messages_fts_ad AFTER DELETE ON messages BEGIN
+          INSERT INTO messages_fts(messages_fts, rowid, text) VALUES ('delete', old.rowid, old.text);
+        END;
+        CREATE TRIGGER IF NOT EXISTS messages_fts_au AFTER UPDATE ON messages BEGIN
+          INSERT INTO messages_fts(messages_fts, rowid, text) VALUES ('delete', old.rowid, old.text);
+          INSERT INTO messages_fts(rowid, text) VALUES (new.rowid, new.text);
+        END;
+      `);
+      // A full reindex of the content table: a no-op cost on a fresh database, and
+      // idempotent, so a database that re-runs this migration cannot drift.
+      sqlite.exec("INSERT INTO messages_fts(messages_fts) VALUES ('rebuild');");
+    },
+  },
 ];
 
 export class Db {
@@ -134,6 +162,33 @@ export class Db {
       .all(...channelIds, since ?? "", limit);
     return rows.map(rowToMessage);
   }
+  /**
+   * Full-text search over every channel's messages, newest first. The query is free text
+   * from a human or an agent, not FTS5 syntax: it is split on whitespace and every token is
+   * wrapped in double quotes, so punctuation, operator words and unbalanced quotes can
+   * neither throw a MATCH syntax error nor quietly change what is being searched for.
+   * Tokens are ANDed. Use the filters to narrow: channelId to one channel, authorId to one
+   * author, since to messages created at or after an ISO timestamp.
+   */
+  searchMessages(q: string, opts: { channelId?: string; authorId?: string; since?: string; limit?: number } = {}): Message[] {
+    const match = q
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((token) => `"${token.replaceAll('"', '""')}"`)
+      .join(" ");
+    if (!match) return [];
+    const where = ["m.rowid IN (SELECT rowid FROM messages_fts WHERE messages_fts MATCH ?)"];
+    const args: unknown[] = [match];
+    if (opts.channelId) { where.push("m.channel_id = ?"); args.push(opts.channelId); }
+    if (opts.authorId) { where.push("m.author_id = ?"); args.push(opts.authorId); }
+    if (opts.since) { where.push("m.created_at >= ?"); args.push(opts.since); }
+    const limit = Math.min(Math.max(opts.limit ?? 50, 1), 200);
+    const rows = this.sqlite
+      .prepare(`SELECT m.* FROM messages m WHERE ${where.join(" AND ")} ORDER BY m.created_at DESC LIMIT ?`)
+      .all(...args, limit);
+    return rows.map(rowToMessage);
+  }
+
   getMessage(id: string): Message | undefined {
     const row = this.sqlite.prepare("SELECT * FROM messages WHERE id = ?").get(id);
     return row ? rowToMessage(row) : undefined;

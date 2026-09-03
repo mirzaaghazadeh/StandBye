@@ -212,6 +212,8 @@ export class Api {
       "git.info": (p: { path: string | null }) => gitInfo(p.path),
       "git.defaults": (p: { path: string | null }) => defaultGitSettings(gitInfo(p.path)),
       "messages.list": (p: { channelId: string; limit?: number; before?: string }, conn) => this.crewFor(conn).db.listMessages(p.channelId, p.limit ?? 100, p.before),
+      "messages.search": (p: { q: string; channelId?: string; authorId?: string; since?: string; limit?: number }, conn) =>
+        this.crewFor(conn).db.searchMessages(String(p.q ?? ""), { channelId: p.channelId, authorId: p.authorId, since: p.since, limit: p.limit }),
       "messages.send": (p: { channelId: string; text: string }, conn) => this.crewFor(conn).postMessage({ channel: p.channelId, authorId: "user", text: p.text }),
 
       // ----- questions -----
