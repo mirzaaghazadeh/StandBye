@@ -21,6 +21,7 @@ const flush = () => new Promise((r) => setImmediate(r));
 async function freshStore(overrides = {}) {
   const rpcLog = [];
   let eventHandler = null;
+  let updateHandler = null;
   const defaults = {
     "teams.list": () => [{ id: "t1", name: "One" }, { id: "t2", name: "Two" }],
     "teams.select": () => null,
@@ -49,6 +50,10 @@ async function freshStore(overrides = {}) {
     crew: {
       keysSet: async () => true,
       pickFolder: async () => null,
+      onUpdate: (fn) => { updateHandler = fn; return () => {}; },
+      // The snapshot override doubles as the bridge's initial value (store.ts reads it
+      // via window.crew.updates.get(), not rpc).
+      updates: { get: async () => (overrides["updates.get"] ? overrides["updates.get"]() : null) },
       onEvent: (fn) => { eventHandler = fn; return () => {}; },
       onNavigate: (_fn) => () => {},
       rpc: async (method, params) => {
@@ -66,6 +71,8 @@ async function freshStore(overrides = {}) {
     storage,
     /** Deliver a pushed event to the store, the way the preloader does. */
     push: (event) => eventHandler(event),
+    /** Deliver a pushed update-state snapshot from the main process. */
+    pushUpdate: (u) => updateHandler(u),
   };
 }
 
@@ -262,4 +269,22 @@ test("skills.updated bumps the stamp; supervisor.status replaces the status", as
   push({ teamId: "t1", event: "supervisor.status", data: { version: "next" } });
   assert.equal(store.get().skillsStamp, before + 1);
   assert.equal(store.get().status.version, "next");
+});
+
+test("update state: init fetches it, main-process pushes replace it", async () => {
+  const { store, pushUpdate } = await freshStore({ "updates.get": () => ({ phase: "idle" }) });
+  await store.init();
+  await flush();
+  assert.deepEqual(store.get().update, { phase: "idle" });
+  pushUpdate({ phase: "downloading", progress: 40 });
+  assert.equal(store.get().update.phase, "downloading");
+});
+
+test("navigateByPath: settings/updates opens the keys sheet on the updates tab", async () => {
+  const { store } = await freshStore();
+  await store.init();
+  await flush();
+  store.navigateByPath("/settings/updates");
+  assert.equal(store.get().sheet.kind, "keys");
+  assert.equal(store.get().sheet.tab, "updates");
 });
