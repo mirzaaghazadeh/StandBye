@@ -12,7 +12,7 @@ Standbye: a BYOK macOS desktop app where the user describes a team of AI agents 
 pnpm install
 pnpm dev            # builds shared + supervisor, then electron-vite dev with hot reload
 pnpm typecheck      # tsc across all packages (run this before committing; there is no linter)
-pnpm test           # 384 unit/integration tests against dist/ (packages/supervisor/test/*.test.mjs)
+pnpm test           # 389 unit/integration tests against dist/ (packages/supervisor/test/*.test.mjs)
 pnpm smoke          # no-key end-to-end test of the supervisor (scripts/smoke.mjs)
 pnpm package        # icon + bundled supervisor + macOS dmg/zip into apps/desktop/release
 pnpm --filter @crew/desktop gui   # Playwright drives the real app and screenshots each screen (apps/desktop/e2e/gui.mjs)

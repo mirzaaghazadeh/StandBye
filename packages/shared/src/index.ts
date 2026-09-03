@@ -281,7 +281,7 @@ export const AUTONOMY_LABEL: Record<Autonomy, string> = {
 export const AUTONOMY_RULE: Record<Autonomy, string> = {
   propose: "Find work and write it to the backlog, but do not write code for an item until the owner says yes. Ask with ask_user.",
   pr: "Take work off the backlog and build it on its own branch, ending in a pull request for the owner. Never merge it yourself and never push to a protected branch.",
-  auto: "Take work off the backlog, build it, and land it on the team's work branch once the tests pass. Staging and production still need the owner.",
+  auto: "Take work off the backlog, build it, and land it on the team's work branch once the tests pass. Do not ask the owner anything — decide, and record what you decided. A rule set to \"ask\" passes without asking at this level; a rule set to \"block\" still blocks.",
 };
 
 // ---------- Backlog ----------

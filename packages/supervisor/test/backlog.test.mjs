@@ -171,3 +171,54 @@ test("the backlog travels with the project", async (t) => {
     assert.equal(opened.crew.backlog.open()[0].title, "Something worth doing");
   });
 });
+
+test("on full autonomy nobody is waiting to be asked", async (t) => {
+  const { crew } = makeCrew(t);
+  const agent = crew.listAgents()[0];
+
+  await t.test("agents are told to decide rather than ask", () => {
+    crew.updateTeam({ autonomy: "auto" });
+    const p = systemPrompt(crew, agent, "full");
+    assert.match(p, /Do not use ask_user to ask a question/);
+    assert.match(p, /the run would stall until it timed out/);
+    assert.match(p, /kind "report" does not block/);
+  });
+
+  await t.test("and that a block is still a hard stop", () => {
+    assert.match(systemPrompt(crew, agent, "full"), /rule set to block is still a hard stop/);
+  });
+
+  await t.test("an ask rule passes without asking, so a run never parks on nobody", async () => {
+    const { gate } = await import("../dist/runners/approval.js");
+    const run = crew.createRun(agent.id, { kind: "manual", prompt: "x" }, "m");
+    const ctx = { crew, agentId: agent.id, run, depth: 0 };
+    const rules = [{ pattern: "Bash(curl*)", behavior: "ask", label: "Network call" }];
+    const v = await gate(ctx, rules, "Bash", { command: "curl https://example.invalid" });
+    assert.equal(v.ok, true, "it passes");
+    assert.equal(crew.db.listQuestions({ status: "open" }).length, 0, "and files nothing for the owner");
+  });
+
+  await t.test("a block still blocks, whatever the dial says", async () => {
+    const { gate } = await import("../dist/runners/approval.js");
+    const run = crew.createRun(agent.id, { kind: "manual", prompt: "x" }, "m");
+    const ctx = { crew, agentId: agent.id, run, depth: 0 };
+    const rules = [{ pattern: "Bash(git push --force*)", behavior: "block", label: "Force push" }];
+    const v = await gate(ctx, rules, "Bash", { command: "git push --force origin main" });
+    assert.equal(v.ok, false);
+    assert.match(v.message, /Blocked by team rule/);
+  });
+
+  await t.test("on any other level an ask still reaches the owner", async () => {
+    const { gate } = await import("../dist/runners/approval.js");
+    crew.updateTeam({ autonomy: "pr" });
+    const run = crew.createRun(agent.id, { kind: "manual", prompt: "x" }, "m");
+    const ctx = { crew, agentId: agent.id, run, depth: 0 };
+    const rules = [{ pattern: "Bash(curl*)", behavior: "ask", label: "Network call" }];
+    const pending = gate(ctx, rules, "Bash", { command: "curl https://example.invalid" });
+    await new Promise((r) => setTimeout(r, 30));
+    const open = crew.db.listQuestions({ status: "open" });
+    assert.equal(open.length, 1, "the owner is asked");
+    crew.answerQuestion(open[0].id, "Deny", "user");
+    assert.equal((await pending).ok, false);
+  });
+});

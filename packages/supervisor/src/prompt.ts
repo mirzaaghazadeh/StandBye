@@ -61,6 +61,13 @@ function autonomySection(crew: Crew, agent: Agent, owner: string): string {
       `You are the lead, so ranking is yours: decide what actually serves the charter next with rank_backlog, mark it ready, and hand it out with assign_task. Ask ${owner} only when the call is genuinely theirs — money, product direction, or anything irreversible.`,
     );
   }
+  if (level === "auto") {
+    lines.push(
+      `Nobody is waiting to answer you. Do not use ask_user to ask a question — there is no one to answer it, and the run would stall until it timed out. Decide it yourself, do the smaller safer version when you are unsure, and write the decision and your reasoning into the backlog item or your memory so ${owner} can see afterwards what you chose and why.`,
+      `Keep ${owner} informed rather than consulted: ask_user with kind "report" does not block, and a short note in #general costs nothing.`,
+      "A rule set to block is still a hard stop. Do not try to work around one; find another way or drop the item and say why.",
+    );
+  }
   if (level === "propose") {
     lines.push(`Because the team is set to propose-only, do not write code for a backlog item until ${owner} has said yes to that item.`);
   }

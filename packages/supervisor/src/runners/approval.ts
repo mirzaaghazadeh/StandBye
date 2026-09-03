@@ -27,6 +27,14 @@ export async function gate(ctx: ToolContext, rules: PermissionRule[], toolName: 
   }
   const { behavior, rule } = decide(rules, toolName, input);
   if (behavior === "allow") return { ok: true };
+  // On full autonomy there is nobody waiting to answer, so an "ask" rule would park the run
+  // until it timed out and then fail — the opposite of running unattended. The owner chose
+  // that when they set the dial, so "ask" passes and is recorded instead. "block" still blocks:
+  // that is the line no level of autonomy crosses.
+  if (behavior === "ask" && (ctx.crew.team?.autonomy ?? "pr") === "auto") {
+    ctx.crew.addStep(ctx.run.id, "info", `Allowed without asking (team is on full autonomy; rule "${rule?.label ?? rule?.pattern}"): ${sig}`);
+    return { ok: true };
+  }
   if (behavior === "block") {
     ctx.crew.addStep(ctx.run.id, "info", `Blocked by rule "${rule?.label ?? rule?.pattern}": ${sig}`);
     return { ok: false, message: `Blocked by team rule${rule?.label ? ` "${rule.label}"` : ""}: ${sig}. Do not retry; find another way or tell the team.` };
