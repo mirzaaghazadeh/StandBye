@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { dmChannelId } from "@crew/shared";
 import type {
-  Agent, AgentFiles, Channel, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunStep, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft, TeamSummary,
+  Agent, AgentFiles, ArchivedTeam, Channel, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunStep, SkillScope, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft, TeamSummary,
 } from "@crew/shared";
 
 export type Route =
@@ -20,7 +20,9 @@ export type Sheet =
   | { kind: "keys" }
   | { kind: "channel"; channelId?: string }
   | { kind: "agent"; agentId: string; tab?: string }
-  | { kind: "wake"; agentId: string };
+  | { kind: "skills"; scope?: SkillScope; ownerId?: string | null; name?: string }
+  | { kind: "wake"; agentId: string }
+  | { kind: "removeTeam"; teamId: string };
 
 export interface State {
   ready: boolean;
@@ -32,6 +34,8 @@ export interface State {
   providers: ProviderStatus | null;
   models: Record<Provider, ModelInfo[]> | null;
   teams: TeamSummary[];
+  /** Teams taken off the list: stopped, but every file kept. */
+  archived: ArchivedTeam[];
   activeTeamId: string | null;
   team: TeamConfig | null;
   agents: Agent[];
@@ -42,11 +46,15 @@ export interface State {
   steps: Record<string, RunStep[]>;
   spend: SpendSummary | null;
   selectedAgentId: string | null;
+  /** Folder chosen by "Open folder…" that turned out to have no team yet. */
+  pendingWorkspace: string | null;
   /** channelId -> ISO time of the newest message the owner has looked at */
   seen: Record<string, string>;
   /** messageId -> agents being woken by it, until their run shows up */
   waking: Record<string, { agentIds: string[]; at: number }>;
   firstStepsDismissed: boolean;
+  /** Bumped whenever a skill is installed, edited or removed, so open skill views reload. */
+  skillsStamp: number;
   builderDraft: TeamDraft | null;
   builderBusy: boolean;
   toast: string | null;
@@ -54,8 +62,8 @@ export interface State {
 
 const initial: State = {
   ready: false, error: null, route: { name: "home" }, sheet: { kind: "none" }, status: null,
-  keys: { anthropic: false, openrouter: false }, providers: null, models: null, teams: [], activeTeamId: null, team: null, agents: [], channels: [], messages: {}, questions: [], runs: [], steps: {},
-  spend: null, selectedAgentId: null, seen: {}, waking: {}, firstStepsDismissed: false, builderDraft: null, builderBusy: false, toast: null,
+  keys: {}, providers: null, models: null, teams: [], archived: [], activeTeamId: null, team: null, agents: [], channels: [], messages: {}, questions: [], runs: [], steps: {},
+  spend: null, selectedAgentId: null, pendingWorkspace: null, seen: {}, waking: {}, firstStepsDismissed: false, skillsStamp: 0, builderDraft: null, builderBusy: false, toast: null,
 };
 
 type Listener = () => void;
@@ -92,13 +100,13 @@ class Store {
     if (!activeTeamId || !teams.some((t) => t.id === activeTeamId)) activeTeamId = teams[0]?.id ?? null;
     if (activeTeamId) await this.rpc("teams.select", { id: activeTeamId });
     writeLocal("standbye.activeTeam", activeTeamId ?? "");
-    const [status, keys, providers, team, agents, channels, questions, runs, spend] = await Promise.all([
-      this.rpc<SupervisorStatus>("status.get"), window.crew.keysGet(), this.rpc<ProviderStatus>("providers.get"), this.rpc<TeamConfig | null>("team.get"), this.rpc<Agent[]>("agents.list"),
+    const [status, providers, team, agents, channels, questions, runs, spend] = await Promise.all([
+      this.rpc<SupervisorStatus>("status.get"), this.rpc<ProviderStatus>("providers.get"), this.rpc<TeamConfig | null>("team.get"), this.rpc<Agent[]>("agents.list"),
       this.rpc<Channel[]>("channels.list"), this.rpc<Question[]>("questions.list", {}), this.rpc<Run[]>("runs.list", { limit: 200 }), this.rpc<SpendSummary>("spend.get"),
     ]);
     this.set({
       firstStepsDismissed: readLocal("standbye.firstSteps." + (activeTeamId ?? "")) === "done",
-      teams, activeTeamId, status, keys, providers, team, agents, channels, questions, runs, spend, messages: {}, steps: {},
+      teams, activeTeamId, status, keys: readyMap(providers), providers, team, agents, channels, questions, runs, spend, messages: {}, steps: {},
       selectedAgentId: agents.some((a) => a.id === this.state.selectedAgentId) ? this.state.selectedAgentId : agents[0]?.id ?? null,
     });
     if (!team && this.state.sheet.kind === "none") this.set({ sheet: { kind: "onboarding" } });
@@ -119,9 +127,13 @@ class Store {
       this.toast(`Could not load models: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
-  async setProviders(patch: { anthropic?: Partial<ProviderConfig>; openrouter?: Partial<ProviderConfig> }): Promise<void> {
+  async setProviders(patch: Record<string, Partial<ProviderConfig>>): Promise<void> {
     const providers = await this.rpc<ProviderStatus>("providers.set", patch);
-    this.set({ providers, keys: { anthropic: providers.anthropic.ready, openrouter: providers.openrouter.ready } });
+    this.set({ providers, keys: readyMap(providers) });
+  }
+  /** Ask a provider whether its credentials actually work, without saving anything. */
+  async testProvider(id: string, config?: Partial<ProviderConfig>): Promise<{ ok: boolean; detail: string }> {
+    return this.rpc<{ ok: boolean; detail: string }>("providers.test", { id, config });
   }
 
   private onEvent(e: PushEvent): void {
@@ -138,6 +150,7 @@ class Store {
       case "run.step": this.set((s) => ({ steps: { ...s.steps, [e.data.runId]: [...(s.steps[e.data.runId] ?? []), e.data].slice(-300) } })); break;
       case "team.updated": this.set({ team: e.data }); if (e.data) void this.rpc<Channel[]>("channels.list").then((channels) => this.set({ channels })); break;
       case "spend.updated": this.set({ spend: e.data }); break;
+      case "skills.updated": this.set((s) => ({ skillsStamp: s.skillsStamp + 1 })); break;
       case "supervisor.status": this.set({ status: e.data }); break;
       case "notify": break;
     }
@@ -230,7 +243,7 @@ class Store {
   async saveKeys(patch: Record<string, string>): Promise<void> {
     await window.crew.keysSet(patch);
     const providers = await this.rpc<ProviderStatus>("providers.get");
-    this.set({ providers, keys: { anthropic: providers.anthropic.ready, openrouter: providers.openrouter.ready } });
+    this.set({ providers, keys: readyMap(providers) });
     this.toast(Object.values(patch).some(Boolean) ? "Key saved." : "Key removed.");
     void this.loadModels(true);
   }
@@ -246,18 +259,82 @@ class Store {
     }
   }
   setDraft(draft: TeamDraft | null): void { this.set({ builderDraft: draft }); }
+  /**
+   * Open a project folder as a team, like an editor opens a directory.
+   * If the folder already holds a `.standbye` team we attach to it; if not, we start the
+   * new-team flow with that folder already chosen.
+   */
+  async openFolder(): Promise<void> {
+    const dir = await window.crew.pickFolder();
+    if (!dir) return;
+    const probe = await this.rpc<{ hasTeam: boolean; name: string | null; agentCount: number; alreadyOpen: boolean }>("teams.probeFolder", { path: dir });
+    if (!probe.hasTeam) {
+      this.set({ pendingWorkspace: dir, sheet: { kind: "onboarding" } });
+      this.toast(`No team in that folder yet. Let's make one for ${dir.split("/").pop()}.`);
+      return;
+    }
+    const team = await this.rpc<TeamConfig>("teams.openFolder", { path: dir });
+    this.set({ activeTeamId: team.id, route: { name: "home" } });
+    await this.refreshAll();
+    this.toast(probe.alreadyOpen ? `Switched to ${team.name}.` : `Opened ${team.name}: ${probe.agentCount} agents.`);
+  }
+
   async createTeam(draft: TeamDraft, workspaceRoot: string | null, ownerName: string, git: GitSettings | null = null): Promise<void> {
     const team = await this.rpc<TeamConfig>("teams.create", { draft, workspaceRoot, ownerName, git });
-    this.set({ activeTeamId: team.id, sheet: { kind: "none" }, builderDraft: null, route: { name: "home" } });
+    this.set({ activeTeamId: team.id, sheet: { kind: "none" }, builderDraft: null, pendingWorkspace: null, route: { name: "home" } });
     await this.refreshAll();
     this.toast(`Team "${team.name}" created. First check-ins in about a minute.`);
   }
-  async deleteTeam(): Promise<void> {
-    if (!this.state.activeTeamId) return;
-    await this.rpc("teams.delete", { id: this.state.activeTeamId });
-    this.set({ activeTeamId: null });
-    await this.refreshAll();
+  // ---------- removing a team ----------
+
+  /** Teams the owner has taken off the list. Loaded on demand, since the switcher is the only place they show. */
+  async loadArchived(): Promise<void> {
+    try { this.set({ archived: await this.rpc<ArchivedTeam[]>("teams.archived") }); } catch { /* older supervisor */ }
   }
+  /**
+   * Take a team off the list. Its scheduler stops, so it can no longer wake, run or spend,
+   * but every file it owns stays exactly where it is.
+   */
+  async archiveTeam(id: string): Promise<void> {
+    const name = this.state.teams.find((t) => t.id === id)?.name ?? "The team";
+    const row = await this.rpc<ArchivedTeam>("teams.archive", { id });
+    if (this.state.activeTeamId === id) this.set({ activeTeamId: null, route: { name: "home" } });
+    this.set({ sheet: { kind: "none" } });
+    await this.refreshAll();
+    await this.loadArchived();
+    this.toast(row.portable ? `${name} stopped. Its files stay in ${row.dir}.` : `${name} stopped. Put it back any time from the team menu.`);
+  }
+  /** Put an archived team back to work. */
+  async restoreTeam(id: string): Promise<void> {
+    try {
+      const team = await this.rpc<TeamConfig>("teams.restore", { id });
+      this.set({ activeTeamId: team.id, route: { name: "home" } });
+      await this.refreshAll();
+      await this.loadArchived();
+      this.toast(`${team.name} is working again.`);
+    } catch (e) {
+      await this.loadArchived();
+      this.toast(e instanceof Error ? e.message : String(e));
+    }
+  }
+  /** Delete a team and everything it has ever done. There is no undo. */
+  async deleteTeam(id?: string): Promise<void> {
+    const target = id ?? this.state.activeTeamId;
+    if (!target) return;
+    const name = this.state.teams.find((t) => t.id === target)?.name
+      ?? this.state.archived.find((t) => t.id === target)?.name ?? "The team";
+    await this.rpc("teams.delete", { id: target, removeFiles: true });
+    if (this.state.activeTeamId === target) this.set({ activeTeamId: null, route: { name: "home" } });
+    this.set({ sheet: { kind: "none" } });
+    await this.refreshAll();
+    await this.loadArchived();
+    this.toast(`${name} deleted.`);
+  }
+}
+
+/** Which providers can run right now, by id — the one thing the rest of the UI asks about keys. */
+function readyMap(providers: ProviderStatus): KeyStatus {
+  return Object.fromEntries(Object.entries(providers).map(([id, p]) => [id, p.ready]));
 }
 
 function readLocal(key: string): string | null {

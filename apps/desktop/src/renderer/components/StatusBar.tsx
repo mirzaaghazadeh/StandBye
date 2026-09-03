@@ -1,4 +1,5 @@
-import { useStore } from "../state/store";
+import { PROVIDERS, type KeyStatus } from "@crew/shared";
+import { store, useStore } from "../state/store";
 import { hhmm } from "../ui/kit";
 
 export function StatusBar() {
@@ -16,7 +17,18 @@ export function StatusBar() {
       {next && status?.nextWake && <span>Next wake-up: {next.name} at {hhmm(status.nextWake.at)}</span>}
       <span className="grow" />
       {spend && <span>Check-ins today ${spend.checkinsUsd.toFixed(2)}</span>}
-      {status && <span>{status.keys.anthropic ? "Anthropic key ok" : "No Anthropic key"} · {status.keys.openrouter ? "OpenRouter key ok" : "No OpenRouter key"}</span>}
+      {/* Naming the ready providers beats counting them: at a glance you see what the team is on. */}
+      {status && <ProvidersReady keys={status.keys} />}
     </div>
   );
+}
+
+/**
+ * Which providers can run, by name. Beyond three it becomes a count with the rest on hover,
+ * because the status bar is one line and a team can be spread across a dozen of them.
+ */
+function ProvidersReady({ keys }: { keys: KeyStatus }) {
+  const ready = PROVIDERS.filter((p) => keys[p.id]).map((p) => p.name);
+  if (!ready.length) return <span style={{ color: "var(--amber)" }}><a onClick={() => store.openSheet({ kind: "keys" })}>No provider set up</a></span>;
+  return <span title={ready.join(", ")}>{ready.length <= 3 ? ready.join(" · ") : `${ready.slice(0, 2).join(" · ")} +${ready.length - 2} more`}</span>;
 }

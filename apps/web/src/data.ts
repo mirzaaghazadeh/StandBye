@@ -1,4 +1,4 @@
-import { DEFAULT_MODELS, type Agent, type AgentDraft, type AgentStatus, type ProviderSettings, type Question, type Run, type TeamDraft } from "@crew/shared";
+import { defaultModelsFor, type Agent, type AgentDraft, type AgentStatus, type ProviderSettings, type Question, type Run, type TeamDraft } from "@crew/shared";
 import { soloDevTeam } from "@templates";
 
 export const GITHUB = "https://github.com/mirzaaghazadeh/StandBye";
@@ -6,8 +6,8 @@ export const DOWNLOAD = `${GITHUB}/releases/latest`;
 
 // The same starter team the app ships with, on the default models.
 const providers: ProviderSettings = {
-  anthropic: { enabled: true, defaultModel: DEFAULT_MODELS.anthropic.main, checkinModel: DEFAULT_MODELS.anthropic.checkin },
-  openrouter: { enabled: true, defaultModel: DEFAULT_MODELS.openrouter.main, checkinModel: DEFAULT_MODELS.openrouter.checkin },
+  anthropic: { enabled: true, defaultModel: defaultModelsFor("anthropic").main, checkinModel: defaultModelsFor("anthropic").checkin },
+  openrouter: { enabled: true, defaultModel: defaultModelsFor("openrouter").main, checkinModel: defaultModelsFor("openrouter").checkin },
 };
 export const team: TeamDraft = soloDevTeam(providers, "", "your repo");
 
@@ -31,7 +31,7 @@ function agentFrom(d: AgentDraft, i: number): Agent {
     role: d.role,
     provider: d.provider,
     model: d.model,
-    checkinModel: DEFAULT_MODELS[d.provider].checkin,
+    checkinModel: defaultModelsFor(d.provider).checkin,
     heartbeat: { everyMinutes: d.heartbeatMinutes, workHours: { start: "08:00", end: "20:00" } },
     triggers: { onMention: true, cron: d.schedules ?? [] },
     permissions: [],
@@ -55,11 +55,11 @@ export const agents: Agent[] = team.agents.map(agentFrom);
 export const spentToday = agents.reduce((s, a) => s + a.spentTodayUsd, 0);
 
 export const runs: Run[] = [
-  { id: "r1", agentId: "ada", trigger: { kind: "schedule", name: "Standup", prompt: "" }, status: "running", summary: "Standup: read #backend, drafting today's plan", model: DEFAULT_MODELS.anthropic.main, startedAt: minutesAgo(4), finishedAt: null, costUsd: 0.31, inputTokens: 41_200, outputTokens: 1_900, stepCount: 6, error: null, createdAt: minutesAgo(4) },
-  { id: "r2", agentId: "kai", trigger: { kind: "mention", messageId: "m1", by: "ada", depth: 1 }, status: "running", summary: "Fix retry budget check, add test, open PR", model: DEFAULT_MODELS.anthropic.main, startedAt: minutesAgo(11), finishedAt: null, costUsd: 0.88, inputTokens: 122_000, outputTokens: 6_400, stepCount: 19, error: null, createdAt: minutesAgo(11) },
-  { id: "r3", agentId: "rex", trigger: { kind: "task", title: "Review #214", details: "", from: "watcher", event: "pr" }, status: "needs_you", summary: "Reviewed #214: one flaky test, asked to merge", model: DEFAULT_MODELS.openrouter.main, startedAt: minutesAgo(26), finishedAt: minutesAgo(23), costUsd: 0.12, inputTokens: 38_000, outputTokens: 2_100, stepCount: 9, error: null, createdAt: minutesAgo(26) },
-  { id: "r4", agentId: "sol", trigger: { kind: "heartbeat" }, status: "noop", summary: "Nothing new since 13:40", model: DEFAULT_MODELS.anthropic.checkin, startedAt: minutesAgo(52), finishedAt: minutesAgo(52), costUsd: 0.01, inputTokens: 6_800, outputTokens: 90, stepCount: 1, error: null, createdAt: minutesAgo(52) },
-  { id: "r5", agentId: "kai", trigger: { kind: "escalated", reason: "Open PR waiting" }, status: "done", summary: "Merged the queue fairness PR, CI green", model: DEFAULT_MODELS.anthropic.main, startedAt: minutesAgo(95), finishedAt: minutesAgo(81), costUsd: 0.74, inputTokens: 98_000, outputTokens: 4_300, stepCount: 14, error: null, createdAt: minutesAgo(95) },
+  { id: "r1", agentId: "ada", trigger: { kind: "schedule", name: "Standup", prompt: "" }, status: "running", summary: "Standup: read #backend, drafting today's plan", model: defaultModelsFor("anthropic").main, startedAt: minutesAgo(4), finishedAt: null, costUsd: 0.31, inputTokens: 41_200, outputTokens: 1_900, stepCount: 6, error: null, createdAt: minutesAgo(4) },
+  { id: "r2", agentId: "kai", trigger: { kind: "mention", messageId: "m1", by: "ada", depth: 1 }, status: "running", summary: "Fix retry budget check, add test, open PR", model: defaultModelsFor("anthropic").main, startedAt: minutesAgo(11), finishedAt: null, costUsd: 0.88, inputTokens: 122_000, outputTokens: 6_400, stepCount: 19, error: null, createdAt: minutesAgo(11) },
+  { id: "r3", agentId: "rex", trigger: { kind: "task", title: "Review #214", details: "", from: "watcher", event: "pr" }, status: "needs_you", summary: "Reviewed #214: one flaky test, asked to merge", model: defaultModelsFor("openrouter").main, startedAt: minutesAgo(26), finishedAt: minutesAgo(23), costUsd: 0.12, inputTokens: 38_000, outputTokens: 2_100, stepCount: 9, error: null, createdAt: minutesAgo(26) },
+  { id: "r4", agentId: "sol", trigger: { kind: "heartbeat" }, status: "noop", summary: "Nothing new since 13:40", model: defaultModelsFor("anthropic").checkin, startedAt: minutesAgo(52), finishedAt: minutesAgo(52), costUsd: 0.01, inputTokens: 6_800, outputTokens: 90, stepCount: 1, error: null, createdAt: minutesAgo(52) },
+  { id: "r5", agentId: "kai", trigger: { kind: "escalated", reason: "Open PR waiting" }, status: "done", summary: "Merged the queue fairness PR, CI green", model: defaultModelsFor("anthropic").main, startedAt: minutesAgo(95), finishedAt: minutesAgo(81), costUsd: 0.74, inputTokens: 98_000, outputTokens: 4_300, stepCount: 14, error: null, createdAt: minutesAgo(95) },
 ];
 
 export function triggerLabel(t: Run["trigger"]): string {
@@ -84,4 +84,3 @@ export const rules = [
   { pattern: "Bash(curl*)", behavior: "ask" as const, label: "External services" },
 ];
 
-export const models = DEFAULT_MODELS;

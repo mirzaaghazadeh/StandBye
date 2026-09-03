@@ -1,13 +1,26 @@
 import { z } from "zod";
+import { PROVIDERS, providerSpec } from "./providers.js";
+
+export * from "./providers.js";
 
 // ---------- Providers & models ----------
 
-export type Provider = "anthropic" | "openrouter";
+/**
+ * A provider id from the catalog in providers.ts, e.g. "anthropic", "codex", "ollama".
+ * It is a plain string on purpose: adding a provider must not mean touching this file,
+ * and an agent whose provider was removed from the catalog still has to load.
+ */
+export type Provider = string;
 
-export const DEFAULT_MODELS: Record<Provider, { main: string; checkin: string }> = {
-  anthropic: { main: "claude-opus-5", checkin: "claude-haiku-4-5" },
-  openrouter: { main: "z-ai/glm-5.3", checkin: "z-ai/glm-5.3-flash" },
-};
+/** Every provider's out-of-the-box model choices, keyed by provider id. */
+export const DEFAULT_MODELS: Record<Provider, { main: string; checkin: string }> = Object.fromEntries(
+  PROVIDERS.map((p) => [p.id, p.defaults]),
+);
+
+/** Same, but safe for a provider id that is not in the catalog (an old agent.json, say). */
+export function defaultModelsFor(id: Provider): { main: string; checkin: string } {
+  return DEFAULT_MODELS[id] ?? { main: "", checkin: "" };
+}
 
 // ---------- Models & providers ----------
 
@@ -25,15 +38,7 @@ export interface ModelInfo {
 }
 
 /** Curated Claude models with list prices (USD per million tokens). The supervisor merges the live Models API on top; the site shows this list as-is. */
-export const ANTHROPIC_MODELS: ModelInfo[] = [
-  { id: "claude-opus-5", name: "Claude Opus 5", provider: "anthropic", inputPerM: 5, outputPerM: 25, context: 1_000_000, tools: true, tags: ["default", "reasoning"] },
-  { id: "claude-sonnet-5", name: "Claude Sonnet 5", provider: "anthropic", inputPerM: 2, outputPerM: 10, context: 1_000_000, tools: true, tags: ["balanced"] },
-  { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", provider: "anthropic", inputPerM: 1, outputPerM: 5, context: 200_000, tools: true, tags: ["cheap", "check-ins"] },
-  { id: "claude-opus-4-8", name: "Claude Opus 4.8", provider: "anthropic", inputPerM: 5, outputPerM: 25, context: 1_000_000, tools: true, tags: ["reasoning"] },
-  { id: "claude-opus-4-7", name: "Claude Opus 4.7", provider: "anthropic", inputPerM: 5, outputPerM: 25, context: 1_000_000, tools: true, tags: [] },
-  { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6", provider: "anthropic", inputPerM: 3, outputPerM: 15, context: 1_000_000, tools: true, tags: [] },
-  { id: "claude-fable-5-1", name: "Claude Fable 5.1", provider: "anthropic", inputPerM: 10, outputPerM: 50, context: 1_000_000, tools: true, tags: ["most capable", "expensive"] },
-];
+export const ANTHROPIC_MODELS: ModelInfo[] = providerSpec("anthropic")?.models ?? [];
 
 export interface ProviderConfig {
   enabled: boolean;
@@ -41,17 +46,34 @@ export interface ProviderConfig {
   defaultModel: string;
   /** Cheap model for check-ins on this provider */
   checkinModel: string;
+  /**
+   * Values for the spec's extra fields: a base URL, an AWS region, a GCP project.
+   * Nothing secret goes here — keys live in the OS keychain, not in providers.json.
+   */
+  settings?: Record<string, string>;
+  /** Owner's override of how a coding-agent CLI is invoked, when a vendor changes its flags. */
+  cli?: { bin?: string; args?: string[] };
 }
 
-export interface ProviderSettings {
-  anthropic: ProviderConfig;
-  openrouter: ProviderConfig;
+export type ProviderSettings = Record<Provider, ProviderConfig>;
+
+/** A provider's config plus everything the app worked out about whether it can actually run. */
+export interface ProviderState extends ProviderConfig {
+  /** An API key is saved (or present in the environment). */
+  hasKey: boolean;
+  /** A login on this Mac covers it — today only the Claude Code login. */
+  hasLogin: boolean;
+  /** The CLI binary was found on PATH; null for providers that are not CLIs. */
+  cliPath: string | null;
+  /** Every required field in the spec has a value. */
+  configured: boolean;
+  /** Switched on and able to run right now. */
+  ready: boolean;
+  /** Why it is not ready, in one line the owner can act on. Empty when ready. */
+  blocker: string;
 }
 
-export interface ProviderStatus {
-  anthropic: ProviderConfig & { hasKey: boolean; hasLogin: boolean; ready: boolean };
-  openrouter: ProviderConfig & { hasKey: boolean; ready: boolean };
-}
+export type ProviderStatus = Record<Provider, ProviderState>;
 
 export type BudgetCap = "day" | "hour" | "run";
 
@@ -107,6 +129,11 @@ export interface AgentConfig {
   channels: string[];
   /** Working directory the agent operates in. Defaults to the team workspace. */
   workspace: string | null;
+  /**
+   * Skills this agent should not be offered, by name. Everything in scope is on by default,
+   * so turning one off is the exception the owner records, not a list they have to maintain.
+   */
+  disabledSkills?: string[];
   color: string;
   paused: boolean;
   createdAt: string;
@@ -227,18 +254,47 @@ export interface TeamConfig {
   createdAt: string;
 }
 
+/**
+ * A team lives in a folder. When it has a workspace the folder is `<workspace>/.standbye`,
+ * so the team travels with the project and can be committed and shared; otherwise it sits
+ * under the app's data dir.
+ */
+export const TEAM_DIR_NAME = ".standbye";
+
 /** One row in the team switcher. Every team has its own folder, database, agents, channels and workspace. */
 export interface TeamSummary {
   id: string;
   name: string;
   ownerName: string;
   workspaceRoot: string | null;
+  /** Where the team's own files live. */
+  dir: string;
+  /** True when that folder is `<workspace>/.standbye` rather than the app's data dir. */
+  portable: boolean;
   agentCount: number;
   working: number;
   needsYou: number;
   spendTodayUsd: number;
   pausedAll: boolean;
   createdAt: string;
+}
+
+/**
+ * A team the owner has taken off the list. Its files are untouched; it simply is not open,
+ * so nothing schedules it and it cannot spend anything. Being on the live list is what
+ * makes a team able to work in the background, so removing it from that list is the off switch.
+ */
+export interface ArchivedTeam {
+  id: string;
+  name: string;
+  /** The folder still holding its database and agents. */
+  dir: string;
+  workspaceRoot: string | null;
+  portable: boolean;
+  agentCount: number;
+  archivedAt: string;
+  /** False when the folder has since been moved or deleted, so the app can offer to forget it. */
+  present: boolean;
 }
 
 export interface Channel {
@@ -355,17 +411,15 @@ export interface SpendSummary {
 
 // ---------- Keys ----------
 
-export interface KeyStatus {
-  anthropic: boolean;
-  openrouter: boolean;
-}
+/** Which providers can run right now, by provider id. Never the keys themselves. */
+export type KeyStatus = Record<Provider, boolean>;
 
 // ---------- Team builder ----------
 
 export const AgentDraftSchema = z.object({
   name: z.string().describe("Short first name, e.g. Ada"),
   role: z.string().describe("Role title, e.g. Backend engineer"),
-  provider: z.enum(["anthropic", "openrouter"]),
+  provider: z.string().describe("Provider id from the catalog, e.g. anthropic, openrouter, codex"),
   model: z.string().describe("Model id for the provider"),
   soul: z.string().describe("SOUL.md contents: who they are, how they work, how they talk. Markdown, second person."),
   rules: z.array(z.string()).describe("Hard rules the app enforces or the agent must never break"),
@@ -428,6 +482,7 @@ export type PushEvent = (
   | { event: "run.step"; data: RunStep }
   | { event: "team.updated"; data: TeamConfig | null }
   | { event: "spend.updated"; data: SpendSummary }
+  | { event: "skills.updated"; data: null }
   | { event: "notify"; data: { title: string; body: string; questionId?: string } }
   | { event: "supervisor.status"; data: SupervisorStatus }
   | { event: "supervisor.reconnected"; data: null }
@@ -452,8 +507,101 @@ export interface AgentFiles {
   memory: string;
 }
 
-export interface Skill {
-  name: string;
-  content: string;
+// ---------- Skills ----------
+
+/**
+ * Skills follow the Agent Skills standard (agentskills.io): a folder named after the skill,
+ * holding a SKILL.md with `name` and `description` frontmatter, plus optional scripts/,
+ * references/ and assets/. That means a skill written here works in Claude Code, and a skill
+ * written for Claude Code works here.
+ *
+ * Three scopes, most specific wins when names collide:
+ *   user  <dataDir>/skills/<name>/               every agent on every team
+ *   team  <dataDir>/teams/<id>/skills/<name>/    every agent on that team
+ *   agent <dataDir>/teams/<id>/agents/<id>/skills/<name>/
+ */
+export type SkillScope = "user" | "team" | "agent";
+
+export const SKILL_SCOPES: SkillScope[] = ["user", "team", "agent"];
+
+/** Where a skill came from, so the app can re-pull it later and show provenance. */
+export type SkillSourceKind = "manual" | "learned" | "folder" | "zip" | "git" | "claude-code";
+
+export interface SkillSource {
+  kind: SkillSourceKind;
+  /** Git URL, folder path or zip path. null for skills written in the app or by an agent. */
+  ref: string | null;
+  /** Subfolder inside the source that holds this skill, when it wasn't at the root. */
+  subpath: string | null;
+  /** Commit actually installed, for git sources. */
+  version: string | null;
+  installedAt: string;
   updatedAt: string;
+}
+
+export interface Skill {
+  scope: SkillScope;
+  /** Team id for team scope, agent id for agent scope, null for user scope. */
+  ownerId: string | null;
+  name: string;
+  description: string;
+  /** The whole SKILL.md, frontmatter included — what the editor shows. */
+  content: string;
+  /** Just the instructions, without the frontmatter — what a model reads. */
+  body: string;
+  /** Absolute path of the skill folder. */
+  dir: string;
+  /** Bundled files (scripts/, references/, assets/, …) relative to `dir`. */
+  files: string[];
+  license: string | null;
+  compatibility: string | null;
+  allowedTools: string | null;
+  metadata: Record<string, string>;
+  source: SkillSource;
+  updatedAt: string;
+  /** Why this skill is not usable. A skill with errors is never handed to an agent. */
+  errors: string[];
+}
+
+/** A skill as it reaches one agent, after shadowing and the agent's own on/off switch. */
+export interface EffectiveSkill extends Skill {
+  enabled: boolean;
+  /** Scopes that define the same name but lose to this one. */
+  shadowed: SkillScope[];
+}
+
+/** Which shelf a skill sits on. */
+export interface SkillTarget {
+  scope: SkillScope;
+  /** Required for team and agent scope; ignored for user scope. */
+  ownerId?: string | null;
+}
+
+export type SkillInstallKind = "folder" | "zip" | "git" | "claude-code";
+
+/** One installable skill found in a source, shown for review before anything is copied. */
+export interface SkillCandidate {
+  name: string;
+  description: string;
+  /** Path inside the source. "" when the source folder is itself the skill. */
+  subpath: string;
+  files: number;
+  errors: string[];
+  /** A skill of the same name already on the target shelf. */
+  conflictsWith: SkillScope | null;
+}
+
+export interface SkillSourceScan {
+  kind: SkillInstallKind;
+  ref: string;
+  /** Commit the scan resolved to, for git sources. */
+  version: string | null;
+  candidates: SkillCandidate[];
+}
+
+/** A place on this Mac that already holds Agent Skills — Claude Code's own folders. */
+export interface SkillOrigin {
+  label: string;
+  path: string;
+  count: number;
 }

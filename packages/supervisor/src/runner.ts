@@ -1,13 +1,20 @@
-import type { Agent, Run } from "@crew/shared";
+import type { Agent, ProviderKind, Run } from "@crew/shared";
+import { providerSpec } from "@crew/shared";
 import type { Crew } from "./crew.js";
 import { gitRules } from "./git.js";
 import { runPrompt, systemPrompt } from "./prompt.js";
 import { anthropicRunner } from "./runners/anthropic.js";
-import { openrouterRunner } from "./runners/openrouter.js";
+import { openaiRunner } from "./runners/openai.js";
+import { cliRunner } from "./runners/cli.js";
 import type { Runner } from "./runners/types.js";
 import type { ToolContext } from "./tools/team-tools.js";
 
-const RUNNERS: Record<string, Runner> = { anthropic: anthropicRunner, openrouter: openrouterRunner };
+/**
+ * One runner per kind of provider, not per provider. Thirty-odd entries in the catalog resolve
+ * to exactly three ways of driving a model, and everything specific to a vendor — the endpoint,
+ * the credentials, the command line — lives in its catalog entry.
+ */
+const RUNNERS: Record<ProviderKind, Runner> = { claude: anthropicRunner, openai: openaiRunner, cli: cliRunner };
 
 export interface ExecuteResult {
   run: Run;
@@ -26,8 +33,10 @@ export async function executeRun(crew: Crew, runId: string, signal: AbortSignal)
   if (!budget.ok) {
     return { run: crew.finishRun(run, "cancelled", budget.reason ?? "Budget reached") };
   }
-  const runner = RUNNERS[agent.provider];
-  if (!runner) return { run: crew.finishRun(run, "failed", `No runner for provider ${agent.provider}`) };
+  const spec = providerSpec(agent.provider);
+  if (!spec) return { run: crew.finishRun(run, "failed", `${agent.name} is on "${agent.provider}", which is not a provider this version knows. Pick another in ${agent.name}'s settings.`) };
+  const runner = RUNNERS[spec.kind];
+  const config = crew.providerConfig(agent.provider);
 
   const mode: "full" | "checkin" = run.trigger.kind === "heartbeat" ? "checkin" : "full";
   const model = mode === "checkin" ? agent.checkinModel || agent.model : agent.model;
@@ -49,8 +58,12 @@ export async function executeRun(crew: Crew, runId: string, signal: AbortSignal)
   // Team-level git rules come first so they win over the agent's own rules.
   const effective: Agent = { ...agent, permissions: [...gitRules(crew.team?.git), ...agent.permissions] };
   const out = await runner({
-    crew, agent: effective, run, mode, model, cwd, signal,
-    system: systemPrompt(crew, agent, mode),
+    crew, agent: effective, run, mode, model, cwd, signal, spec, config,
+    // Who lists the skills. The Claude runner mounts them as a plugin and lists them itself; a
+    // tool loop, and a CLI we can hand the team's MCP bridge to, get the catalog in the prompt
+    // and open one with `use_skill`. A CLI we cannot pass MCP to has no way to read a skill, so
+    // listing them would only advertise a tool it does not have.
+    system: systemPrompt(crew, agent, mode, { hasNativeSkillTool: spec.kind === "claude" || (spec.kind === "cli" && !spec.cli?.mcp) }),
     prompt: runPrompt(crew, agent, run),
     ctx,
   });

@@ -1,0 +1,18 @@
+{
+  "id": "STh_QmD5",
+  "name": "Standbye maintainers",
+  "charter": "Keep Standbye healthy and close the known gaps, working in the agents/maintenance worktree at ~/Desktop/standbye-work. Small, tested changes; one pull request per fix against main; never merge without Navid. `pnpm test` and `pnpm typecheck` stay green at all times.",
+  "git": {
+    "enabled": true,
+    "workBranch": "main",
+    "mode": "push",
+    "devBranch": null,
+    "stagingBranch": null,
+    "productionBranch": "main"
+  },
+  "dailyCapUsd": 10,
+  "chatDepthCap": 6,
+  "workspaceRoot": "/Users/navid/Desktop/team",
+  "ownerName": "Navid",
+  "createdAt": "2026-09-03T11:23:07.925Z"
+}

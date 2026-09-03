@@ -1,0 +1,5 @@
+crew.db
+crew.db-wal
+crew.db-shm
+logs/
+agents/*/.skillset/

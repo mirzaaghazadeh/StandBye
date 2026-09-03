@@ -34,6 +34,10 @@ export function Sidebar() {
         <Ic.Runs stroke={is("runs") ? "var(--accent)" : "var(--ink-3)"} />
         <span className="grow">Runs</span>
       </button>
+      <button className="srow" onClick={() => store.openSheet({ kind: "skills" })}>
+        <Ic.Sparkle stroke="var(--ink-3)" />
+        <span className="grow">Skills</span>
+      </button>
 
       <div className="sec" style={{ display: "flex", alignItems: "center" }}>
         <span style={{ flex: 1 }}>Channels</span>

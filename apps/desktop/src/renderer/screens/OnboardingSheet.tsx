@@ -11,7 +11,7 @@ import { ProvidersPanel } from "../components/ProvidersPanel";
 export function OnboardingSheet() {
   const providers = useStore((s) => s.providers);
   const hasTeams = useStore((s) => s.teams.length > 0);
-  const anyReady = Boolean(providers?.anthropic.ready || providers?.openrouter.ready);
+  const anyReady = Object.values(providers ?? {}).some((p) => p.ready);
   const [step, setStep] = useState<1 | 2>(hasTeams && anyReady ? 2 : 1);
 
   return (
@@ -26,10 +26,10 @@ export function OnboardingSheet() {
       {step === 1 ? (
         <div className="sheet-body" style={{ flexDirection: "column", padding: "18px 24px", gap: 12, overflowY: "auto" }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 600 }}>Which providers can your team use?</div>
-            <div style={{ fontSize: 12, color: "var(--ink-4)", marginTop: 2 }}>Bring your own keys. They are encrypted with the macOS keychain and only ever sent to the provider itself. You can mix providers inside one team.</div>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>What can your team run on?</div>
+            <div style={{ fontSize: 12, color: "var(--ink-4)", marginTop: 2 }}>Bring what you already pay for: a Claude login, a ChatGPT or Copilot plan through its CLI, a coding plan, an API key, or a model on this Mac. Keys are encrypted with the macOS keychain and only ever sent to the provider itself. You can mix providers inside one team.</div>
           </div>
-          <ProvidersPanel />
+          <ProvidersPanel compact />
         </div>
       ) : (
         <div className="sheet-body" style={{ flexDirection: "column", padding: "18px 24px", gap: 14 }}>

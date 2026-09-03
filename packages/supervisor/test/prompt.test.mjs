@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { makeCrew, tempDir } from "./helpers.mjs";
 import { systemPrompt, runPrompt } from "../dist/prompt.js";
-import { clamp } from "../dist/runners/openrouter.js";
+import { clamp } from "../dist/runners/workspace.js";
 
 test("the system prompt tells an agent where it is", async (t) => {
   const work = tempDir("standbye-ws-");
@@ -75,5 +75,42 @@ test("long command output is clamped from the middle", async (t) => {
     assert.ok(out.startsWith("START"), "the beginning is usually the answer");
     assert.ok(out.endsWith("END"), "so is the end of a command's output");
     assert.match(out, /characters cut from the middle/);
+  });
+});
+
+test("a check-in gets the smallest prompt that can make its one decision", async (t) => {
+  const { crew } = makeCrew(t);
+  const agent = crew.listAgents()[0];
+  const full = systemPrompt(crew, agent, "full");
+  const checkin = systemPrompt(crew, agent, "checkin");
+
+  await t.test("it is far smaller than a full run's", () => {
+    assert.ok(checkin.length < full.length / 2, `check-in ${checkin.length} vs full ${full.length}`);
+  });
+
+  await t.test("it never advertises a tool the check-in does not have", () => {
+    // A check-in holds only `escalate` and `done`. Naming the others invites a small model to
+    // call one and burn the run.
+    for (const tool of ["post_message", "ask_agent", "assign_task", "ask_user", "remember", "use_skill", "propose_hire"]) {
+      assert.ok(!checkin.includes(tool), `check-in prompt must not mention ${tool}`);
+    }
+  });
+
+  await t.test("it still says who they are and what to decide", () => {
+    assert.ok(checkin.includes(agent.name));
+    assert.match(checkin, /escalate/);
+    assert.match(checkin, /done/);
+  });
+
+  await t.test("the things only a working run needs are left out", () => {
+    assert.ok(!checkin.includes("# Your team"), "no roster");
+    assert.ok(!checkin.includes("Git workflow"), "no git workflow");
+    assert.ok(!/# Your workspace/.test(checkin), "no workspace tree");
+  });
+
+  await t.test("a full run still gets all of it", () => {
+    for (const section of ["# Your team", "# How this works", "post_message"]) {
+      assert.ok(full.includes(section), `full run keeps ${section}`);
+    }
   });
 });

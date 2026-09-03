@@ -7,17 +7,16 @@ import type {
   Agent, AgentConfig, AgentDraft, AgentStatus, Channel, GitSettings, KeyStatus, Message, MessageKind, Provider, ProviderConfig, ProviderSettings, ProviderStatus, Question, QuestionKind,
   Run, RunStatus, RunStep, RunStepKind, RunTrigger, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft,
 } from "@crew/shared";
-import { DEFAULT_MODELS, dmChannelId } from "@crew/shared";
+import { dmChannelId, providerLabel, providerSpec } from "@crew/shared";
 import { Bus } from "./bus.js";
 import { Db } from "./db.js";
 import { Store } from "./store.js";
+import { SkillLibrary } from "./skills.js";
 import { DEFAULTS } from "./config.js";
 import { DEFAULT_DEV_RULES } from "./permissions.js";
+import { defaultSettings, hasClaudeLogin, preferredProvider, readSettings, statusFor, writeSettings, type Keys } from "./providers.js";
 
-export interface Keys {
-  anthropic?: string;
-  openrouter?: string;
-}
+export type { Keys };
 
 export interface CrewOptions {
   /** This team's folder: team.json, agents/, crew.db */
@@ -26,6 +25,11 @@ export interface CrewOptions {
   globalDir: string;
   /** Shared key object owned by the hub */
   keys: Keys;
+  /**
+   * Where this supervisor's WebSocket API is listening. A spawned coding-agent CLI reaches its
+   * team through the stdio MCP bridge, which needs both to connect back.
+   */
+  api?: { port: number; token: string };
 }
 
 interface AgentRuntime {
@@ -42,11 +46,18 @@ interface AgentRuntime {
 export class Crew {
   readonly db: Db;
   readonly store: Store;
+  /** User, team and agent skills, and everything that installs or edits them. */
+  readonly skills: SkillLibrary;
   readonly bus = new Bus();
   readonly startedAt = new Date().toISOString();
   team: TeamConfig | null;
   readonly keys: Keys;
   pausedAll = false;
+
+  /** This supervisor's API endpoint, for CLIs that join the team over the stdio MCP bridge. */
+  get api(): { port: number; token: string } | undefined {
+    return this.opts.api;
+  }
 
   private readonly runtime = new Map<string, AgentRuntime>();
   private readonly waiters = new Map<string, (answer: string | null) => void>();
@@ -57,6 +68,15 @@ export class Crew {
     this.db = new Db(opts.dataDir);
     this.store = new Store(opts.dataDir);
     this.team = this.store.readTeam();
+    const store = this.store;
+    const crew = this;
+    this.skills = new SkillLibrary({
+      user: path.join(opts.globalDir, "skills"),
+      team: store.teamSkillsDir,
+      get teamId(): string | null { return crew.team?.id ?? null; },
+      agent: (id) => store.agentSkillsDir(id),
+      agentDir: (id) => store.agentDir(id),
+    });
     const stale = this.db.recoverStaleRuns();
     if (stale > 0) log(`marked ${stale} stale run(s) as failed after restart`, { team: this.team?.id });
     for (const a of this.store.listAgentConfigs()) this.ensureDm(a.id); // teams created before direct chats existed
@@ -66,6 +86,7 @@ export class Crew {
     return this.team?.id ?? null;
   }
   close(): void {
+    this.skills.dispose();
     this.db.sqlite.close();
   }
 
@@ -75,59 +96,40 @@ export class Crew {
     Object.assign(this.keys, keys);
     this.bus.emit("supervisor.status", this.status());
   }
+  /** Which providers can run right now, by id. The status bar and the empty states read this. */
   keyStatus(): KeyStatus {
-    const p = this.providerStatus();
-    return { anthropic: p.anthropic.ready, openrouter: p.openrouter.ready };
+    const s = this.providerStatus();
+    return Object.fromEntries(Object.entries(s).map(([id, st]) => [id, st.ready]));
   }
   get providers(): ProviderSettings {
-    return this.readProviders();
+    return readSettings(this.opts.globalDir);
   }
-  setProviders(patch: { anthropic?: Partial<ProviderConfig>; openrouter?: Partial<ProviderConfig> }): ProviderStatus {
-    const cur = this.readProviders();
-    const next: ProviderSettings = {
-      anthropic: { ...cur.anthropic, ...(patch.anthropic ?? {}) },
-      openrouter: { ...cur.openrouter, ...(patch.openrouter ?? {}) },
-    };
-    fs.writeFileSync(path.join(this.opts.globalDir, "providers.json"), JSON.stringify(next, null, 2));
+  /** Patch any number of providers at once; unknown ids are ignored rather than written. */
+  setProviders(patch: Record<string, Partial<ProviderConfig>>): ProviderStatus {
+    const next = readSettings(this.opts.globalDir);
+    for (const [id, cfg] of Object.entries(patch)) {
+      if (!next[id]) continue;
+      // `settings` is merged field by field so saving a base URL does not wipe a region.
+      next[id] = { ...next[id], ...cfg, settings: { ...(next[id].settings ?? {}), ...(cfg.settings ?? {}) } };
+    }
+    writeSettings(this.opts.globalDir, next);
     this.bus.emit("supervisor.status", this.status());
     return this.providerStatus();
   }
-  private readProviders(): ProviderSettings {
-    const base: ProviderSettings = {
-      anthropic: { enabled: true, defaultModel: DEFAULT_MODELS.anthropic.main, checkinModel: DEFAULT_MODELS.anthropic.checkin },
-      openrouter: { enabled: true, defaultModel: DEFAULT_MODELS.openrouter.main, checkinModel: DEFAULT_MODELS.openrouter.checkin },
-    };
-    const p = path.join(this.opts.globalDir, "providers.json");
-    if (!fs.existsSync(p)) return base;
-    try {
-      const saved = JSON.parse(fs.readFileSync(p, "utf8")) as { anthropic?: Partial<ProviderConfig>; openrouter?: Partial<ProviderConfig> };
-      return { anthropic: { ...base.anthropic, ...(saved.anthropic ?? {}) }, openrouter: { ...base.openrouter, ...(saved.openrouter ?? {}) } };
-    } catch { return base; }
-  }
   providerStatus(): ProviderStatus {
-    const s = this.readProviders();
-    const hasKey = Boolean(this.keys.anthropic);
-    const hasLogin = this.hasClaudeLogin();
-    return {
-      anthropic: { ...s.anthropic, hasKey, hasLogin, ready: s.anthropic.enabled && (hasKey || hasLogin) },
-      openrouter: { ...s.openrouter, hasKey: Boolean(this.keys.openrouter), ready: s.openrouter.enabled && Boolean(this.keys.openrouter) },
-    };
+    return statusFor(readSettings(this.opts.globalDir), this.keys);
   }
-  /** The provider to prefer for new work: Claude when ready, else OpenRouter. */
+  /** The config for one provider, falling back to catalog defaults for one never touched. */
+  providerConfig(id: Provider): ProviderConfig {
+    return this.providers[id] ?? defaultSettings()[id] ?? { enabled: false, defaultModel: "", checkinModel: "" };
+  }
+  /** The provider to prefer for new work: Claude when ready, else the first other one that is. */
   preferredProvider(): Provider | null {
-    const s = this.providerStatus();
-    return s.anthropic.ready ? "anthropic" : s.openrouter.ready ? "openrouter" : null;
+    return preferredProvider(this.providerStatus());
   }
   /** True when Claude Code is signed in on this machine, so the Claude runner works without an API key. */
   hasClaudeLogin(): boolean {
-    if (process.env.CREW_DISABLE_CLAUDE_LOGIN === "1") return false; // tests must never spend
-    try {
-      if (fs.existsSync(path.join(os.homedir(), ".claude", ".credentials.json"))) return true; // Linux/Windows
-      const cfg = path.join(os.homedir(), ".claude.json"); // macOS keeps the token in the Keychain; the account marker lives here
-      return fs.existsSync(cfg) && fs.readFileSync(cfg, "utf8").includes('"oauthAccount"');
-    } catch {
-      return false;
-    }
+    return hasClaudeLogin();
   }
 
   // ---------------- team ----------------
@@ -178,7 +180,7 @@ export class Crew {
   createAgent(draft: AgentDraft, channels: Channel[] = this.db.listChannels()): Agent {
     const id = slug(draft.name);
     const memberOf = channels.filter((c) => c.id === "general" || c.members.includes(id) || draft.channels.map((n) => n.replace(/^#/, "").toLowerCase()).includes(c.id)).map((c) => c.id);
-    const pc = this.providers[draft.provider];
+    const pc = this.providerConfig(draft.provider);
     const cfg: AgentConfig = {
       id,
       name: draft.name,
@@ -471,7 +473,11 @@ export class Crew {
    */
   budgetAllows(agentId: string, fromOwner = false): { ok: boolean; reason?: string } {
     const agent = this.getAgent(agentId);
-    if (!this.providers[agent.provider].enabled) return { ok: false, reason: `${agent.provider} is turned off in Settings` };
+    // Only the owner's own switch is checked here. Missing credentials are the runner's to
+    // report: it knows whether the key was rejected, the CLI is not installed or the endpoint
+    // is unreachable, and that distinction is what pauses the agent and what the owner reads.
+    if (!providerSpec(agent.provider)) return { ok: false, reason: `${agent.name} is on "${agent.provider}", which this version of Standbye does not offer. Pick another provider in ${agent.name}'s settings.` };
+    if (!this.providerConfig(agent.provider).enabled) return { ok: false, reason: `${providerLabel(agent.provider)} is turned off in Settings` };
     if (!fromOwner) {
       const anHourAgo = new Date(Date.now() - 3_600_000).toISOString();
       const recent = this.db.runsSince(agentId, anHourAgo);

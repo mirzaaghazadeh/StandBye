@@ -78,6 +78,24 @@ try {
   await win.locator(".sheet-f .btn-primary").click().catch(() => undefined);
   await win.waitForTimeout(400);
 
+  // Skill library
+  await win.locator(".srow", { hasText: "Skills" }).first().click();
+  await win.waitForTimeout(900);
+  await shot(win, "skills-library");
+  const firstSkill = win.locator(".sheet .li").first();
+  if (await firstSkill.count()) { await firstSkill.click(); await win.waitForTimeout(600); await shot(win, "skills-detail"); }
+  await win.locator(".sheet .ibtn[title^='Add a skill']").first().click();
+  await win.waitForTimeout(700);
+  await shot(win, "skills-install");
+  await win.locator(".seg-i", { hasText: "GitHub" }).click();
+  await win.waitForTimeout(400);
+  await shot(win, "skills-install-github");
+  await win.locator(".seg-i", { hasText: "Write one" }).click();
+  await win.waitForTimeout(400);
+  await shot(win, "skills-write");
+  await win.locator(".sheet-f .btn-primary").click();
+  await win.waitForTimeout(400);
+
   // Inspector model picker
   await win.locator(".insp .pop").first().click();
   await win.waitForTimeout(500);

@@ -1,102 +1,21 @@
-import { ToolLoopAgent, isStepCount, tool, type ToolSet } from "ai";
-import { trimConversation } from "./context.js";
-import { log } from "../log.js";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { tool, type ToolSet } from "ai";
 import { z } from "zod";
-import type { PermissionRule } from "@crew/shared";
 import fs from "node:fs";
 import path from "node:path";
 import { execFile } from "node:child_process";
-import { DEFAULTS } from "../config.js";
-import { CHECKIN_TOOLS, TEAM_TOOLS, type AnyTeamTool, type ToolContext } from "../tools/team-tools.js";
+import type { PermissionRule } from "@crew/shared";
 import { gate } from "./approval.js";
-import type { Runner } from "./types.js";
+import type { ToolContext } from "../tools/team-tools.js";
 
 /**
- * OpenRouter runner: any tool-capable model (default GLM 5.3) driven by the AI SDK tool loop.
- * Same team tools as the Claude runner, plus a small file/shell toolset scoped to the workspace,
- * gated by the same permission rules.
+ * File and shell tools for models that do not bring their own harness. The Claude runner gets
+ * these from Claude Code and the CLI runner from whichever agent it spawns; everything driven
+ * by the plain tool loop gets them from here.
+ *
+ * Every one of them goes through `gate`, so the workspace fence and the owner's permission
+ * rules apply exactly as they do to Claude Code's own tools.
  */
-export const openrouterRunner: Runner = async (input) => {
-  const { crew, agent, run, mode, ctx, signal, cwd } = input;
-  const apiKey = crew.keys.openrouter;
-  if (!apiKey) return { costUsd: 0, inputTokens: 0, outputTokens: 0, text: "", error: "No OpenRouter API key configured" };
-
-  const openrouter = createOpenRouter({ apiKey });
-  const model = openrouter(input.model, { usage: { include: true } });
-
-  const teamTools: readonly AnyTeamTool[] =
-    mode === "checkin"
-      ? [...CHECKIN_TOOLS, ...TEAM_TOOLS.filter((t) => ["list_agents", "read_channel", "team_decisions", "done"].includes(t.name))]
-      : TEAM_TOOLS;
-
-  let finished = false;
-  const wrappedCtx: ToolContext = {
-    ...ctx,
-    onDone: (s, st) => { finished = true; ctx.onDone?.(s, st); },
-    onEscalate: (r) => { finished = true; ctx.onEscalate?.(r); },
-  };
-
-  const tools: ToolSet = {};
-  for (const t of teamTools) {
-    tools[t.name] = tool({
-      description: t.description,
-      inputSchema: z.object(t.schema),
-      execute: async (args: Record<string, unknown>) => {
-        try { return await t.handler(args as never, wrappedCtx); }
-        catch (e) { return `Error: ${e instanceof Error ? e.message : String(e)}`; }
-      },
-    });
-  }
-  if (mode === "full") Object.assign(tools, workspaceTools(wrappedCtx, cwd, agent.permissions));
-
-  let text = "";
-  let costUsd = 0;
-  let inputTokens = 0;
-  let outputTokens = 0;
-  let cachedTokens = 0; // input tokens the provider served from its cache rather than re-reading
-  let error: string | undefined;
-
-  try {
-    const loop = new ToolLoopAgent({
-      model,
-      instructions: input.system,
-      tools,
-      stopWhen: [isStepCount(mode === "checkin" ? 6 : DEFAULTS.maxTurns), () => finished],
-      // The whole conversation is re-sent every step, so old tool-result payloads are the
-      // single biggest cost in a long run. Drop the bodies once the model has moved on.
-      prepareStep: ({ messages }) => ({ messages: trimConversation(messages) }),
-      onStepFinish: (step) => {
-        const meta = (step as { providerMetadata?: { openrouter?: { usage?: { cost?: number } } } }).providerMetadata;
-        costUsd += Number(meta?.openrouter?.usage?.cost ?? 0);
-        inputTokens += step.usage?.inputTokens ?? 0;
-        outputTokens += step.usage?.outputTokens ?? 0;
-        cachedTokens += step.usage?.inputTokenDetails?.cacheReadTokens ?? 0;
-        if (step.text?.trim()) { text = step.text.trim(); crew.addStep(run.id, "text", text); }
-        for (const call of step.toolCalls ?? []) {
-          if (!(call.toolName in tools) || teamTools.some((t) => t.name === call.toolName)) continue;
-          const inp = (call.input ?? {}) as Record<string, unknown>;
-          crew.addStep(run.id, call.toolName === "bash" ? (/^git\b/.test(String(inp.command)) ? "git" : "run") : call.toolName.startsWith("write") || call.toolName.startsWith("edit") ? "edit" : "read", String(inp.command ?? inp.path ?? inp.pattern ?? ""), JSON.stringify(inp).slice(0, 4000));
-        }
-        if (costUsd > agent.budget.perRunUsd) { finished = true; error = `Per-run budget ($${agent.budget.perRunUsd}) exceeded`; }
-      },
-    });
-    const result = await loop.generate({ prompt: input.prompt, abortSignal: signal });
-    if (result.text?.trim()) text = result.text.trim();
-  } catch (e) {
-    error = e instanceof Error ? e.message : String(e);
-  }
-  // Cache hits are the difference between paying for the prefix once and paying every step,
-  // so record the ratio: it is the number that tells us whether any of this is working.
-  if (inputTokens > 0) {
-    log(`run finished · in=${inputTokens} cached=${cachedTokens} (${Math.round((cachedTokens / inputTokens) * 100)}%) out=${outputTokens} cost=$${costUsd.toFixed(4)}`, { agent: agent.id, run: run.id });
-  }
-  return { costUsd, inputTokens, outputTokens, cachedTokens, text, error };
-};
-
-// ---------- workspace tools for non-Claude models ----------
-
-function workspaceTools(ctx: ToolContext, cwd: string, rules: PermissionRule[]): ToolSet {
+export function workspaceTools(ctx: ToolContext, cwd: string, rules: PermissionRule[]): ToolSet {
   const resolve = (p: string): string => {
     const abs = path.resolve(cwd, p);
     if (!abs.startsWith(cwd)) throw new Error(`Path ${p} is outside the workspace`);

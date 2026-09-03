@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import type { AgentDraft, GitSettings } from "@crew/shared";
+import { PROVIDERS, providerLabel, type AgentDraft, type GitSettings, type Provider } from "@crew/shared";
 import { store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
-import { Avatar, Button, Segmented } from "../ui/kit";
+import { Avatar, Button, Popup, Segmented } from "../ui/kit";
 import { ModelPicker } from "../components/ModelPicker";
 import { BudgetEditor } from "../components/BudgetEditor";
 import { GitSettingsPanel } from "../components/GitSettingsPanel";
@@ -16,12 +16,16 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
   const [mode, setMode] = useState<"describe" | "template">(initialMode ?? "describe");
   const [description, setDescription] = useState("");
   const [ownerName, setOwnerName] = useState(team?.ownerName ?? "");
-  const [workspace, setWorkspace] = useState<string | null>(null);
+  const [workspace, setWorkspace] = useState<string | null>(store.get().pendingWorkspace);
   const [git, setGit] = useState<GitSettings | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const providers = useStore((s) => s.providers);
-  const ready = (["anthropic", "openrouter"] as const).filter((p) => providers?.[p].ready);
-  const [drafter, setDrafter] = useState<"anthropic" | "openrouter">(ready[0] ?? "anthropic");
+  // Only providers that can return structured JSON can write the draft: Claude and anything
+  // OpenAI-compatible. A coding CLI or a cloud can still run the team it produces.
+  const readyAll = PROVIDERS.filter((p) => providers?.[p.id]?.ready).map((p) => p.id);
+  const ready = PROVIDERS.filter((p) => providers?.[p.id]?.ready && (p.id === "anthropic" || p.kind === "openai")).map((p) => p.id);
+  const [drafter, setDrafter] = useState<Provider>(ready[0] ?? "anthropic");
+  useEffect(() => { if (ready.length && !ready.includes(drafter)) setDrafter(ready[0]!); }, [ready.join(","), drafter]);
   useEffect(() => { if (initialMode === "template" && !draft && !busy) doTemplate(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const canDraft = description.trim().length > 10 && !busy && ready.length > 0;
@@ -69,16 +73,26 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
           </div>
           <GitSettingsPanel workspace={workspace} value={git} onChange={setGit} compact />
           <div>
-            <div className="grp-t">Keys</div>
+            <div className="grp-t">Providers</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12 }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 8 }}><span className="dot" style={{ width: 7, height: 7, background: keys.anthropic ? "var(--green)" : "var(--ink-6)" }} />Anthropic {keys.anthropic ? "" : <a onClick={() => store.openSheet({ kind: "keys" })}>add</a>}</span>
-              <span style={{ display: "flex", alignItems: "center", gap: 8 }}><span className="dot" style={{ width: 7, height: 7, background: keys.openrouter ? "var(--green)" : "var(--ink-6)" }} />OpenRouter {keys.openrouter ? "" : <a onClick={() => store.openSheet({ kind: "keys" })}>add</a>}</span>
+              {readyAll.length ? readyAll.map((id) => (
+                <span key={id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span className="dot" style={{ width: 7, height: 7, background: "var(--green)" }} />{providerLabel(id)}
+                </span>
+              )) : (
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span className="dot" style={{ width: 7, height: 7, background: "var(--ink-6)" }} />None ready <a onClick={() => store.openSheet({ kind: "keys" })}>set one up</a>
+                </span>
+              )}
             </div>
           </div>
           {mode === "describe" && ready.length > 0 && (
             <div>
               <div className="grp-t">Draft with</div>
-              <Segmented value={drafter} onChange={setDrafter} options={ready.map((p) => ({ value: p, label: p === "anthropic" ? "Claude" : "OpenRouter" }))} />
+              {/* Three or fewer reads better as a switch; past that it needs to be a menu. */}
+              {ready.length <= 3
+                ? <Segmented value={drafter} onChange={setDrafter} options={ready.map((p) => ({ value: p, label: providerLabel(p) }))} />
+                : <Popup value={drafter} onChange={setDrafter} options={ready.map((p) => ({ value: p, label: providerLabel(p) }))} style={{ width: 200 }} />}
               <div className="mono" style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 6 }}>{drafterModel}</div>
             </div>
           )}

@@ -5,12 +5,14 @@ import { ChannelScreen } from "./screens/Channel";
 import { InboxScreen } from "./screens/Inbox";
 import { RunsScreen } from "./screens/Runs";
 import { AgentSheet } from "./screens/AgentSheet";
+import { SkillsSheet } from "./screens/SkillsSheet";
 import { BuilderSheet } from "./screens/BuilderSheet";
 import { KeysSheet } from "./screens/KeysSheet";
 import { WakeSheet } from "./screens/WakeSheet";
 import { OnboardingSheet } from "./screens/OnboardingSheet";
 import { ManualTeamSheet } from "./screens/ManualTeamSheet";
 import { ChannelSheet } from "./screens/ChannelSheet";
+import { RemoveTeamSheet } from "./screens/RemoveTeamSheet";
 import { StatusBar } from "./components/StatusBar";
 import { Ic } from "./ui/icons";
 
@@ -37,14 +39,16 @@ export function App() {
         <StatusBar />
       </div>
 
-      {sheet.kind !== "none" && <div className="dim" onClick={() => ["keys", "agent", "wake", "channel"].includes(sheet.kind) && store.closeSheet()} />}
+      {sheet.kind !== "none" && <div className="dim" onClick={() => ["keys", "agent", "wake", "channel", "skills", "removeTeam"].includes(sheet.kind) && store.closeSheet()} />}
       {sheet.kind === "channel" && <ChannelSheet key={sheet.channelId ?? "new"} channelId={sheet.channelId} />}
       {sheet.kind === "onboarding" && <OnboardingSheet />}
       {sheet.kind === "manual" && <ManualTeamSheet />}
       {sheet.kind === "builder" && <BuilderSheet mode={sheet.mode} />}
       {sheet.kind === "keys" && <KeysSheet />}
       {sheet.kind === "agent" && <AgentSheet agentId={sheet.agentId} tab={sheet.tab} />}
+      {sheet.kind === "skills" && <SkillsSheet scope={sheet.scope} ownerId={sheet.ownerId} name={sheet.name} />}
       {sheet.kind === "wake" && <WakeSheet agentId={sheet.agentId} />}
+      {sheet.kind === "removeTeam" && <RemoveTeamSheet teamId={sheet.teamId} />}
 
       {toast && (
         <div className="toast">

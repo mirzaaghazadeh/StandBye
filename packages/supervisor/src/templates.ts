@@ -1,13 +1,21 @@
-import type { ProviderSettings, TeamDraft } from "@crew/shared";
+import { DEFAULT_MODELS as CATALOG_DEFAULTS, type ProviderSettings, type TeamDraft } from "@crew/shared";
 
-/** Starter team used when no model is available to draft one, and as the base the builder edits. */
+/**
+ * Starter team used when no model is available to draft one, and as the base the builder edits.
+ *
+ * It names "anthropic" and "openrouter" because those are the two providers that are on out of
+ * the box; `adaptToProviders` in builder.ts moves every agent onto something the owner has
+ * actually set up before the team is created, so a machine with only, say, a Copilot seat still
+ * gets this team.
+ */
 export function soloDevTeam(providers: ProviderSettings, ownerName: string, projectHint: string): TeamDraft {
   const owner = ownerName || "the owner";
   const project = projectHint || "the project";
-  const DEFAULT_MODELS = {
-    anthropic: { main: providers.anthropic.defaultModel, checkin: providers.anthropic.checkinModel },
-    openrouter: { main: providers.openrouter.defaultModel, checkin: providers.openrouter.checkinModel },
-  };
+  const models = (id: string) => ({
+    main: providers[id]?.defaultModel || CATALOG_DEFAULTS[id]?.main || "",
+    checkin: providers[id]?.checkinModel || CATALOG_DEFAULTS[id]?.checkin || "",
+  });
+  const DEFAULT_MODELS = { anthropic: models("anthropic"), openrouter: models("openrouter") };
   return {
     name: `${ownerName ? ownerName + "'s" : "My"} dev team`,
     charter: `Keep ${project} shipping while ${owner} is away: plan the work, build it in small tested pull requests, review everything, keep the docs current. Ask before anything risky.`,

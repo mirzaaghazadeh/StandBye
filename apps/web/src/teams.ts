@@ -1,6 +1,6 @@
 // Demo teams for the hero: the same app window, different teams. The dev team is the real starter template;
 // the others show what a team looks like when it is not about code.
-import { DEFAULT_MODELS, type Agent, type AgentStatus, type Provider } from "@crew/shared";
+import { defaultModelsFor, type Agent, type AgentStatus, type Provider } from "@crew/shared";
 import { agents as devAgents, questions, spentToday, team as devDraft } from "./data";
 
 export type DemoAgent = Agent & { responsibilities: string[] };
@@ -33,8 +33,8 @@ function mk(s: Spec): DemoAgent {
     name: s.name,
     role: s.role,
     provider,
-    model: s.model ?? DEFAULT_MODELS[provider].main,
-    checkinModel: DEFAULT_MODELS[provider].checkin,
+    model: s.model ?? defaultModelsFor(provider).main,
+    checkinModel: defaultModelsFor(provider).checkin,
     heartbeat: { everyMinutes: s.every ?? 30, workHours: { start: "08:00", end: "20:00" } },
     triggers: { onMention: true, cron: [] },
     permissions: [],

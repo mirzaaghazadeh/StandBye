@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Agent, Question } from "@crew/shared";
+import { defaultModelsFor, type Agent, type Question } from "@crew/shared";
 import { store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
 import { Avatar, Button, Checkbox, Group, IconButton, KindPill, KV, Popup, SearchField, StatusPill, Toolbar, ago, dur, modelLabel } from "../ui/kit";
@@ -198,6 +198,7 @@ export function NeedRow({ q, agent }: { q: Question; agent?: Agent }) {
 
 function AgentInspector({ agent }: { agent: Agent }) {
   const spend = useStore((s) => s.spend);
+  const providers = useStore((s) => s.providers);
   const used = spend?.perAgent[agent.id] ?? agent.spentTodayUsd;
   const set = (patch: Partial<Agent>) => void store.updateAgent(agent.id, patch);
   const rule = (pattern: string) => agent.permissions.find((r) => r.pattern === pattern)?.behavior ?? "allow";
@@ -215,7 +216,8 @@ function AgentInspector({ agent }: { agent: Agent }) {
         <IconButton title={agent.paused ? "Resume" : "Pause"} onClick={() => void store.pauseAgent(agent.id, !agent.paused)}>{agent.paused ? <Ic.Play size={14} /> : <Ic.Pause size={14} />}</IconButton>
       </div>
       <Group title="Model">
-        <KV k="Model"><ModelPicker value={agent.model} provider={agent.provider} onChange={(model, provider) => set({ model, provider, ...(provider !== agent.provider ? { checkinModel: provider === "anthropic" ? "claude-haiku-4-5" : "z-ai/glm-5.3-flash" } : {}) })} width={168} /></KV>
+        {/* Switching provider carries the check-in model with it; the old id means nothing on the new endpoint. */}
+        <KV k="Model"><ModelPicker value={agent.model} provider={agent.provider} onChange={(model, provider) => set({ model, provider, ...(provider !== agent.provider ? { checkinModel: providers?.[provider]?.checkinModel || defaultModelsFor(provider).checkin || model } : {}) })} width={168} /></KV>
         <KV k="Check-ins on"><ModelPicker value={agent.checkinModel} provider={agent.provider} onChange={(checkinModel) => set({ checkinModel })} width={168} /></KV>
       </Group>
       <Group title="Wake-ups">

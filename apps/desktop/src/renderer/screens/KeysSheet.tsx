@@ -15,7 +15,8 @@ export function KeysSheet() {
   useEffect(() => { void window.crew.dataDir().then(setDataDir); }, []);
 
   return (
-    <div className="sheet" style={{ width: 660, height: 600 }}>
+    // The providers browser is two panes, so it needs the room; the other tabs read better narrow.
+    <div className="sheet" style={{ width: tab === "providers" ? 860 : 660, height: 600 }}>
       <div className="sheet-h">
         <b>Settings</b>
         <Segmented value={tab} onChange={setTab} options={[{ value: "team", label: "Team" }, { value: "providers", label: "Providers" }, { value: "data", label: "Data" }]} />
@@ -25,7 +26,7 @@ export function KeysSheet() {
         {tab === "team" && (team ? <TeamSettings /> : <div className="empty" style={{ fontSize: 12 }}>No team yet.</div>)}
         {tab === "providers" && (
           <>
-            <div style={{ fontSize: 12, color: "var(--ink-4)" }}>Keys are encrypted with the macOS keychain and only ever sent to the provider itself.</div>
+            <div style={{ fontSize: 12, color: "var(--ink-4)" }}>Bring what you already pay for. Keys are encrypted with the macOS keychain and only ever sent to the provider itself; a coding-agent CLI keeps its own login and Standbye never sees it.</div>
             <ProvidersPanel />
           </>
         )}
@@ -40,7 +41,7 @@ export function KeysSheet() {
             </div>
             {team && (
               <div style={{ marginTop: "auto", paddingTop: 12 }}>
-                <Button danger onClick={() => { if (confirm(`Delete "${team.name}" with its agents, channels and run history? Other teams are not affected.`)) void store.deleteTeam().then(() => store.openSheet(store.get().teams.length ? { kind: "none" } : { kind: "onboarding" })); }}>Delete This Team…</Button>
+                <Button danger onClick={() => store.openSheet({ kind: "removeTeam", teamId: team.id })}>Remove This Team…</Button>
               </div>
             )}
           </div>

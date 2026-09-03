@@ -241,7 +241,8 @@ test("budget guards", async (t) => {
     crew.setProviders({ anthropic: { enabled: false } });
     const v = crew.budgetAllows("ada");
     assert.equal(v.ok, false);
-    assert.match(v.reason, /anthropic is turned off/);
+    // The reason names the provider the way the owner sees it in Settings, not by its id.
+    assert.match(v.reason, /Claude is turned off/);
     assert.deepEqual(crew.budgetAllows("rex").ok, false, "rex is over its hourly cap, not its provider");
     crew.setProviders({ anthropic: { enabled: true } });
   });

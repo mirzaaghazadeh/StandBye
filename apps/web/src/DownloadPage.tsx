@@ -147,9 +147,15 @@ function PhoneMock() {
       <div className="phone">
         <div className="phone-notch" />
         <div className="phone-top">
-          <span className="phone-time mono">9:41</span>
-          <span className="phone-title">{team.name}</span>
-          <span className="dot dot-lg" style={{ background: "var(--green)" }} />
+          <div className="phone-status">
+            <span className="phone-time mono">9:41</span>
+            <span className="grow" />
+            <i className="phone-batt" />
+          </div>
+          <div className="phone-nav">
+            <span className="dot" style={{ background: "var(--green)" }} />
+            <span className="phone-title">{team.name}</span>
+          </div>
         </div>
         <div className="phone-body">
           <div className="phone-card phone-spend">

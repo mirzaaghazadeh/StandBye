@@ -1,5 +1,5 @@
 import { APICallError, AISDKError } from "ai";
-import type { Agent, Run } from "@crew/shared";
+import type { Agent, ProviderConfig, ProviderSpec, Run } from "@crew/shared";
 import type { Crew } from "../crew.js";
 import type { ToolContext } from "../tools/team-tools.js";
 
@@ -14,6 +14,10 @@ export interface RunnerInput {
   ctx: ToolContext;
   cwd: string;
   signal: AbortSignal;
+  /** The catalog entry for the agent's provider: endpoint, auth, CLI invocation. */
+  spec: ProviderSpec;
+  /** The owner's settings for it: models, base URL, region, CLI overrides. */
+  config: ProviderConfig;
 }
 
 /**
@@ -57,20 +61,20 @@ export function blocksAgent(kind: FailureKind | undefined): boolean {
   return kind === "auth" || kind === "credit";
 }
 
-const PROVIDER_LABEL = { anthropic: "Claude", openrouter: "OpenRouter" } as const;
-
 /**
  * Turn whatever a provider threw into something a person can act on.
  *
+ * `who` is the provider's display name from the catalog, so the advice names the thing the
+ * owner recognises ("Groq is rate limiting this key") rather than an internal id.
+ *
  * Shapes handled, verified against the installed SDKs:
  *  - AI SDK `APICallError` (statusCode, responseBody) and its siblings (`LoadAPIKeyError`,
- *    `NoSuchModelError`), used by the OpenRouter runner.
+ *    `NoSuchModelError`), used by the OpenAI-compatible runner.
  *  - Node network errors (`code` = ECONNREFUSED / ENOTFOUND / …), thrown by fetch under both.
  *  - Anthropic API error payloads passed through the Claude Code CLI as text
  *    (`authentication_error`, `rate_limit_error`, `not_found_error`, `request_too_large`, …).
  */
-export function classifyFailure(e: unknown, provider: "anthropic" | "openrouter"): Failure {
-  const who = PROVIDER_LABEL[provider];
+export function classifyFailure(e: unknown, who = "The provider"): Failure {
   const raw = errorText(e);
   const status = statusOf(e);
   const body = `${raw} ${bodyOf(e)}`.toLowerCase();
@@ -91,12 +95,12 @@ export function classifyFailure(e: unknown, provider: "anthropic" | "openrouter"
 
   // Credit / quota. Check before auth: a 402 also mentions billing.
   if (status === 402 || has("credit balance is too low", "insufficient credits", "insufficient_quota", "quota exceeded", "billing", "payment required", "add credits")) {
-    return { kind: "credit", text: provider === "anthropic" ? "Claude has no credit left. Top up the Anthropic account, or switch this agent to another provider." : "OpenRouter has no credit left. Add credits at openrouter.ai, or switch this agent to another provider." };
+    return { kind: "credit", text: `${who} has no credit left. Top up that account, or switch this agent to another provider in its settings.` };
   }
 
   // Auth: missing, wrong or expired credentials.
   if (status === 401 || status === 403 || name(e) === "AI_LoadAPIKeyError" || has("authentication_error", "invalid x-api-key", "invalid api key", "invalid_api_key", "no auth credentials", "unauthorized", "permission_error", "oauth token has expired", "please run /login", "api key not valid")) {
-    return { kind: "auth", text: provider === "anthropic" ? "Claude rejected the credentials. Add a valid Anthropic API key in Settings, or run `claude` in a terminal to sign in again." : "OpenRouter rejected the API key. Paste a valid key in Settings." };
+    return { kind: "auth", text: `${who} rejected the credentials. Check the key (or the login) for it in Settings › Providers.` };
   }
 
   // Rate limited.
@@ -123,8 +127,8 @@ export function classifyFailure(e: unknown, provider: "anthropic" | "openrouter"
 }
 
 /** Same classification for an error we only have as text (the Claude CLI reports failures that way). */
-export function classifyText(text: string, provider: "anthropic" | "openrouter"): Failure {
-  return classifyFailure(new Error(text), provider);
+export function classifyText(text: string, who = "The provider"): Failure {
+  return classifyFailure(new Error(text), who);
 }
 
 function name(e: unknown): string {

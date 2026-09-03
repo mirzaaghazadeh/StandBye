@@ -2,8 +2,12 @@ import { log } from "./log.js";
 import { WebSocketServer, WebSocket } from "ws";
 import fs from "node:fs";
 import path from "node:path";
-import type { AgentConfig, AgentFiles, GitSettings, Provider, ProviderConfig, PushEvent, RpcRequest, RpcResponse, TeamConfig, TeamDraft } from "@crew/shared";
-import { TeamDraftSchema } from "@crew/shared";
+import { z } from "zod";
+import type { AgentConfig, AgentFiles, GitSettings, Provider, ProviderConfig, PushEvent, RpcRequest, RpcResponse, SkillInstallKind, SkillScope, SkillTarget, TeamConfig, TeamDraft } from "@crew/shared";
+import { PROVIDERS, providerSpec, TeamDraftSchema } from "@crew/shared";
+import { probeProvider } from "./providers.js";
+import { previewCommand } from "./runners/cli.js";
+import { skillOrigins } from "./skills.js";
 import { draftTeam } from "./builder.js";
 import { defaultGitSettings, gitInfo } from "./git.js";
 import type { Crew } from "./crew.js";
@@ -81,10 +85,28 @@ export class Api {
     const { hub } = this;
     return {
       // ----- global -----
-      "keys.set": (p: { anthropic?: string; openrouter?: string }) => { hub.setKeys(p); return hub.settingsCrew().keyStatus(); },
+      /** Keys arrive keyed by provider id; the desktop app holds them in the OS keychain. */
+      "keys.set": (p: Record<string, string>) => { hub.setKeys(p); return hub.settingsCrew().keyStatus(); },
       "keys.get": () => hub.settingsCrew().keyStatus(),
       "providers.get": () => hub.settingsCrew().providerStatus(),
-      "providers.set": (p: { anthropic?: Partial<ProviderConfig>; openrouter?: Partial<ProviderConfig> }) => hub.settingsCrew().setProviders(p),
+      "providers.set": (p: Record<string, Partial<ProviderConfig>>) => hub.settingsCrew().setProviders(p),
+      /** The whole catalog, so the settings screen and the model picker need no copy of it. */
+      "providers.catalog": () => PROVIDERS,
+      /**
+       * Try the credentials for one provider and say plainly whether they work. Cheap by
+       * design: a model list for an API, `--version` for a CLI, a credentials file for a cloud.
+       */
+      "providers.test": async (p: { id: string; config?: Partial<ProviderConfig> }) => {
+        const crew = hub.settingsCrew();
+        return probeProvider(p.id, { ...crew.providerConfig(p.id), ...(p.config ?? {}) }, crew.keys);
+      },
+      /** The exact command line an agent on a CLI provider will run, for the settings screen. */
+      "providers.command": (p: { id: string }) => {
+        const spec = providerSpec(p.id);
+        if (!spec?.cli) return "";
+        const cfg = hub.settingsCrew().providerConfig(p.id);
+        return previewCommand(spec, cfg, cfg.defaultModel);
+      },
       "models.list": (p: { force?: boolean }) => listModels(hub.settingsCrew(), p.force ?? false),
       "defaults.get": () => DEFAULTS,
       "agents.all": () => hub.allAgents(),
@@ -98,7 +120,24 @@ export class Api {
         conn.teamId = rt.crew.id;
         return rt.crew.team;
       },
-      "teams.delete": (p: { id: string }, conn) => { hub.deleteTeam(p.id); if (conn.teamId === p.id) conn.teamId = hub.first()?.crew.id ?? null; return conn.teamId; },
+      "teams.delete": (p: { id: string; removeFiles?: boolean }, conn) => { hub.deleteTeam(p.id, p.removeFiles ?? true); if (conn.teamId === p.id) conn.teamId = hub.first()?.crew.id ?? null; return conn.teamId; },
+      /** Open a project folder. Returns the team it holds, or null so the caller can offer to create one. */
+      "teams.openFolder": (p: { path: string }, conn) => {
+        const rt = hub.openFolder(p.path);
+        if (!rt) return null;
+        conn.teamId = rt.crew.id;
+        return rt.crew.team;
+      },
+      /** Does this folder already hold a team? Lets the UI choose between opening and creating. */
+      "teams.probeFolder": (p: { path: string }) => hub.probeFolder(p.path),
+      /** Take a team off the list: it stops working, keeps everything, and can be put back. */
+      "teams.archive": (p: { id: string }, conn) => {
+        const row = hub.archiveTeam(p.id);
+        if (conn.teamId === p.id) conn.teamId = hub.first()?.crew.id ?? null;
+        return row;
+      },
+      "teams.restore": (p: { id: string }, conn) => { const rt = hub.restoreTeam(p.id); conn.teamId = rt.crew.id; return rt.crew.team; },
+      "teams.archived": () => hub.archived(),
       "builder.draft": async (p: { description: string; ownerName: string; workspaceRoot: string | null; provider?: Provider; mode?: "describe" | "template" }) =>
         draftTeam(hub.settingsCrew(), { ...p, workspaceSummary: p.workspaceRoot ? summarizeWorkspace(p.workspaceRoot) : undefined }),
 
@@ -115,14 +154,48 @@ export class Api {
       "agent.update": (p: { id: string; patch: Partial<AgentConfig> }, conn) => { const { crew, scheduler } = this.rtFor(conn); const a = crew.updateAgent(p.id, p.patch); scheduler.rebuildCrons(); return a; },
       "agent.files.get": (p: { id: string }, conn) => this.crewFor(conn).store.readAgentFiles(p.id),
       "agent.files.set": (p: { id: string; file: keyof AgentFiles; content: string }, conn) => { const crew = this.crewFor(conn); crew.store.writeAgentFile(p.id, p.file, p.content); crew.bus.emit("agent.updated", crew.getAgent(p.id)); return crew.store.readAgentFiles(p.id); },
-      "agent.skills.list": (p: { id: string }, conn) => this.crewFor(conn).store.listSkills(p.id),
-      "agent.skills.set": (p: { id: string; name: string; content: string }, conn) => { const crew = this.crewFor(conn); const s = crew.store.writeSkill(p.id, p.name, p.content); crew.bus.emit("agent.updated", crew.getAgent(p.id)); return s; },
-      "agent.skills.delete": (p: { id: string; name: string }, conn) => { const crew = this.crewFor(conn); crew.store.deleteSkill(p.id, p.name); crew.bus.emit("agent.updated", crew.getAgent(p.id)); return null; },
+      "agent.skills.list": (p: { id: string }, conn) => this.crewFor(conn).skills.effectiveFor(this.crewFor(conn).getAgent(p.id)),
+      "agent.skills.toggle": (p: { id: string; name: string; enabled: boolean }, conn) => {
+        const crew = this.crewFor(conn);
+        const current = new Set(crew.getAgent(p.id).disabledSkills ?? []);
+        if (p.enabled) current.delete(p.name); else current.add(p.name);
+        return crew.updateAgent(p.id, { disabledSkills: [...current].sort() });
+      },
       "agent.pause": (p: { id: string }, conn) => { const { crew, scheduler } = this.rtFor(conn); const a = crew.updateAgent(p.id, { paused: true }); if (a.currentRunId) scheduler.queue.cancel(a.currentRunId); return a; },
       "agent.resume": (p: { id: string }, conn) => { const { crew, scheduler } = this.rtFor(conn); const a = crew.updateAgent(p.id, { paused: false }); scheduler.tick(); return a; },
       "agent.delete": (p: { id: string }, conn) => { const { crew, scheduler } = this.rtFor(conn); const a = crew.getAgent(p.id); if (a.currentRunId) scheduler.queue.cancel(a.currentRunId); crew.store.deleteAgent(p.id); crew.bus.emit("agents.updated", crew.listAgents()); hub.touched(); return null; },
       "agent.wake": (p: { id: string; prompt: string }, conn) => this.rtFor(conn).scheduler.queue.enqueue(p.id, { kind: "manual", prompt: p.prompt }),
       "agent.checkin": (p: { id: string }, conn) => this.rtFor(conn).scheduler.queue.enqueue(p.id, { kind: "heartbeat" }),
+
+      // ----- skills -----
+      // Scope is part of every call: "user" is the shelf every team sees, "team" this team,
+      // "agent" one agent's own. Reads never throw on a missing shelf; writes create it.
+      "skills.list": (p: { scope?: SkillScope; ownerId?: string | null }, conn) => {
+        const crew = this.crewFor(conn);
+        if (p.scope) return crew.skills.list({ scope: p.scope, ownerId: p.ownerId ?? null });
+        return crew.skills.all(crew.listAgents().map((a) => a.id));
+      },
+      "skills.get": (p: SkillTarget & { name: string }, conn) => this.crewFor(conn).skills.list(p).find((s) => s.name === p.name) ?? null,
+      "skills.save": (p: SkillTarget & { name: string; description?: string; body?: string; content?: string }, conn) => {
+        const crew = this.crewFor(conn);
+        const s = p.content !== undefined
+          ? crew.skills.saveRaw(p, p.name, p.content)
+          : crew.skills.save(p, { name: p.name, description: p.description ?? "", body: p.body ?? "" });
+        crew.bus.emit("skills.updated", null);
+        return s;
+      },
+      "skills.delete": (p: SkillTarget & { name: string }, conn) => { const crew = this.crewFor(conn); crew.skills.remove(p, p.name); crew.bus.emit("skills.updated", null); return null; },
+      "skills.move": (p: { from: SkillTarget; to: SkillTarget; name: string }, conn) => { const crew = this.crewFor(conn); const s = crew.skills.move(p.from, p.to, p.name); crew.bus.emit("skills.updated", null); return s; },
+      "skills.scan": (p: { kind: SkillInstallKind; ref: string; scope: SkillScope; ownerId?: string | null }, conn) => this.crewFor(conn).skills.scan(p.kind, p.ref, { scope: p.scope, ownerId: p.ownerId ?? null }),
+      "skills.install": (p: { kind: SkillInstallKind; ref: string; scope: SkillScope; ownerId?: string | null; names?: string[] }, conn) => {
+        const crew = this.crewFor(conn);
+        const out = crew.skills.install(p.kind, p.ref, { scope: p.scope, ownerId: p.ownerId ?? null }, p.names);
+        crew.bus.emit("skills.updated", null);
+        return out;
+      },
+      "skills.update": (p: SkillTarget & { name: string }, conn) => { const crew = this.crewFor(conn); const s = crew.skills.update(p, p.name); crew.bus.emit("skills.updated", null); return s; },
+      /** Places on this Mac that already hold Agent Skills — Claude Code's folders and the workspace. */
+      "skills.origins": (_p, conn) => skillOrigins(conn.teamId ? this.crewFor(conn).team?.workspaceRoot ?? null : null),
 
       // ----- channels & messages -----
       "channels.list": (_p, conn) => (conn.teamId ? this.crewFor(conn).listChannels() : []),
@@ -162,7 +235,12 @@ export class Api {
           crew.updateRun(run, { status: "running", startedAt: new Date().toISOString() });
         }
         const ctx: ToolContext = { crew, agentId: agent.id, run, depth: 0, onDone: (s, st) => { crew.finishRun(run!, st === "noop" ? "noop" : st === "needs_you" ? "needs_you" : "done", s); } };
-        const text = await t.handler(p.args as never, ctx);
+        // These args come from an external client, not from a runner that already validated them.
+        // Checking them here turns a bad call into a message that client can act on, rather than
+        // a crash inside a tool handler.
+        const parsed = z.object(t.schema).safeParse(p.args ?? {});
+        if (!parsed.success) throw new Error(`Bad arguments for ${t.name}: ${parsed.error.issues.map((i) => `${i.path.join(".") || "(root)"} ${i.message.toLowerCase()}`).join("; ")}`);
+        const text = await t.handler(parsed.data as never, ctx);
         return { text, runId: run.id };
       },
     };

@@ -3,6 +3,7 @@ import type { Run } from "@crew/shared";
 import { dmChannelId } from "@crew/shared";
 import type { Crew } from "../crew.js";
 import { DEFAULTS } from "../config.js";
+import { normalizeSkillName } from "../skills.js";
 
 /**
  * The team tools: how an agent talks to teammates and to the owner.
@@ -191,15 +192,42 @@ export const TEAM_TOOLS = [
     },
   }),
   def({
+    name: "use_skill",
+    description:
+      "Open one of your skills and follow it. The skills listed in your prompt show only a name and a description; this returns the actual steps. Read the skill before doing the work it covers.",
+    schema: { name: z.string().min(1).max(64).describe("The skill's name, exactly as listed in your prompt") },
+    handler: async ({ name }, ctx) => {
+      const agent = ctx.crew.getAgent(ctx.agentId);
+      const wanted = normalizeSkillName(name);
+      const skill = ctx.crew.skills.find(agent, wanted);
+      if (!skill) {
+        const have = ctx.crew.skills.usableFor(agent).map((s) => s.name);
+        return `No skill named "${wanted}". ${have.length ? `You have: ${have.join(", ")}.` : "You have no skills."}`;
+      }
+      ctx.crew.addStep(ctx.run.id, "read", `Skill: ${skill.name}`);
+      const files = skill.files.length
+        ? `\n\n---\nBundled files you can read or run, under \`${skill.dir}\`:\n${skill.files.map((f) => `- ${f}`).join("\n")}`
+        : "";
+      return `# Skill: ${skill.name}\n${skill.description}\n\n${skill.body}${files}`;
+    },
+  }),
+  def({
     name: "learn_skill",
     description:
       "Save a reusable how-to you worked out, so next time (and teammates) can follow it without rediscovering it: a checklist, a command sequence, a pattern for this codebase. Markdown, under 60 lines. Use a short kebab-case name; saving the same name replaces it.",
-    schema: { name: z.string().min(2).max(60), content: z.string().min(20).max(6000) },
-    handler: async ({ name, content }, ctx) => {
-      const s = ctx.crew.store.writeSkill(ctx.agentId, name, content);
+    schema: {
+      name: z.string().min(2).max(64),
+      description: z.string().min(10).max(400).describe("What it does and when to use it. This is all a future run sees until it opens the skill, so make it specific."),
+      content: z.string().min(20).max(6000),
+      scope: z.enum(["mine", "team"]).optional().describe("mine = only you (default). team = every agent on this team, for something anyone here would need."),
+    },
+    handler: async ({ name, description, content, scope }, ctx) => {
+      const target = scope === "team" ? { scope: "team" as const } : { scope: "agent" as const, ownerId: ctx.agentId };
+      const s = ctx.crew.skills.save(target, { name, description, body: content, source: { kind: "learned" } });
       ctx.crew.addStep(ctx.run.id, "memory", `Learned skill: ${s.name}`);
       ctx.crew.bus.emit("agent.updated", ctx.crew.getAgent(ctx.agentId));
-      return `Skill "${s.name}" saved. It is loaded into your context on every run.`;
+      ctx.crew.bus.emit("skills.updated", null);
+      return `Skill "${s.name}" saved${scope === "team" ? " for the whole team" : ""}. From now on it is listed in your prompt; open it with use_skill.`;
     },
   }),
   def({

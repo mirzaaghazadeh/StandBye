@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { AgentDraft, GitSettings, Provider, TeamDraft } from "@crew/shared";
+import { PROVIDERS, type AgentDraft, type GitSettings, type Provider, type TeamDraft } from "@crew/shared";
 import { store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
 import { Avatar, Button, Popup } from "../ui/kit";
@@ -29,11 +29,12 @@ const PRESETS: Preset[] = [
 export function ManualTeamSheet() {
   const providers = useStore((s) => s.providers);
   const team = useStore((s) => s.team);
-  const defaultProvider: Provider = providers?.anthropic.ready ? "anthropic" : "openrouter";
+  // Claude first when it is ready, otherwise whatever else the owner has set up.
+  const defaultProvider: Provider = providers?.anthropic?.ready ? "anthropic" : PROVIDERS.find((p) => providers?.[p.id]?.ready)?.id ?? "anthropic";
   const [ownerName, setOwnerName] = useState(team?.ownerName ?? "");
   const [teamName, setTeamName] = useState("My team");
   const [charter, setCharter] = useState("");
-  const [workspace, setWorkspace] = useState<string | null>(null);
+  const [workspace, setWorkspace] = useState<string | null>(store.get().pendingWorkspace);
   const [git, setGit] = useState<GitSettings | null>(null);
   const [agents, setAgents] = useState<AgentDraft[]>([]);
   const [open, setOpen] = useState<number | null>(null);
@@ -43,7 +44,7 @@ export function ManualTeamSheet() {
     const p = PRESETS.find((x) => x.role === preset) ?? PRESETS[0]!;
     const name = p.name && !agents.some((a) => a.name === p.name) ? p.name : `Agent ${agents.length + 1}`;
     const a: AgentDraft = {
-      name, role: p.role === "Custom" ? "Teammate" : p.role, provider: defaultProvider, model: providers?.[defaultProvider].defaultModel ?? "",
+      name, role: p.role === "Custom" ? "Teammate" : p.role, provider: defaultProvider, model: providers?.[defaultProvider]?.defaultModel ?? "",
       soul: p.soul(ownerName || "the owner", name), rules: ["Never push to main without approval", "Only touch files inside the repo folder"],
       responsibilities: p.responsibilities, heartbeatMinutes: p.heartbeat, dailyBudgetUsd: p.daily, perRunBudgetUsd: 2, hourlyBudgetUsd: null, capBy: "day",
       channels: ["general"], color: SWATCHES[agents.length % SWATCHES.length]!,

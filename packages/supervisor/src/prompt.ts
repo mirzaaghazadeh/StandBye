@@ -49,11 +49,32 @@ function shallowTree(root: string, limit = 60): string[] {
   return out;
 }
 
+/**
+ * The skills this agent can reach, as a catalog: name, scope and description only.
+ *
+ * The bodies stay on disk until the agent decides a skill applies — that is the whole point of
+ * the Agent Skills format, and the difference between 150 tokens per run and every how-to the
+ * team has ever written. `hasNativeSkillTool` is true for the Claude runner, which mounts the
+ * same skills as a plugin and lists them itself, so we would only be saying it twice.
+ */
+function skillsCatalog(crew: Crew, agent: Agent, hasNativeSkillTool: boolean): string {
+  if (hasNativeSkillTool) return "";
+  const skills = crew.skills.usableFor(agent);
+  if (!skills.length) return "";
+  const where = { user: "everyone", team: "this team", agent: "yours" } as const;
+  return [
+    "# Your skills",
+    "How-tos you can open when one applies. Call `use_skill` with the name to read the steps — don't work from the description alone, and don't rediscover what a skill already covers.",
+    ...skills.map((s) => `- ${s.name} (${where[s.scope]}): ${s.description}`),
+  ].join("\n");
+}
+
 /** Build the system prompt for an agent: soul, rules, team, memory, how the tools work. */
-export function systemPrompt(crew: Crew, agent: Agent, mode: "full" | "checkin"): string {
+export function systemPrompt(crew: Crew, agent: Agent, mode: "full" | "checkin", opts: { hasNativeSkillTool?: boolean } = {}): string {
   const files = crew.store.readAgentFiles(agent.id);
   const team = crew.team;
   const owner = team?.ownerName ?? "the owner";
+  if (mode === "checkin") return checkinPrompt(agent, files, owner);
   const teammates = crew
     .listAgents()
     .filter((a) => a.id !== agent.id)
@@ -64,7 +85,6 @@ export function systemPrompt(crew: Crew, agent: Agent, mode: "full" | "checkin")
     .filter((c) => agent.channels.includes(c.id))
     .map((c) => (c.kind === "dm" ? `- #${c.name}: your direct chat with ${owner}. Only the two of you see it. When ${owner} writes to you there, answer there.` : `- #${c.name}: ${c.purpose}`))
     .join("\n");
-  const skills = crew.store.listSkills(agent.id);
   const decisions = crew.db.listDecisions(15);
 
   const parts = [
@@ -98,19 +118,38 @@ export function systemPrompt(crew: Crew, agent: Agent, mode: "full" | "checkin")
     "",
     files.memory ? "# Your memory\n" + tail(files.memory, 40) : "",
     "",
-    skills.length ? "# Your skills\n" + skills.map((s) => `## ${s.name}\n${s.content}`).join("\n\n") : "",
+    skillsCatalog(crew, agent, opts.hasNativeSkillTool ?? false),
   ];
 
-  if (mode === "checkin") {
-    parts.push(
-      "",
-      "# This is a check-in",
-      "You are running on a small, cheap model. Your only job is to decide whether anything needs your full attention.",
-      "Read what's new below. If something needs real work (a task, a mention that needs an answer, an answered question, a failing build), call `escalate` with the reason.",
-      "If nothing needs you, call `done` with status noop and summary 'Nothing new'. Do not do the work yourself here.",
-    );
-  }
   return parts.filter((p) => p !== undefined).join("\n").replace(/\n{3,}/g, "\n\n");
+}
+
+/**
+ * A check-in is the most frequent run there is — every agent, every heartbeat, all day — and it
+ * makes exactly one decision: does this need the full model? It therefore gets the smallest
+ * prompt that can make that decision, not the full one with a note on the end.
+ *
+ * What it leaves out matters as much as what it keeps. A check-in holds only `escalate` and
+ * `done`, so describing post_message, ask_agent, remember or the skills catalogue does not just
+ * cost tokens on the hottest path in the app — it invites a small model to call a tool it has
+ * not been given and waste the whole run. The workspace tree, the team roster, the git workflow
+ * and the decision log are all for doing work, and a check-in never does work.
+ */
+function checkinPrompt(agent: Agent, files: { soul?: string; rules?: string }, owner: string): string {
+  // The soul's first paragraph is who they are; the rest is how they work, which is not needed
+  // to notice that something is waiting.
+  const identity = (files.soul ?? "").split(/\n\s*\n/).find((p) => p.trim() && !p.trim().startsWith("#"))?.trim();
+  return [
+    `You are ${agent.name}, ${agent.role} on ${owner}'s team.`,
+    identity ?? "",
+    "",
+    "# This is a check-in",
+    "You are running on a small, cheap model, and you have exactly two tools: `escalate` and `done`. You cannot post, message anyone, read files or run commands here — do not try.",
+    "Your only job is to decide whether what is new below needs your full attention.",
+    "Escalate when there is real work: a task assigned to you, a mention that needs an answer, a question that was answered, a failing build, a review waiting on you. Call `escalate` with a one-line reason and stop.",
+    "Otherwise call `done` with status noop and summary 'Nothing new'. Nothing new is the normal answer, and it is a good one — it costs the team nothing.",
+    "Never do the work here, and never guess at what happened; if you need to look at anything to decide, that is itself a reason to escalate.",
+  ].filter(Boolean).join("\n").replace(/\n{3,}/g, "\n\n");
 }
 
 /** Build the user prompt for a run from its trigger plus everything new since the agent last looked. */

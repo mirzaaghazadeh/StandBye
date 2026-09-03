@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactElement } from "react";
-import type { Agent, AgentFiles, CronTrigger, PermissionBehavior, PermissionRule, Provider, Skill } from "@crew/shared";
+import { DEFAULT_MODELS, providerLabel, type Agent, type AgentFiles, type CronTrigger, type EffectiveSkill, type PermissionBehavior, type PermissionRule, type SkillScope } from "@crew/shared";
 import { store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
 import { Avatar, Button, Checkbox, IconButton, KV, Popup, Switch } from "../ui/kit";
@@ -21,7 +21,6 @@ const TABS: { id: Tab; label: string; icon: (p: { size?: number; stroke?: string
 
 const SWATCHES = ["#E9D9CF", "#D7E3DA", "#DDDCE8", "#EFEDE8", "#F3E4C8", "#D9E6EE"];
 const PERM: { value: PermissionBehavior; label: string }[] = [{ value: "allow", label: "Allow" }, { value: "ask", label: "Ask me" }, { value: "block", label: "Block" }];
-const DEFAULT_MODEL: Record<Provider, { main: string; checkin: string }> = { anthropic: { main: "claude-opus-5", checkin: "claude-haiku-4-5" }, openrouter: { main: "z-ai/glm-5.3", checkin: "z-ai/glm-5.3-flash" } };
 
 function isTab(t: string | undefined): t is Tab {
   return TABS.some((x) => x.id === t);
@@ -91,6 +90,8 @@ export function AgentSheet({ agentId, tab }: { agentId: string; tab?: string }) 
 
 function GeneralTab({ agent }: { agent: Agent }) {
   const set = (patch: Partial<Agent>) => void store.updateAgent(agent.id, patch);
+  const providers = useStore((s) => s.providers);
+  const providerState = providers?.[agent.provider];
   const [name, setName] = useState(agent.name);
   const [role, setRole] = useState(agent.role);
   const [model, setModel] = useState(agent.model);
@@ -122,9 +123,22 @@ function GeneralTab({ agent }: { agent: Agent }) {
       </div>
       <div style={{ border: "1px solid var(--border)", borderRadius: 7, background: "var(--surface)", padding: "8px 12px" }}>
         <div className="grp-t" style={{ marginTop: 4 }}>Model</div>
-        <KV k="Model"><ModelPicker value={agent.model} provider={agent.provider} width={260} onChange={(m, provider) => { const d = DEFAULT_MODEL[provider]; setModel(m); if (provider !== agent.provider) setCheckin(d.checkin); set({ provider, model: m, ...(provider !== agent.provider ? { checkinModel: d.checkin } : {}) }); }} /></KV>
+        <KV k="Model">
+          <ModelPicker value={agent.model} provider={agent.provider} width={260} onChange={(m, provider) => {
+            setModel(m);
+            // Moving to another provider carries the check-in model with it: the old one's id
+            // means nothing on the new endpoint, and a 404 on every heartbeat is a bad surprise.
+            if (provider === agent.provider) { set({ model: m }); return; }
+            const checkin = providers?.[provider]?.checkinModel || DEFAULT_MODELS[provider]?.checkin || m;
+            setCheckin(checkin);
+            set({ provider, model: m, checkinModel: checkin });
+          }} />
+        </KV>
         <KV k="Check-ins on"><ModelPicker value={agent.checkinModel} provider={agent.provider} width={260} onChange={(m) => { setCheckin(m); set({ checkinModel: m }); }} /></KV>
-        <div style={{ fontSize: 11, color: "var(--ink-4)", padding: "4px 0 6px 102px" }}>Check-ins run on the small model and only escalate when there is real work.</div>
+        <div style={{ fontSize: 11, color: "var(--ink-4)", padding: "4px 0 6px 102px" }}>
+          Runs on <b style={{ fontWeight: 600 }}>{providerLabel(agent.provider)}</b>. Check-ins run on the small model and only escalate when there is real work.
+          {providerState && !providerState.ready && <span style={{ color: "var(--amber)" }}> {providerState.blocker} <a onClick={() => store.openSheet({ kind: "keys" })}>Open Settings</a></span>}
+        </div>
       </div>
       <div style={{ marginTop: "auto" }}>
         <Button danger onClick={() => void remove()}>Delete agent…</Button>
@@ -256,54 +270,70 @@ function WakeupsTab({ agent }: { agent: Agent }) {
 
 // ---------- Skills ----------
 
-function SkillsTab({ agent }: { agent: Agent }) {
-  const [skills, setSkills] = useState<Skill[] | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [text, setText] = useState("");
-  const [newName, setNewName] = useState("");
-  const load = () => store.rpc<Skill[]>("agent.skills.list", { id: agent.id }).then((s) => { setSkills(s); if (selected && !s.some((x) => x.name === selected)) setSelected(null); });
-  useEffect(() => { void load(); }, [agent.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { const s = skills?.find((x) => x.name === selected); setText(s?.content ?? ""); }, [selected, skills]);
+const SCOPE_LABEL: Record<SkillScope, string> = { user: "All teams", team: "This team", agent: "Only this agent" };
 
-  const save = async () => { if (!selected) return; await store.rpc("agent.skills.set", { id: agent.id, name: selected, content: text }); store.toast("Skill saved."); await load(); };
-  const add = async () => { const name = newName.trim(); if (!name) return; const s = await store.rpc<Skill>("agent.skills.set", { id: agent.id, name, content: `# ${name}\n\nWhen to use it:\n\nSteps:\n1. \n` }); setNewName(""); await load(); setSelected(s.name); };
-  const remove = async () => { if (!selected || !confirm(`Delete skill "${selected}"?`)) return; await store.rpc("agent.skills.delete", { id: agent.id, name: selected }); setSelected(null); await load(); };
+/**
+ * What this agent can actually reach, across all three shelves, and the one decision that
+ * belongs here rather than in the library: whether this particular agent gets a given skill.
+ * Editing and installing happen in the library, so there is one place a skill can be changed.
+ */
+function SkillsTab({ agent }: { agent: Agent }) {
+  const stamp = useStore((s) => s.skillsStamp);
+  const [skills, setSkills] = useState<EffectiveSkill[] | null>(null);
+  const load = () => store.rpc<EffectiveSkill[]>("agent.skills.list", { id: agent.id }).then(setSkills);
+  useEffect(() => { void load(); }, [agent.id, stamp]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggle = async (name: string, enabled: boolean) => {
+    await store.rpc("agent.skills.toggle", { id: agent.id, name, enabled });
+    await load();
+  };
+  const groups = (["agent", "team", "user"] as SkillScope[]).map((scope) => ({ scope, items: (skills ?? []).filter((s) => s.scope === scope) })).filter((g) => g.items.length);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1, minHeight: 0 }}>
-      <div style={{ fontSize: 12, color: "var(--ink-4)" }}>Skills are how-tos {agent.name} saves with the learn_skill tool (a checklist, a command sequence, a pattern for this codebase). Every skill is loaded into {agent.name}'s context on each run. Write your own here too.</div>
-      <div style={{ display: "grid", gridTemplateColumns: "220px minmax(0, 1fr)", gap: 12, flex: 1, minHeight: 0 }}>
-        <div style={{ border: "1px solid var(--border)", borderRadius: 7, background: "var(--surface)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          <div className="scroll" style={{ flex: 1 }}>
-            {skills === null && <div style={{ padding: 10, fontSize: 12, color: "var(--ink-4)" }}>Loading…</div>}
-            {skills?.length === 0 && <div style={{ padding: 10, fontSize: 12, color: "var(--ink-4)" }}>No skills yet.</div>}
-            {skills?.map((s) => (
-              <button key={s.name} className={"li" + (selected === s.name ? " li-sel" : "")} style={{ padding: "7px 10px", flexDirection: "column", gap: 1 }} onClick={() => setSelected(s.name)}>
-                <span className="mono" style={{ fontSize: 12, fontWeight: 500 }}>{s.name}</span>
-                <span style={{ fontSize: 10.5, color: "var(--ink-5)" }}>{new Date(s.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" })} · {s.content.split("\n").length} lines</span>
-              </button>
-            ))}
-          </div>
-          <div style={{ borderTop: "1px solid var(--border-faint)", padding: 6, display: "flex", gap: 4 }}>
-            <input className="field" placeholder="new-skill-name" value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void add()} />
-            <Button onClick={() => void add()} disabled={!newName.trim()}>Add</Button>
-          </div>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, minHeight: 0 }}>
-          {selected ? (
-            <>
-              <textarea className="field mono" style={{ flex: 1, minHeight: 260, width: "100%" }} value={text} onChange={(e) => setText(e.target.value)} />
-              <div style={{ display: "flex", gap: 6 }}>
-                <Button danger onClick={() => void remove()}>Delete</Button>
-                <span className="grow" />
-                <Button primary onClick={() => void save()}>Save</Button>
-              </div>
-            </>
-          ) : (
-            <div className="empty" style={{ fontSize: 12, border: "1px dashed var(--border)", borderRadius: 7 }}>Select a skill or add one.</div>
-          )}
-        </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1, minHeight: 0 }}>
+      <div style={{ fontSize: 12, color: "var(--ink-4)", lineHeight: 1.5 }}>
+        How-tos {agent.name} can open when they apply — a checklist, a command sequence, a pattern for this codebase.
+        Only the name and description reach the prompt; {agent.name} reads the rest when the work calls for it.
+        Switch one off to keep it out of {agent.name}'s way.
       </div>
+
+      {skills === null && <div style={{ fontSize: 12, color: "var(--ink-4)" }}>Loading…</div>}
+      {skills?.length === 0 && (
+        <div className="empty" style={{ fontSize: 12, border: "1px dashed var(--border)", borderRadius: 7, flexDirection: "column", gap: 8 }}>
+          <span>No skills yet. {agent.name} will save some with learn_skill, or you can install them.</span>
+          <Button onClick={() => store.openSheet({ kind: "skills", scope: "agent", ownerId: agent.id })}>Open the skill library</Button>
+        </div>
+      )}
+
+      {groups.map((g) => (
+        <div key={g.scope} style={{ border: "1px solid var(--border)", borderRadius: 7, background: "var(--surface)", overflow: "hidden", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", height: 28, padding: "0 10px", background: "var(--bg)", borderBottom: "1px solid var(--border)", fontSize: 11, fontWeight: 700, color: "var(--ink-5)", gap: 8 }}>
+            <span style={{ flex: 1 }}>{SCOPE_LABEL[g.scope]}</span>
+            <span style={{ fontWeight: 500 }}>{g.items.filter((s) => s.enabled && !s.errors.length).length} of {g.items.length} on</span>
+          </div>
+          {g.items.map((s) => (
+            <div key={s.name} className="rule" style={{ alignItems: "flex-start", paddingTop: 7, paddingBottom: 7 }}>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span className="mono" style={{ fontSize: 12, fontWeight: 500 }}>{s.name}</span>
+                {s.shadowed.length > 0 && <span className="badge" style={{ marginLeft: 6 }} title={`Also defined on: ${s.shadowed.map((x) => SCOPE_LABEL[x]).join(", ")}`}>overrides</span>}
+                <span style={{ display: "block", fontSize: 11.5, color: s.errors.length ? "var(--red-ink)" : "var(--ink-4)", lineHeight: 1.45 }}>
+                  {s.errors.length ? s.errors[0] : s.description || "No description"}
+                </span>
+              </span>
+              <a style={{ fontSize: 11.5, whiteSpace: "nowrap" }} onClick={() => store.openSheet({ kind: "skills", scope: s.scope, ownerId: s.ownerId, name: s.name })}>Edit</a>
+              <Switch on={s.enabled} onChange={(v) => void toggle(s.name, v)} />
+            </div>
+          ))}
+        </div>
+      ))}
+
+      {skills !== null && skills.length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 11, color: "var(--ink-4)" }}>Install, edit and share skills in the library.</span>
+          <span className="grow" />
+          <Button icon={<Ic.Sparkle size={11} />} onClick={() => store.openSheet({ kind: "skills", scope: "agent", ownerId: agent.id })}>Open skill library</Button>
+        </div>
+      )}
     </div>
   );
 }

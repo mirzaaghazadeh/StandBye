@@ -13,11 +13,13 @@ export type Verdict = { ok: true } | { ok: false; message: string };
  */
 export async function gate(ctx: ToolContext, rules: PermissionRule[], toolName: string, input: Record<string, unknown>, workspace?: string): Promise<Verdict> {
   const sig = signature(toolName, input);
-  // File tools stay inside the workspace, whatever the rules say. Reads of the agent's own folder are fine.
+  // File tools stay inside the workspace, whatever the rules say. Reads of the agent's own folder
+  // are fine, and so are the shared skill shelves: a skill's scripts/ and references/ live there,
+  // and a skill the agent cannot open is not a skill.
   const fp = typeof input.file_path === "string" ? input.file_path : typeof input.path === "string" ? input.path : null;
   if (workspace && fp && path.isAbsolute(fp)) {
     const abs = path.resolve(fp);
-    const allowed = [workspace, ctx.crew.store.agentDir(ctx.agentId)].some((root) => abs === root || abs.startsWith(root + path.sep));
+    const allowed = [workspace, ctx.crew.store.agentDir(ctx.agentId), ...ctx.crew.skills.readableRoots()].some((root) => abs === root || abs.startsWith(root + path.sep));
     if (!allowed) {
       ctx.crew.addStep(ctx.run.id, "info", `Blocked: ${sig} is outside the workspace`);
       return { ok: false, message: `${fp} is outside your workspace (${workspace}). Stay inside it.` };

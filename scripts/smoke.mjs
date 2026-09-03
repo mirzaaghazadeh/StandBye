@@ -86,10 +86,37 @@ try {
   const after = await rpc("agents.list");
   check("hire approved creates agent", after.some((a) => a.id === "vera" && a.provider === "openrouter"));
 
-  const skill = await rpc("tools.call", { agentId: "kai", tool: "learn_skill", args: { name: "Run tests", content: "# Run tests\n\n1. `pytest -x` locally first.\n2. Never rely on CI to find the first failure." } });
+  const skill = await rpc("tools.call", {
+    agentId: "kai", tool: "learn_skill",
+    args: { name: "Run tests", description: "How to run this project's tests. Use before pushing anything.", content: "# Run tests\n\n1. `pytest -x` locally first.\n2. Never rely on CI to find the first failure." },
+  });
   check("learn_skill", /saved/.test(skill.text));
   const skills = await rpc("agent.skills.list", { id: "kai" });
-  check("skills listed", skills.length === 1 && skills[0].name === "run-tests");
+  const learned = skills.find((s) => s.name === "run-tests");
+  check("skills listed", Boolean(learned) && learned.scope === "agent" && learned.errors.length === 0);
+  const opened = await rpc("tools.call", { agentId: "kai", tool: "use_skill", args: { name: "run-tests" } });
+  check("use_skill opens it", /pytest -x/.test(opened.text));
+  const badArgs = await rpc("tools.call", { agentId: "kai", tool: "learn_skill", args: { name: "x" } }).then(() => null, (e) => e.message);
+  check("bad tool arguments are rejected, not crashed on", /Bad arguments for learn_skill/.test(badArgs ?? ""));
+
+  // Install a skill the way the app does: look at a source, then copy what was chosen onto a shelf.
+  const src = path.join(dataDir, "skill-source", "greet-nicely");
+  fs.mkdirSync(path.join(src, "scripts"), { recursive: true });
+  fs.writeFileSync(path.join(src, "SKILL.md"), "---\nname: greet-nicely\ndescription: Greets a teammate. Use when saying hello.\n---\n\nSay hello, briefly.\n");
+  fs.writeFileSync(path.join(src, "scripts", "hi.sh"), "echo hi\n");
+  const scan = await rpc("skills.scan", { kind: "folder", ref: path.dirname(src), scope: "team" });
+  check("skills.scan finds a skill without installing it", scan.candidates.length === 1 && scan.candidates[0].name === "greet-nicely");
+  const installed = await rpc("skills.install", { kind: "folder", ref: path.dirname(src), scope: "team", names: ["greet-nicely"] });
+  check("skills.install copies it onto the team shelf", installed.installed.length === 1 && installed.installed[0].files.length === 1);
+  const teamSkills = await rpc("skills.list", { scope: "team" });
+  check("team skill shelf reachable", teamSkills.some((s) => s.name === "greet-nicely" && s.errors.length === 0));
+  const forKai = await rpc("agent.skills.list", { id: "kai" });
+  check("a team skill reaches every agent", forKai.some((s) => s.name === "greet-nicely" && s.enabled));
+  await rpc("agent.skills.toggle", { id: "kai", name: "greet-nicely", enabled: false });
+  const afterToggle = await rpc("agent.skills.list", { id: "kai" });
+  check("the owner can switch one off for one agent", afterToggle.some((s) => s.name === "greet-nicely" && !s.enabled));
+  const origins = await rpc("skills.origins");
+  check("skill sources on this Mac are discoverable", Array.isArray(origins));
 
   const report = await rpc("tools.call", { agentId: "ada", tool: "ask_user", args: { title: "End of day", body: "Nothing shipped, smoke test only.", kind: "report" } });
   check("report to inbox", /delivered/.test(report.text));

@@ -175,15 +175,29 @@ ipcMain.handle("crew:pickFolder", async () => {
   const r = await dialog.showOpenDialog({ properties: ["openDirectory", "createDirectory"] });
   return r.canceled ? null : r.filePaths[0] ?? null;
 });
-ipcMain.handle("crew:keys.get", () => { const k = loadKeys(); return { anthropic: Boolean(k.anthropic), openrouter: Boolean(k.openrouter) }; });
+ipcMain.handle("crew:pickFile", async (_e, extensions: string[], label: string) => {
+  const r = await dialog.showOpenDialog({ properties: ["openFile"], filters: [{ name: label, extensions }] });
+  return r.canceled ? null : r.filePaths[0] ?? null;
+});
+// Keys are keyed by provider id and never leave this process except to the supervisor, which
+// holds them in memory only. Which ids exist is the catalog's business, not this file's.
+const present = (keys: Record<string, string>) => Object.fromEntries(Object.entries(keys).map(([k, v]) => [k, Boolean(v)]));
+ipcMain.handle("crew:keys.get", () => present(loadKeys()));
 ipcMain.handle("crew:keys.set", async (_e, patch: Record<string, string>) => {
   const keys = { ...loadKeys() };
+  // An empty value is how the UI removes a key, so it deletes rather than storing "".
   for (const [k, v] of Object.entries(patch)) { if (v) keys[k] = v; else delete keys[k]; }
   saveKeys(keys);
-  await host.rpc("keys.set", { anthropic: keys.anthropic ?? "", openrouter: keys.openrouter ?? "" });
-  return { anthropic: Boolean(keys.anthropic), openrouter: Boolean(keys.openrouter) };
+  // Send the removals too, so the supervisor forgets a key in the same call.
+  await host.rpc("keys.set", { ...Object.fromEntries(Object.keys(patch).map((k) => [k, ""])), ...keys });
+  return present(keys);
 });
-ipcMain.handle("crew:openPath", (_e, p: string) => shell.openPath(p));
+// A path goes to Finder, a link to the default browser. One handler, because callers pass
+// whichever they have and the difference is not theirs to care about.
+ipcMain.handle("crew:openPath", async (_e, p: string) => {
+  if (/^https?:\/\//i.test(p)) { await shell.openExternal(p); return ""; }
+  return shell.openPath(p);
+});
 ipcMain.handle("crew:dataDir", () => dataDir);
 
 // ---------- lifecycle ----------

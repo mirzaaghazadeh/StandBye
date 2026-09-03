@@ -1,10 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { ModelInfo, Provider } from "@crew/shared";
+import { PROVIDERS, providerLabel, providerSpec, type ModelInfo, type Provider } from "@crew/shared";
 import { store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
 
-const PROVIDER_LABEL: Record<Provider, string> = { anthropic: "Claude", openrouter: "OpenRouter" };
 const PANEL_W = 360;
 const PANEL_H = 380;
 
@@ -60,7 +59,9 @@ export function ModelPicker({ value, provider, onChange, width = 190, small, onl
     return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey); window.removeEventListener("resize", onScroll); };
   }, [open]);
 
-  const active = (["anthropic", "openrouter"] as Provider[]).filter((p) => (only ? p === only : providers?.[p].ready));
+  // Every provider that is ready, in catalog order — so switching an agent between Claude, a
+  // coding plan and a model on this Mac is one list, not three screens.
+  const active = PROVIDERS.map((p) => p.id).filter((p) => (only ? p === only : providers?.[p]?.ready));
   const groups = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return active.map((p) => ({
@@ -94,7 +95,7 @@ export function ModelPicker({ value, provider, onChange, width = 190, small, onl
         {groups.map((g) => (
           <div key={g.provider}>
             <div className="li-sec" style={{ position: "sticky", top: 0, display: "flex", justifyContent: "space-between", zIndex: 1 }}>
-              <span>{PROVIDER_LABEL[g.provider]}</span>
+              <span>{providerLabel(g.provider)}</span>
               <span style={{ fontWeight: 400 }}>{(models?.[g.provider] ?? []).length} models</span>
             </div>
             {g.items.map((m) => {
@@ -128,7 +129,7 @@ export function ModelPicker({ value, provider, onChange, width = 190, small, onl
     <>
       <button ref={btnRef} className="pop" style={{ width, maxWidth: "100%", justifyContent: "space-between", height: small ? 20 : 22 }} onClick={() => setOpen((o) => !o)} title={value}>
         <span className="cell" style={{ minWidth: 0 }}>{current?.name ?? value}</span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--ink-5)", fontSize: 10, flexShrink: 0 }}>{PROVIDER_LABEL[provider]}<Ic.UpDown size={10} stroke="#5C5850" strokeWidth={3} /></span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--ink-5)", fontSize: 10, flexShrink: 0 }}>{providerLabel(provider)}<Ic.UpDown size={10} stroke="#5C5850" strokeWidth={3} /></span>
       </button>
       {panel && createPortal(panel, document.body)}
     </>
@@ -136,7 +137,12 @@ export function ModelPicker({ value, provider, onChange, width = 190, small, onl
 }
 
 export function price(m: ModelInfo): string {
-  if (m.inputPerM === null && m.outputPerM === null) return "price n/a";
+  if (m.inputPerM === null && m.outputPerM === null) {
+    // A coding plan or someone else's CLI is not billed per token, so "price n/a" reads as a
+    // gap in our data when it is really the answer: it comes out of the subscription.
+    const group = providerSpec(m.provider)?.group;
+    return group === "plans" || group === "clis" ? "on your plan" : group === "local" ? "free" : "price n/a";
+  }
   if (m.inputPerM === 0 && m.outputPerM === 0) return "free";
   const f = (v: number | null) => (v === null ? "?" : v >= 10 ? `$${v.toFixed(0)}` : v >= 1 ? `$${v.toFixed(1)}` : `$${v.toFixed(2)}`);
   return `${f(m.inputPerM)} / ${f(m.outputPerM)}`;

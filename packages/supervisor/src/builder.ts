@@ -2,9 +2,11 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { generateText, Output } from "ai";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { z } from "zod";
-import { TeamDraftSchema, type Provider, type TeamDraft } from "@crew/shared";
+import { PROVIDERS, providerLabel, providerSpec, TeamDraftSchema, type Provider, type ProviderStatus, type TeamDraft } from "@crew/shared";
+import { providerBaseUrl, providerKey } from "./providers.js";
 import type { Crew } from "./crew.js";
 import { soloDevTeam } from "./templates.js";
 
@@ -24,32 +26,59 @@ export interface BuilderInput {
  * Natural-language team builder. The owner describes what they need; a model returns a
  * structured team draft (souls, rules, channels, budgets) the owner edits before creating.
  *
- * Three backends, chosen by what is ready:
- *  - Anthropic API key   → Messages API with a JSON schema output
- *  - Claude Code login   → Agent SDK query() with a JSON schema output (no tools)
- *  - OpenRouter          → AI SDK generateText with Output.object on the provider's default model
+ * Which backend does the drafting depends on the provider it is asked for:
+ *  - Anthropic API key            → Messages API with a JSON schema output
+ *  - Claude Code login            → Agent SDK query() with a JSON schema output (no tools)
+ *  - any OpenAI-compatible key    → AI SDK generateText with Output.object
+ *  - anything else (a coding CLI, a cloud) → the template, adapted
+ *
+ * A coding-agent CLI could draft a team too, but shelling out to somebody's agent and hoping
+ * for clean JSON is a worse first-run experience than the template, which is instant and always
+ * works. The drafted team can still put agents on those providers; only the drafting is limited.
  */
 export async function draftTeam(crew: Crew, input: BuilderInput): Promise<TeamDraft> {
   const status = crew.providerStatus();
   const template = soloDevTeam(crew.providers, input.ownerName, input.workspaceRoot ? input.workspaceRoot.split("/").pop() ?? "" : "");
-  const provider = input.provider ?? crew.preferredProvider();
+  const provider = input.provider ?? pickDrafter(crew, status);
   if (input.mode === "template" || !provider) return adaptToProviders(template, status);
+
+  const spec = providerSpec(provider);
+  const cfg = status[provider];
+  if (!spec || !cfg?.ready) throw new Error(`${providerLabel(provider)} is not ready. ${cfg?.blocker ?? "Turn it on in Settings."}`);
 
   const system = systemPrompt(crew, status);
   const user = userPrompt(input, template);
+  const key = providerKey(spec, crew.keys);
 
   let draft: TeamDraft;
-  if (provider === "anthropic" && crew.keys.anthropic) draft = await viaAnthropicApi(crew.keys.anthropic, status.anthropic.defaultModel, system, user);
-  else if (provider === "anthropic" && status.anthropic.hasLogin) draft = await viaClaudeLogin(status.anthropic.defaultModel, system, user);
-  else if (provider === "openrouter" && crew.keys.openrouter) draft = await viaOpenRouter(crew.keys.openrouter, status.openrouter.defaultModel, system, user);
-  else throw new Error(`${provider} is not ready. Turn it on and add a key in Settings.`);
+  if (provider === "anthropic" && key) draft = await viaAnthropicApi(key, cfg.defaultModel, system, user);
+  else if (spec.kind === "claude" && cfg.hasLogin) draft = await viaClaudeLogin(cfg.defaultModel, system, user);
+  else if (spec.kind === "openai") draft = await viaOpenAiCompatible(spec.id, providerBaseUrl(spec, cfg), key, cfg.defaultModel, system, user);
+  else return adaptToProviders(template, status);
   return adaptToProviders(draft, status);
 }
 
-function systemPrompt(crew: Crew, status: ReturnType<Crew["providerStatus"]>): string {
-  const providers: string[] = [];
-  if (status.anthropic.ready) providers.push(`"anthropic": default model ${status.anthropic.defaultModel} for real work, ${status.anthropic.checkinModel} for light roles`);
-  if (status.openrouter.ready) providers.push(`"openrouter": default model ${status.openrouter.defaultModel} (use it for review, test and docs roles when both providers are available; the only choice when Claude is off)`);
+/** The best provider to write the draft with: one that can return structured JSON, Claude first. */
+function pickDrafter(crew: Crew, status: ProviderStatus): Provider | null {
+  const canDraft = (id: string) => {
+    const spec = providerSpec(id);
+    return status[id]?.ready && (id === "anthropic" || spec?.kind === "openai");
+  };
+  if (canDraft("anthropic")) return "anthropic";
+  const preferred = crew.preferredProvider();
+  if (preferred && canDraft(preferred)) return preferred;
+  return PROVIDERS.map((p) => p.id).find(canDraft) ?? null;
+}
+
+function systemPrompt(crew: Crew, status: ProviderStatus): string {
+  // Only providers that are actually ready are offered to the model, with their configured
+  // models, so it can never draft a team that cannot run.
+  const providers = PROVIDERS.flatMap((p) => {
+    const cfg = status[p.id];
+    if (!cfg?.ready) return [];
+    const models = cfg.defaultModel === cfg.checkinModel ? `model ${cfg.defaultModel}` : `default model ${cfg.defaultModel} for real work, ${cfg.checkinModel} for light roles`;
+    return [`"${p.id}" (${p.name}): ${models}`];
+  });
   return [
     "You design small teams of AI agents that work autonomously, 24/7, for one person. Each agent is a folder with a SOUL.md (persona and working style), RULES.md, and a budget.",
     "Design principles: few agents with clear ownership beat many; every agent has 2-4 standing responsibilities; the lead plans and reports; a reviewer/tester is almost always worth it; a docs agent only if the project has docs.",
@@ -114,10 +143,14 @@ async function viaClaudeLogin(model: string, system: string, user: string): Prom
   return parsed.data;
 }
 
-async function viaOpenRouter(apiKey: string, model: string, system: string, user: string): Promise<TeamDraft> {
-  const openrouter = createOpenRouter({ apiKey });
+async function viaOpenAiCompatible(id: string, baseURL: string, apiKey: string, model: string, system: string, user: string): Promise<TeamDraft> {
+  if (!baseURL) throw new Error(`${providerLabel(id)} has no base URL set.`);
+  if (!model) throw new Error(`${providerLabel(id)} has no default model set. Pick one in Settings › Providers.`);
+  const provider = id === "openrouter"
+    ? createOpenRouter({ apiKey })
+    : createOpenAICompatible({ name: id, baseURL, apiKey: apiKey || undefined });
   const { output } = await generateText({
-    model: openrouter(model),
+    model: provider(model),
     system,
     prompt: user,
     output: Output.object({ schema: TeamDraftSchema }),
@@ -136,14 +169,19 @@ function tryJson(text: string): unknown {
   try { return JSON.parse(text); } catch { const m = /\{[\s\S]*\}/.exec(text); if (m) { try { return JSON.parse(m[0]); } catch { /* fall through */ } } return undefined; }
 }
 
-/** Make sure every agent lands on a provider that is ready, with that provider's configured model when the model is unknown. */
-function adaptToProviders(draft: TeamDraft, status: ReturnType<Crew["providerStatus"]>): TeamDraft {
-  const fallback: Provider | null = status.anthropic.ready ? "anthropic" : status.openrouter.ready ? "openrouter" : null;
+/**
+ * Make sure every agent lands on a provider that is ready, with that provider's configured model
+ * when the model is unknown. A draft that names a provider the owner has not set up — or that a
+ * model invented — is quietly moved to one that works rather than failing at the first run.
+ */
+function adaptToProviders(draft: TeamDraft, status: ProviderStatus): TeamDraft {
+  const fallback: Provider | null = status.anthropic?.ready ? "anthropic" : PROVIDERS.map((p) => p.id).find((id) => status[id]?.ready) ?? null;
   return {
     ...draft,
     agents: draft.agents.map((a) => {
-      const provider = status[a.provider].ready ? a.provider : fallback ?? a.provider;
+      const provider = status[a.provider]?.ready ? a.provider : fallback ?? a.provider;
       const cfg = status[provider];
+      if (!cfg) return a;
       const model = provider === a.provider && a.model ? a.model : cfg.defaultModel;
       return { ...a, provider, model };
     }),

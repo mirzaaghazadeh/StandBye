@@ -43,6 +43,8 @@ export const Ic = {
   Chat: (p: P) => <I {...p}><path d="M4 5h16v10H8l-4 4z" /></I>,
   Folder: (p: P) => <I {...p}><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></I>,
   X: (p: P) => <I strokeWidth={2.2} {...p}><path d="M6 6l12 12M18 6L6 18" /></I>,
+  Trash: (p: P) => <I {...p}><path d="M4 7h16M10 7V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M10 11v6M14 11v6" /></I>,
+  Archive: (p: P) => <I {...p}><path d="M3 5h18v4H3zM5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4" /></I>,
   TriDown: (p: P) => <svg width={p.size ?? 10} height={p.size ?? 10} viewBox="0 0 24 24" fill="currentColor"><path d="M6 8l6 8 6-8z" /></svg>,
   TriRight: (p: P) => <svg width={p.size ?? 10} height={p.size ?? 10} viewBox="0 0 24 24" fill="currentColor"><path d="M8 6l8 6-8 6z" /></svg>,
 };

@@ -211,8 +211,10 @@ a.land-r:hover { background: #f6f4f0; color: var(--ink); }
 
 /* download page */
 .hero-dl { padding-bottom: 28px; }
-.plats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.plat { display: flex; flex-direction: column; gap: 10px; padding: 20px 22px; }
+/* Every card puts its five parts on the same shared rows, so the download
+   buttons line up across the three cards however long a blurb runs. */
+.plats { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: auto auto auto auto auto; gap: 14px; }
+.plat { display: grid; grid-row: span 5; grid-template-rows: subgrid; gap: 10px; padding: 20px 22px; }
 .plat-mine { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-sel); }
 .plat-arch { font-weight: 400; opacity: 0.8; font-size: 12px; margin-left: 2px; }
 .plat-files a { display: block; color: var(--ink-3); overflow-wrap: anywhere; }
@@ -225,7 +227,7 @@ a.land-r:hover { background: #f6f4f0; color: var(--ink); }
 .plat-soon .plat-i { background: var(--surface); color: var(--ink-3); border: 1px solid var(--border); }
 .plat-n { font-weight: 700; font-size: 18px; letter-spacing: -0.01em; }
 .plat > .fine { margin-top: auto; }
-.plat-btn { align-self: flex-start; }
+.plat-btn { justify-self: start; align-self: start; }
 .plat-files { display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
 .plat-files .mono { font-size: 11.5px; color: var(--ink-3); }
 .dl-steps { margin-top: 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; padding: 16px 20px; font-size: 13px; color: var(--ink-2); }
@@ -238,10 +240,18 @@ a.land-r:hover { background: #f6f4f0; color: var(--ink); }
 .phone-wrap { display: flex; justify-content: center; }
 .phone { width: 300px; height: 600px; border-radius: 40px; background: var(--ink); padding: 10px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(0, 0, 0, 0.2); position: relative; user-select: none; }
 .phone-notch { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); width: 84px; height: 22px; border-radius: 999px; background: var(--ink); z-index: 2; }
-.phone-top { height: 56px; border-radius: 30px 30px 0 0; background: var(--bg); display: flex; align-items: flex-end; gap: 8px; padding: 0 18px 8px; font-size: 13px; }
+/* Status bar sits level with the island; the team name gets its own nav row
+   underneath so nothing is squeezed against the cutout. */
+.phone-top { height: 76px; border-radius: 30px 30px 0 0; background: var(--bg); display: flex; flex-direction: column; font-size: 13px; }
+.phone-status { height: 38px; display: flex; align-items: center; padding: 0 20px; }
 .phone-time { font-size: 12px; font-weight: 600; }
-.phone-title { flex: 1; text-align: center; font-weight: 600; }
-.phone-body { height: 470px; background: var(--bg); padding: 4px 10px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+.phone-batt { width: 20px; height: 10px; border-radius: 3px; border: 1px solid var(--ink-5); position: relative; }
+.phone-batt::before { content: ""; position: absolute; left: 1.5px; top: 1.5px; bottom: 1.5px; width: 11px; border-radius: 1.5px; background: var(--ink-3); }
+.phone-batt::after { content: ""; position: absolute; right: -2px; top: 2.5px; width: 2px; height: 3px; border-radius: 0 2px 2px 0; background: var(--ink-5); }
+.phone-nav { height: 38px; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 0 18px 6px; border-bottom: 1px solid var(--border-faint); }
+.phone-title { font-weight: 600; font-size: 14px; }
+.phone-body { position: relative; height: 450px; background: var(--bg); padding: 6px 10px 4px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+.phone-body::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 30px; background: linear-gradient(to top, var(--bg), rgba(245, 244, 241, 0)); pointer-events: none; }
 .phone-card { background: var(--surface); border: 1px solid var(--border-faint); border-radius: 12px; padding: 10px 12px; }
 .phone-spend { display: flex; flex-direction: column; gap: 6px; }
 .phone-row { display: flex; align-items: center; gap: 8px; }

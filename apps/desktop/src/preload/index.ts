@@ -15,8 +15,11 @@ const api = {
     return () => ipcRenderer.removeListener("crew:navigate", h);
   },
   pickFolder: (): Promise<string | null> => ipcRenderer.invoke("crew:pickFolder") as Promise<string | null>,
-  keysGet: (): Promise<{ anthropic: boolean; openrouter: boolean }> => ipcRenderer.invoke("crew:keys.get") as Promise<{ anthropic: boolean; openrouter: boolean }>,
-  keysSet: (patch: Record<string, string>): Promise<{ anthropic: boolean; openrouter: boolean }> => ipcRenderer.invoke("crew:keys.set", patch) as Promise<{ anthropic: boolean; openrouter: boolean }>,
+  pickFile: (extensions: string[], label = "File"): Promise<string | null> => ipcRenderer.invoke("crew:pickFile", extensions, label) as Promise<string | null>,
+  /** Which providers have a key saved, by provider id. Never the keys themselves. */
+  keysGet: (): Promise<Record<string, boolean>> => ipcRenderer.invoke("crew:keys.get") as Promise<Record<string, boolean>>,
+  /** Save or, with an empty value, remove keys by provider id. */
+  keysSet: (patch: Record<string, string>): Promise<Record<string, boolean>> => ipcRenderer.invoke("crew:keys.set", patch) as Promise<Record<string, boolean>>,
   openPath: (p: string): Promise<string> => ipcRenderer.invoke("crew:openPath", p) as Promise<string>,
   dataDir: (): Promise<string> => ipcRenderer.invoke("crew:dataDir") as Promise<string>,
 };

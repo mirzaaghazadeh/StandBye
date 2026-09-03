@@ -1,0 +1,169 @@
+{
+  "id": "mina",
+  "name": "Mina",
+  "role": "Maintainer and lead",
+  "provider": "openrouter",
+  "model": "z-ai/glm-5.3-flash",
+  "checkinModel": "z-ai/glm-5.3-flash",
+  "heartbeat": {
+    "everyMinutes": 60,
+    "workHours": null
+  },
+  "triggers": {
+    "onMention": true,
+    "cron": [
+      {
+        "name": "Standup",
+        "expr": "0 9 * * *",
+        "prompt": "Read #dev, the branch state (`git log --oneline -10`, `gh pr list`) and PLAN.md. Post today's single focus in #dev and assign it. If a PR is waiting on Navid, say so rather than starting more work."
+      },
+      {
+        "name": "End of day",
+        "expr": "0 19 * * *",
+        "prompt": "Send Navid a report with ask_user (kind: report): what shipped, what is in review, what is blocked, and what you will pick up next. Keep it under ten lines."
+      }
+    ]
+  },
+  "permissions": [
+    {
+      "pattern": "Bash(*pkill*)",
+      "behavior": "block",
+      "label": "Killing processes"
+    },
+    {
+      "pattern": "Bash(*kill -9*)",
+      "behavior": "block",
+      "label": "Killing processes"
+    },
+    {
+      "pattern": "Bash(*Application Support/Standbye*)",
+      "behavior": "block",
+      "label": "Touching the live app data"
+    },
+    {
+      "pattern": "Bash(*supervisor/dist/index.js*)",
+      "behavior": "block",
+      "label": "Starting another supervisor"
+    },
+    {
+      "pattern": "Bash(git worktree*)",
+      "behavior": "block",
+      "label": "Changing worktrees"
+    },
+    {
+      "pattern": "Bash(git checkout main*)",
+      "behavior": "block",
+      "label": "Leaving your branch"
+    },
+    {
+      "pattern": "Bash(git switch main*)",
+      "behavior": "block",
+      "label": "Leaving your branch"
+    },
+    {
+      "pattern": "Bash(rm -rf*)",
+      "behavior": "block",
+      "label": "Recursive delete"
+    },
+    {
+      "pattern": "Bash(sudo*)",
+      "behavior": "block",
+      "label": "sudo"
+    },
+    {
+      "pattern": "Bash(gh pr merge*)",
+      "behavior": "ask",
+      "label": "Merging a pull request"
+    },
+    {
+      "pattern": "Bash(gh*)",
+      "behavior": "allow"
+    },
+    {
+      "pattern": "Bash(pnpm*)",
+      "behavior": "allow"
+    },
+    {
+      "pattern": "Bash(git push*main*)",
+      "behavior": "allow",
+      "label": "Push to main"
+    },
+    {
+      "pattern": "Bash(git push*master*)",
+      "behavior": "ask",
+      "label": "Push to master"
+    },
+    {
+      "pattern": "Bash(git push --force*)",
+      "behavior": "block",
+      "label": "Force push"
+    },
+    {
+      "pattern": "Bash(rm -rf*)",
+      "behavior": "block",
+      "label": "Recursive delete"
+    },
+    {
+      "pattern": "Bash(sudo*)",
+      "behavior": "block",
+      "label": "sudo"
+    },
+    {
+      "pattern": "Bash(curl*)",
+      "behavior": "ask",
+      "label": "Network call"
+    },
+    {
+      "pattern": "Bash(*)",
+      "behavior": "allow"
+    },
+    {
+      "pattern": "Read",
+      "behavior": "allow"
+    },
+    {
+      "pattern": "Edit",
+      "behavior": "allow"
+    },
+    {
+      "pattern": "Write",
+      "behavior": "allow"
+    },
+    {
+      "pattern": "Glob",
+      "behavior": "allow"
+    },
+    {
+      "pattern": "Grep",
+      "behavior": "allow"
+    },
+    {
+      "pattern": "WebFetch",
+      "behavior": "ask",
+      "label": "Fetch a web page"
+    },
+    {
+      "pattern": "WebSearch",
+      "behavior": "allow"
+    },
+    {
+      "pattern": "mcp__team__*",
+      "behavior": "allow"
+    }
+  ],
+  "budget": {
+    "dailyUsd": 3,
+    "perRunUsd": 1.5,
+    "hourlyUsd": null,
+    "capBy": "day"
+  },
+  "channels": [
+    "general",
+    "dev",
+    "dm-mina"
+  ],
+  "workspace": null,
+  "color": "#E9D9CF",
+  "paused": false,
+  "createdAt": "2026-09-03T11:23:07.926Z"
+}
