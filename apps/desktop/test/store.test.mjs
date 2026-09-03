@@ -337,3 +337,16 @@ test("searchMessages: a failed query leaves search on with empty results instead
   await store.searchMessages("general", "deploy");
   assert.deepEqual(store.get().search, { channelId: "general", q: "deploy", results: [], busy: false });
 });
+
+test("searchMessages: a response landing after refreshAll is dropped, not restored over the reset", async () => {
+  let release;
+  const { store } = await freshStore({
+    "messages.search": () => new Promise((res) => { release = res; }),
+  });
+  const pending = store.searchMessages("general", "deploy"); // in flight across the reset
+  await store.refreshAll(); // what a team switch or supervisor.reconnected runs
+  assert.equal(store.get().search, null);
+  release([{ id: "m1", text: "deploy notes" }]);
+  await pending;
+  assert.equal(store.get().search, null); // the stale response must not resurrect search
+});

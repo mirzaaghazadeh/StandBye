@@ -114,6 +114,8 @@ class Store {
       this.rpc<SupervisorStatus>("status.get"), this.rpc<ProviderStatus>("providers.get"), this.rpc<TeamConfig | null>("team.get"), this.rpc<Agent[]>("agents.list"),
       this.rpc<Channel[]>("channels.list"), this.rpc<Question[]>("questions.list", {}), this.rpc<Run[]>("runs.list", { limit: 200 }), this.rpc<SpendSummary>("spend.get"),
     ]);
+    // Drop any in-flight search response: the search reset below must stick.
+    this.searchSeq++;
     this.set({
       firstStepsDismissed: readLocal("standbye.firstSteps." + (activeTeamId ?? "")) === "done",
       teams, activeTeamId, status, keys: readyMap(providers), providers, team, agents, channels, questions, runs, spend, messages: {}, steps: {}, search: null,
