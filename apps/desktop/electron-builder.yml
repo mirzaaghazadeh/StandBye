@@ -1,6 +1,6 @@
-appId: com.standbye.app
+appId: org.standbye.app
 productName: Standbye
-copyright: Standbye
+copyright: Copyright © 2026 Standbye
 directories:
   buildResources: build
   output: release
@@ -11,16 +11,76 @@ files:
 afterPack: scripts/after-pack.cjs
 asarUnpack:
   - "**/*.node"
+
+# Releases are published to GitHub by .github/workflows/release.yml on a v* tag.
+publish:
+  provider: github
+  owner: mirzaaghazadeh
+  repo: StandBye
+
 mac:
   category: public.app-category.developer-tools
   target:
-    - dmg
-    - zip
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
   icon: build/icon.icns
   darkModeSupport: true
+  # Unsigned for now: no Developer ID certificate. First launch needs right-click → Open.
   hardenedRuntime: false
   identity: null
 dmg:
-  artifactName: Standbye-${version}-${arch}.${ext}
+  artifactName: Standbye-${version}-mac-${arch}.${ext}
+  title: Standbye ${version}
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: zip
+      arch: [x64]
+  icon: build/icon.png
+  # Unsigned: SmartScreen warns on first run until we buy a code-signing certificate.
+nsis:
+  artifactName: Standbye-${version}-win-${arch}-setup.${ext}
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Standbye
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64, arm64]
+    - target: deb
+      arch: [x64, arm64]
+  icon: build/icon.png
+  category: Development
+  synopsis: BYOK desktop app for 24/7 AI agent teams
+  description: >-
+    Describe a team of AI agents and they keep working on your repo around the clock:
+    checking in on a schedule, talking to each other in channels, asking you when a
+    decision is yours, and remembering what they learn. Bring your own keys.
+  desktop:
+    entry:
+      Name: Standbye
+      StartupWMClass: Standbye
+appImage:
+  artifactName: Standbye-${version}-linux-${arch}.${ext}
+deb:
+  artifactName: Standbye-${version}-linux-${arch}.${ext}
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libsecret-1-0
+
 npmRebuild: false
 nodeGypRebuild: false

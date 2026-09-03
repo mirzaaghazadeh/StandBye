@@ -140,20 +140,43 @@ export class SupervisorHost {
   }
 }
 
+/**
+ * A GUI app inherits a bare PATH, so we add the usual places a user's Node lives on each platform:
+ * Homebrew and nvm on macOS, nvm/fnm/volta and the distro paths on Linux, Program Files and the
+ * Windows version managers on Windows.
+ */
 function enrichedPath(): string {
-  const extra = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"];
-  const nvm = path.join(os.homedir(), ".nvm", "versions", "node");
-  if (fs.existsSync(nvm)) {
-    for (const v of fs.readdirSync(nvm).sort().reverse()) extra.unshift(path.join(nvm, v, "bin"));
+  const home = os.homedir();
+  const extra: string[] = [];
+  if (process.platform === "win32") {
+    extra.push(
+      path.join(process.env.ProgramFiles ?? "C:\\Program Files", "nodejs"),
+      path.join(process.env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)", "nodejs"),
+      path.join(process.env.APPDATA ?? path.join(home, "AppData", "Roaming"), "npm"),
+      path.join(process.env.LOCALAPPDATA ?? path.join(home, "AppData", "Local"), "Volta", "bin"),
+      path.join(process.env.LOCALAPPDATA ?? path.join(home, "AppData", "Local"), "fnm_multishells"),
+    );
+    const nvmWin = process.env.NVM_SYMLINK ?? path.join(process.env.APPDATA ?? "", "nvm");
+    if (nvmWin && fs.existsSync(nvmWin)) extra.push(nvmWin);
+  } else {
+    extra.push("/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin", path.join(home, ".volta", "bin"), path.join(home, ".local", "share", "fnm"));
+    const nvm = path.join(home, ".nvm", "versions", "node");
+    if (fs.existsSync(nvm)) {
+      for (const v of fs.readdirSync(nvm).sort().reverse()) extra.unshift(path.join(nvm, v, "bin"));
+    }
   }
   return [process.env.PATH ?? "", ...extra].filter(Boolean).join(path.delimiter);
 }
 
 function findNode(): string | null {
   if (process.env.CREW_NODE && fs.existsSync(process.env.CREW_NODE)) return process.env.CREW_NODE;
+  const names = process.platform === "win32" ? ["node.exe", "node.cmd", "node"] : ["node"];
   for (const dir of enrichedPath().split(path.delimiter)) {
-    const p = path.join(dir, "node");
-    if (fs.existsSync(p)) return p;
+    if (!dir) continue;
+    for (const name of names) {
+      const p = path.join(dir, name);
+      if (fs.existsSync(p)) return p;
+    }
   }
   return null;
 }

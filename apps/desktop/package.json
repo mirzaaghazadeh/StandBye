@@ -12,7 +12,11 @@
     "preview": "electron-vite preview",
     "gui": "electron-vite build && node e2e/gui.mjs",
     "deploy-supervisor": "node ../../scripts/deploy-supervisor.mjs",
-    "package": "node ../../scripts/make-icon.mjs && pnpm deploy-supervisor && electron-vite build && electron-builder --mac --config electron-builder.yml",
+    "bundle": "pnpm deploy-supervisor && electron-vite build",
+    "package": "pnpm bundle && electron-builder --config electron-builder.yml",
+    "package:mac": "pnpm bundle && electron-builder --mac --config electron-builder.yml",
+    "package:win": "pnpm bundle && electron-builder --win --config electron-builder.yml",
+    "package:linux": "pnpm bundle && electron-builder --linux --config electron-builder.yml",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.web.json --noEmit"
   },
   "dependencies": {

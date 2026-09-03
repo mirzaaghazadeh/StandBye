@@ -32,14 +32,35 @@ function saveKeys(keys: Record<string, string>): void {
 
 // ---------- window ----------
 
+/**
+ * The window chrome is per-platform: macOS gets the inset traffic lights over a vibrant sidebar,
+ * Windows gets the native control buttons overlaid on our own toolbar, Linux keeps a normal frame
+ * (no overlay support there). All three keep the same 38px drag strip at the top of the sidebar.
+ */
+function windowChrome(): Electron.BrowserWindowConstructorOptions {
+  if (process.platform === "darwin") {
+    return {
+      titleBarStyle: "hiddenInset",
+      trafficLightPosition: { x: 16, y: 18 },
+      vibrancy: "sidebar",
+      visualEffectState: "active",
+      backgroundColor: "#00000000",
+    };
+  }
+  if (process.platform === "win32") {
+    return {
+      titleBarStyle: "hidden",
+      titleBarOverlay: { color: "#f5f4f1", symbolColor: "#3a3a38", height: 38 },
+      backgroundColor: "#f5f4f1",
+    };
+  }
+  return { backgroundColor: "#f5f4f1" };
+}
+
 function createWindow(): void {
   win = new BrowserWindow({
     width: 1440, height: 900, minWidth: 1024, minHeight: 640,
-    titleBarStyle: "hiddenInset",
-    trafficLightPosition: { x: 16, y: 18 },
-    vibrancy: "sidebar",
-    visualEffectState: "active",
-    backgroundColor: "#00000000",
+    ...windowChrome(),
     show: false,
     webPreferences: { preload: path.join(__dirname, "../preload/index.js"), sandbox: false, contextIsolation: true },
   });
@@ -74,9 +95,15 @@ function showWindow(route?: string): void {
 // ---------- tray (menu bar item) ----------
 
 function trayIcon(): Electron.NativeImage {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 20a5 5 0 0 1 6 0"/></svg>`;
+  // macOS template images are black-on-transparent and the OS inverts them for the menu bar.
+  // Windows and Linux do no such thing, so there we draw in the brand orange, which stays legible
+  // on both light and dark taskbars.
+  const mac = process.platform === "darwin";
+  const stroke = mac ? "black" : "#D9683F";
+  const size = mac ? 22 : 32;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 20a5 5 0 0 1 6 0"/></svg>`;
   const img = nativeImage.createFromDataURL("data:image/svg+xml;base64," + Buffer.from(svg).toString("base64"));
-  img.setTemplateImage(true);
+  if (mac) img.setTemplateImage(true);
   return img;
 }
 
@@ -162,6 +189,16 @@ ipcMain.handle("crew:dataDir", () => dataDir);
 // ---------- lifecycle ----------
 
 app.setName("Standbye");
+
+// Two copies of the app would fight over the tray and the supervisor lock; the second one hands
+// its launch to the first instead. (On Windows this is what makes double-clicking the shortcut
+// twice reopen the window rather than start a second Standbye.)
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on("second-instance", () => showWindow());
+}
+
 void app.whenReady().then(async () => {
   try {
     const script = app.isPackaged
@@ -177,6 +214,8 @@ void app.whenReady().then(async () => {
     dialog.showErrorBox("Standbye could not start its supervisor", e instanceof Error ? e.message : String(e));
   }
   tray = new Tray(trayIcon());
+  // On Windows and Linux the context menu is right-click only, so left-click opens the window.
+  if (process.platform !== "darwin") tray.on("click", () => showWindow());
   rebuildTray();
   createWindow();
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

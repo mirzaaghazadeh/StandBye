@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/mirzaaghazadeh/StandBye/security/advisories/new
+    about: Report privately. Please do not open a public issue for a security problem.
+  - name: Question or idea
+    url: https://github.com/mirzaaghazadeh/StandBye/discussions
+    about: For "how do I…" and "would you consider…", start a discussion.
+  - name: Documentation
+    url: https://standbye.org
+    about: Setup, providers, guardrails and how a team actually runs.

@@ -1,0 +1,39 @@
+name: Feature request
+description: Suggest something Standbye should be able to do
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: >-
+        The situation, not the solution. What were you trying to get your team to do when you hit
+        the wall?
+      placeholder: I want an agent to keep an eye on our error tracker overnight and only wake me if…
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like Standbye to do about it?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What have you tried instead?
+      description: A cron schedule, a custom skill, a rule — and why it wasn't enough.
+
+  - type: checkboxes
+    id: area
+    attributes:
+      label: Which part does this touch?
+      options:
+        - label: Agents, prompts and memory
+        - label: Scheduling, heartbeats and runs
+        - label: Permissions, budgets and guardrails
+        - label: The desktop UI
+        - label: Providers and models
+        - label: Packaging, installers and platforms

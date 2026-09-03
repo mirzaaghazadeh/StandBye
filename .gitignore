@@ -1,11 +1,19 @@
+# dependencies
 node_modules/
+
+# build output
 dist/
 out/
+apps/desktop/release/
+apps/desktop/resources/
+
+# secrets — never commit a real key (see .env.example)
+.env
+.env.*
+!.env.example
+
+# local artifacts
 *.log
 .DS_Store
 design/dev-team-desktop.html
-.envapps/desktop/resources/
-apps/desktop/release/
-apps/desktop/build/icon.png
-apps/desktop/e2e/shots/
 apps/desktop/e2e/shots/

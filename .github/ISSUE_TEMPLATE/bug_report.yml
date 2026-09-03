@@ -1,0 +1,73 @@
+name: Bug report
+description: Something in Standbye doesn't work the way it should
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please don't paste API keys, tokens, or the contents of a private
+        repo — redact them first. Security problems go through
+        [SECURITY.md](https://github.com/mirzaaghazadeh/StandBye/blob/main/SECURITY.md), not here.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got instead.
+      placeholder: I set the daily cap to $5 and the team kept running past it…
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Create a team from the solo dev template
+        2. Set work hours to 09:00–17:00
+        3. Wait for the next heartbeat
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS (Apple silicon)
+        - macOS (Intel)
+        - Windows
+        - Linux
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Standbye version
+      description: Shown in Settings, or the version of the installer you downloaded.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Which provider were the agents on?
+      options:
+        - Claude (API key)
+        - Claude (Claude Code login)
+        - OpenRouter
+        - Mixed / more than one
+        - Not relevant
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: >-
+        Anything relevant from the run's steps, or the supervisor output. This is automatically
+        formatted as code, no backticks needed.
+      render: shell

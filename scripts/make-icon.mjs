@@ -1,12 +1,17 @@
 #!/usr/bin/env node
-// Renders the app icon with Electron (SVG → 1024px PNG) and packs it into build/icon.icns with iconutil.
+// Renders the app icon with Electron (SVG → 1024px PNG), then packs build/icon.icns with iconutil.
 // Usage: node scripts/make-icon.mjs   (run from anywhere)
+//
+// build/icon.png and build/icon.icns are both committed, so the release builders never run this:
+// electron-builder derives the Windows .ico from icon.png, and .icns needs macOS-only tooling.
+// Run it by hand on a Mac after changing the artwork below, and commit the result.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const desktop = path.join(root, "apps/desktop");
 const buildDir = path.join(desktop, "build");
 fs.mkdirSync(buildDir, { recursive: true });
@@ -18,10 +23,18 @@ const html = `<!doctype html><meta charset="utf-8"><style>html,body{margin:0;bac
     <filter id="s" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000" flood-opacity="0.28"/></filter>
   </defs>
   <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#g)" filter="url(#s)"/>
-  <g fill="none" stroke="#FFF6EE" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" transform="translate(512 512) scale(21) translate(-12 -12)">
-    <circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 20a5 5 0 0 1 6 0"/>
+  <g transform="translate(512 512) scale(25) translate(-16 -16.5)">
+    <!-- an agent in front, the owner behind; the site logo (apps/web) uses the same mark -->
+    <circle cx="21" cy="12" r="4" fill="#FFF6EE" opacity=".7"/>
+    <path d="M15 25c1.5-4 4-6 6-6s4.5 2 6 6" fill="#FFF6EE" opacity=".7"/>
+    <path d="M11 8.5V6" stroke="#FFF6EE" stroke-width="1.6" stroke-linecap="round"/>
+    <circle cx="11" cy="5.4" r="1.1" fill="#FFF6EE"/>
+    <rect x="7" y="8.5" width="8" height="7" rx="2" fill="#FFF6EE"/>
+    <circle cx="9.3" cy="12" r="1" fill="#B84C26"/>
+    <circle cx="12.7" cy="12" r="1" fill="#B84C26"/>
+    <path d="M5 25c1.5-4 4-6 6-6s4.5 2 6 6" fill="#FFF6EE"/>
   </g>
-  <circle cx="742" cy="282" r="64" fill="#2E9B5F" stroke="#FFF6EE" stroke-width="26"/>
+  <circle cx="762" cy="262" r="64" fill="#2E9B5F" stroke="#FFF6EE" stroke-width="26"/>
 </svg>`;
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "standbye-icon-"));
@@ -41,17 +54,24 @@ app.whenReady().then(async () => {
   app.quit();
 });
 `);
-const electron = path.join(desktop, "node_modules/.bin/electron");
-const r = spawnSync(electron, [mainJs], { stdio: "inherit", env: { ...process.env, ELECTRON_ENABLE_LOGGING: "0" } });
+const electron = path.join(desktop, "node_modules/.bin/electron" + (process.platform === "win32" ? ".cmd" : ""));
+const r = spawnSync(electron, [mainJs], { stdio: "inherit", shell: process.platform === "win32", env: { ...process.env, ELECTRON_ENABLE_LOGGING: "0" } });
 if (r.status !== 0) { console.error("electron render failed"); process.exit(1); }
 
 const png = path.join(tmp, "icon.png");
 fs.copyFileSync(png, path.join(buildDir, "icon.png"));
+console.log("wrote", path.join(buildDir, "icon.png"));
+
+// .icns needs sips and iconutil, which only exist on macOS. Elsewhere the committed one stands.
+if (process.platform !== "darwin") {
+  console.log("not macOS: keeping the committed build/icon.icns (regenerate it on a Mac)");
+  process.exit(0);
+}
 const iconset = path.join(tmp, "icon.iconset");
 fs.mkdirSync(iconset, { recursive: true });
 for (const [size, name] of [[16, "16x16"], [32, "16x16@2x"], [32, "32x32"], [64, "32x32@2x"], [128, "128x128"], [256, "128x128@2x"], [256, "256x256"], [512, "256x256@2x"], [512, "512x512"], [1024, "512x512@2x"]]) {
   spawnSync("sips", ["-z", String(size), String(size), png, "--out", path.join(iconset, `icon_${name}.png`)], { stdio: "ignore" });
 }
 const ic = spawnSync("iconutil", ["-c", "icns", iconset, "-o", path.join(buildDir, "icon.icns")], { stdio: "inherit" });
-if (ic.status !== 0) { console.error("iconutil failed (macOS only)"); process.exit(1); }
+if (ic.status !== 0) { console.error("iconutil failed"); process.exit(1); }
 console.log("wrote", path.join(buildDir, "icon.icns"));

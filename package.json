@@ -11,7 +11,10 @@
     "supervisor": "pnpm --filter @crew/supervisor start",
     "test": "pnpm --filter @crew/shared build && pnpm --filter @crew/supervisor test",
     "smoke": "pnpm --filter @crew/shared build && pnpm --filter @crew/supervisor build && node scripts/smoke.mjs",
-    "package": "pnpm build && pnpm --filter @crew/desktop package"
+    "package": "pnpm build && pnpm --filter @crew/desktop package",
+    "package:mac": "pnpm build && pnpm --filter @crew/desktop package:mac",
+    "package:win": "pnpm build && pnpm --filter @crew/desktop package:win",
+    "package:linux": "pnpm build && pnpm --filter @crew/desktop package:linux"
   },
   "devDependencies": {
     "typescript": "^5.9.2"
