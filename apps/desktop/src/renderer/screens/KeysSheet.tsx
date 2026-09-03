@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { store, useStore } from "../state/store";
-import { Button, KV, Segmented } from "../ui/kit";
+import { Button, KV, Segmented, Switch } from "../ui/kit";
 import { ProvidersPanel } from "../components/ProvidersPanel";
 import { GitSettingsPanel } from "../components/GitSettingsPanel";
 import { Ic } from "../ui/icons";
@@ -13,7 +13,9 @@ export function KeysSheet() {
   const team = useStore((s) => s.team);
   const [tab, setTab] = useState<Tab>(team ? "team" : "providers");
   const [dataDir, setDataDir] = useState("");
+  const [keepWorking, setKeepWorking] = useState(false);
   useEffect(() => { void window.crew.dataDir().then(setDataDir); }, []);
+  useEffect(() => { void window.crew.settingsGet().then((s) => setKeepWorking(s.keepWorkingWhenClosed)); }, []);
 
   return (
     // The providers browser is two panes, so it needs the room; the other tabs read better narrow.
@@ -35,6 +37,19 @@ export function KeysSheet() {
           <div style={{ fontSize: 12, color: "var(--ink-3)", display: "flex", flexDirection: "column", gap: 10 }}>
             <div>Data folder: <span className="mono sel">{dataDir}</span> · <a onClick={() => void window.crew.openPath(dataDir)}>Show in Finder</a></div>
             <div>Agents are folders in there: <span className="mono">agent.json</span>, <span className="mono">SOUL.md</span>, <span className="mono">RULES.md</span>, <span className="mono">MEMORY.md</span>, <span className="mono">skills/</span>. Edit them by hand any time; the next run picks it up. Channels, questions and runs live in <span className="mono">crew.db</span>.</div>
+            <div style={{ marginTop: 8, border: "1px solid var(--border)", borderRadius: 7, background: "var(--surface)", padding: "10px 12px" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <Switch on={keepWorking} onChange={(v) => { setKeepWorking(v); void window.crew.settingsSet({ keepWorkingWhenClosed: v }); }} />
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ display: "block", fontWeight: 500, fontSize: 12.5 }}>Keep working when Standbye is closed</span>
+                  <span style={{ display: "block", fontSize: 11, color: "var(--ink-4)", lineHeight: 1.45 }}>
+                    {keepWorking
+                      ? "Agents keep checking in, running and spending after you quit. Reopening attaches to the same session."
+                      : "Quitting stops the team. Nothing runs and nothing is spent until you open Standbye again."}
+                  </span>
+                </span>
+              </div>
+            </div>
             <div style={{ marginTop: 8 }}>
               <div className="grp-t">Join from Claude Code</div>
               <div>Any MCP client can act as a teammate. Register this stdio server in Claude Code with the agent id it should act as:</div>

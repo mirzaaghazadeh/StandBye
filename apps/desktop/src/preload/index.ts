@@ -15,6 +15,9 @@ const api = {
     return () => ipcRenderer.removeListener("crew:navigate", h);
   },
   pickFolder: (): Promise<string | null> => ipcRenderer.invoke("crew:pickFolder") as Promise<string | null>,
+  /** This Mac's own settings, e.g. whether the team keeps working after the window is closed. */
+  settingsGet: (): Promise<{ keepWorkingWhenClosed: boolean }> => ipcRenderer.invoke("crew:settings.get") as Promise<{ keepWorkingWhenClosed: boolean }>,
+  settingsSet: (patch: { keepWorkingWhenClosed?: boolean }): Promise<{ keepWorkingWhenClosed: boolean }> => ipcRenderer.invoke("crew:settings.set", patch) as Promise<{ keepWorkingWhenClosed: boolean }>,
   pickFile: (extensions: string[], label = "File"): Promise<string | null> => ipcRenderer.invoke("crew:pickFile", extensions, label) as Promise<string | null>,
   /** Which providers have a key saved, by provider id. Never the keys themselves. */
   keysGet: (): Promise<Record<string, boolean>> => ipcRenderer.invoke("crew:keys.get") as Promise<Record<string, boolean>>,

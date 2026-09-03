@@ -145,3 +145,27 @@ test("gitPrompt: tells the agent the workflow in words", async (t) => {
     assert.doesNotMatch(p, /Never push to/);
   });
 });
+
+test("agents are told they are not the only one in the repo", async (t) => {
+  const g = { enabled: true, workBranch: "main", mode: "push", devBranch: null, stagingBranch: null, productionBranch: null };
+  const p = gitPrompt(g, "Navid");
+
+  await t.test("a run starts by catching up", () => {
+    assert.match(p, /Start every run up to date: `git pull --rebase`/);
+    assert.match(p, /may have pushed since you last looked/);
+  });
+  await t.test("and pushes only after catching up again", () => {
+    assert.match(p, /Before you push, pull --rebase again and re-run the tests/);
+    assert.match(p, /If the push is rejected, pull and try again; never force/);
+  });
+  await t.test("a conflict it cannot resolve is a reason to stop, not to guess", () => {
+    assert.match(p, /leave the tree clean.*pick something else/s);
+  });
+  await t.test("this holds in pull-request mode too, not just push mode", () => {
+    const pr = gitPrompt({ ...g, mode: "pr" }, "Navid");
+    assert.match(pr, /git pull --rebase/);
+  });
+  await t.test("a team with git switched off gets none of it", () => {
+    assert.equal(gitPrompt({ ...g, enabled: false }, "Navid"), "");
+  });
+});

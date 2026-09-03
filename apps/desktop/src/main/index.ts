@@ -30,6 +30,30 @@ function saveKeys(keys: Record<string, string>): void {
   fs.writeFileSync(keysFile, safeStorage.isEncryptionAvailable() ? safeStorage.encryptString(json) : Buffer.from(json), { mode: 0o600 });
 }
 
+// ---------- app settings ----------
+//
+// Machine-level, not team-level: whether this Mac keeps the agents working after the window is
+// closed. It defaults to off, because a team that keeps spending while nobody is looking should
+// be something the owner turned on deliberately, not something they discover on a bill.
+
+const settingsFile = path.join(app.getPath("userData"), "app-settings.json");
+interface AppSettings { keepWorkingWhenClosed: boolean }
+const DEFAULT_SETTINGS: AppSettings = { keepWorkingWhenClosed: false };
+
+function loadSettings(): AppSettings {
+  try { return { ...DEFAULT_SETTINGS, ...(JSON.parse(fs.readFileSync(settingsFile, "utf8")) as Partial<AppSettings>) }; }
+  catch { return { ...DEFAULT_SETTINGS }; }
+}
+function saveSettings(patch: Partial<AppSettings>): AppSettings {
+  const next = { ...loadSettings(), ...patch };
+  fs.mkdirSync(path.dirname(settingsFile), { recursive: true });
+  fs.writeFileSync(settingsFile, JSON.stringify(next, null, 2));
+  return next;
+}
+
+ipcMain.handle("crew:settings.get", () => loadSettings());
+ipcMain.handle("crew:settings.set", (_e, patch: Partial<AppSettings>) => saveSettings(patch));
+
 // ---------- window ----------
 
 /**
@@ -237,4 +261,10 @@ void app.whenReady().then(async () => {
 
 // Closing the window keeps the supervisor (and the agents) running; quitting stops them.
 app.on("window-all-closed", () => { /* stay alive in the menu bar */ });
-app.on("before-quit", () => host.stop());
+// Quitting stops the team unless the owner asked for it to carry on. `host.stop()` only kills a
+// supervisor this app started, so leaving it alone is genuinely "keep working": the next launch
+// attaches to the same one and picks up where it left off.
+app.on("before-quit", () => {
+  if (loadSettings().keepWorkingWhenClosed) { console.log("[standbye] quitting; leaving the supervisor running so the team keeps working"); return; }
+  host.stop();
+});

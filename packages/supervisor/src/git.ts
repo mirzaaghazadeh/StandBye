@@ -66,7 +66,16 @@ export function gitRules(g: GitSettings | null | undefined): PermissionRule[] {
 /** The git section of every agent's system prompt. */
 export function gitPrompt(g: GitSettings | null | undefined, owner: string): string {
   if (!g || !g.enabled) return "";
-  const lines = ["# Git workflow (enforced by the app)", `Work on branch \`${g.workBranch}\`. If you are not on it, \`git checkout ${g.workBranch}\` first and pull if there is a remote.`];
+  const lines = [
+    "# Git workflow (enforced by the app)",
+    `Work on branch \`${g.workBranch}\`. If you are not on it, \`git checkout ${g.workBranch}\` first.`,
+    // You are not the only one here. A person may have pushed overnight, and on a team every
+    // other agent is committing to the same branch — so a run that starts from a stale checkout
+    // rebuilds work that already exists, or lands a change on top of code it never saw.
+    `Start every run up to date: \`git pull --rebase\`. Someone else — ${owner}, or a teammate working right now — may have pushed since you last looked.`,
+    "Before you push, pull --rebase again and re-run the tests. If the push is rejected, pull and try again; never force.",
+    "If a rebase conflicts and you are not certain how to resolve it, stop: leave the tree clean, say what conflicted, and pick something else. A wrong merge is worse than a late one.",
+  ];
   if (g.mode === "pr") {
     lines.push(`Never commit to \`${g.workBranch}\` directly: create a short-lived branch from it, commit there, push it, and open a pull request against \`${g.workBranch}\` with \`gh pr create\`. Ask ${owner} before merging.`);
   } else {
