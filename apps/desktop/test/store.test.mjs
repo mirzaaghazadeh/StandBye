@@ -67,6 +67,8 @@ async function freshStore(overrides = {}) {
   const store = mod.store;
   return {
     store,
+    /** The search page size the store asks the supervisor about (used by the search tests). */
+    SEARCH_PAGE: mod.SEARCH_PAGE,
     rpcLog,
     storage,
     /** Deliver a pushed event to the store, the way the preloader does. */
@@ -292,17 +294,43 @@ test("navigateByPath: settings/updates opens the keys sheet on the updates tab",
 // ── search ───────────────────────────────────────────────────────────────────
 
 test("searchMessages queries the supervisor and stores the results for the channel", async () => {
-  const { store, rpcLog } = await freshStore({
+  const { store, rpcLog, SEARCH_PAGE } = await freshStore({
     "messages.search": () => [{ id: "m9", text: "found it" }],
   });
   await store.searchMessages("general", "deploy");
   assert.ok(rpcLog.some((c) => c.method === "messages.search" && c.params.q === "deploy" && c.params.channelId === "general"));
+  // One extra result is requested so a full page can be labelled as truncated.
+  assert.ok(rpcLog.some((c) => c.method === "messages.search" && c.params.limit === SEARCH_PAGE + 1));
   assert.deepEqual(store.get().search, {
     channelId: "general",
     q: "deploy",
     results: [{ id: "m9", text: "found it" }],
     busy: false,
+    error: null,
+    truncated: false,
   });
+});
+
+test("searchMessages caps the page at 50 and flags that more matches exist", async () => {
+  const { store, SEARCH_PAGE } = await freshStore({
+    // 51 hits: the page is full and there are more — shown as 50 rows with truncated set.
+    "messages.search": () => Array.from({ length: SEARCH_PAGE + 1 }, (_, i) => ({ id: `m${i}`, text: `hit ${i}` })),
+  });
+  await store.searchMessages("general", "deploy");
+  const search = store.get().search;
+  assert.equal(search.results.length, SEARCH_PAGE);
+  assert.equal(search.truncated, true);
+  assert.equal(search.error, null);
+  assert.equal(search.busy, false);
+});
+
+test("searchMessages: exactly 50 matches is a full page but not truncated", async () => {
+  const { store, SEARCH_PAGE } = await freshStore({
+    "messages.search": () => Array.from({ length: SEARCH_PAGE }, (_, i) => ({ id: `m${i}`, text: `hit ${i}` })),
+  });
+  await store.searchMessages("general", "deploy");
+  assert.equal(store.get().search.results.length, SEARCH_PAGE);
+  assert.equal(store.get().search.truncated, false);
 });
 
 test("searchMessages with a blank query turns search off and never calls the supervisor", async () => {
@@ -330,12 +358,12 @@ test("searchMessages: the newest query wins — a slow response to an older one 
   assert.deepEqual(store.get().search.results, [{ id: "m1", text: "alpha beta" }]);
 });
 
-test("searchMessages: a failed query leaves search on with empty results instead of throwing", async () => {
+test("searchMessages: a failed query records the error instead of reading as zero matches", async () => {
   const { store } = await freshStore({
     "messages.search": () => { throw new Error("boom"); },
   });
   await store.searchMessages("general", "deploy");
-  assert.deepEqual(store.get().search, { channelId: "general", q: "deploy", results: [], busy: false });
+  assert.deepEqual(store.get().search, { channelId: "general", q: "deploy", results: [], busy: false, error: "boom", truncated: false });
 });
 
 test("searchMessages: a response landing after refreshAll is dropped, not restored over the reset", async () => {

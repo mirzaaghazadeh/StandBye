@@ -4,6 +4,9 @@ import type {
   Agent, AgentFiles, ArchivedTeam, Channel, MessageDraft, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunDiff, RunStep, SkillScope, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft, TeamSummary, UpdateState,
 } from "@crew/shared";
 
+/** Matches shown per search. One extra is requested from the supervisor so overflow can be labelled. */
+export const SEARCH_PAGE = 50;
+
 export type Route =
   | { name: "home" }
   | { name: "inbox"; questionId?: string }
@@ -41,8 +44,12 @@ export interface State {
   agents: Agent[];
   channels: Channel[];
   messages: Record<string, Message[]>;
-  /** The active in-conversation search, or null when search is off. The newest query always wins. */
-  search: { channelId: string; q: string; results: Message[]; busy: boolean } | null;
+  /**
+   * The active in-conversation search, or null when search is off. The newest query always wins.
+   * `error` set means the search failed — `results` is then empty for that reason, not for "no
+   * matches", and the UI must say so. `truncated` means more matches exist than the page shown.
+   */
+  search: { channelId: string; q: string; results: Message[]; busy: boolean; error: string | null; truncated: boolean } | null;
   /** channelId -> the reply an agent is writing right now, shown until the real message lands. */
   drafts: Record<string, MessageDraft>;
   questions: Question[];
@@ -226,12 +233,17 @@ class Store {
     const seq = ++this.searchSeq;
     const query = q.trim();
     if (!query) { this.set({ search: null }); return; }
-    this.set({ search: { channelId, q: query, results: [], busy: true } });
+    this.set({ search: { channelId, q: query, results: [], busy: true, error: null, truncated: false } });
     try {
-      const results = await this.rpc<Message[]>("messages.search", { q: query, channelId });
-      if (seq === this.searchSeq) this.set({ search: { channelId, q: query, results, busy: false } });
-    } catch {
-      if (seq === this.searchSeq) this.set({ search: { channelId, q: query, results: [], busy: false } });
+      // One more than the page size is requested so a full page can be labelled honestly
+      // ("50+ matches") instead of looking complete when it is not.
+      const found = await this.rpc<Message[]>("messages.search", { q: query, channelId, limit: SEARCH_PAGE + 1 });
+      if (seq !== this.searchSeq) return;
+      const truncated = found.length > SEARCH_PAGE;
+      this.set({ search: { channelId, q: query, results: truncated ? found.slice(0, SEARCH_PAGE) : found, busy: false, error: null, truncated } });
+    } catch (e) {
+      // A failed search must not read as "zero matches" — keep the reason for the UI.
+      if (seq === this.searchSeq) this.set({ search: { channelId, q: query, results: [], busy: false, error: e instanceof Error ? e.message : "Search failed.", truncated: false } });
     }
   }
   async loadSteps(runId: string): Promise<void> {

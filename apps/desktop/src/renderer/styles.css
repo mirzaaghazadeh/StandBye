@@ -77,6 +77,7 @@ input, textarea, select { font: inherit; color: inherit; }
 .searchbox-x:hover { color: var(--ink); }
 .search-results { max-width: 720px; margin: 0 auto; padding: 10px 18px 24px; }
 .search-note { font-size: 11px; color: var(--ink-5); padding: 4px 2px 10px; }
+.search-note.err { color: var(--red-ink); }
 .hit { display: flex; gap: 8px; padding: 8px 2px; border-bottom: 1px solid var(--border-soft); min-width: 0; }
 .hit-b { flex: 1; min-width: 0; }
 .hit-t { font-size: 12.5px; line-height: 1.45; color: var(--ink-2); white-space: pre-wrap; word-break: break-word; }

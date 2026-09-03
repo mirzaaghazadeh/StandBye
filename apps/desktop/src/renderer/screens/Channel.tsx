@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Agent, Message, Question, Run } from "@crew/shared";
-import { store, useStore } from "../state/store";
+import { SEARCH_PAGE, store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
 import { Rich } from "../ui/markdown";
 import { Avatar, Button, Group, IconButton, KindPill, StatusPill, Toolbar, UserAvatar, hhmm, isToday, modelLabel } from "../ui/kit";
@@ -229,12 +229,19 @@ function SearchResults({ channelId }: { channelId: string }) {
   if (!search || search.channelId !== channelId) return null;
   return (
     <div className="search-results">
-      <div className="search-note">
+      <div className={"search-note" + (search.error ? " err" : "")}>
         {search.busy
           ? `Searching for “${search.q}”…`
-          : `${search.results.length} ${search.results.length === 1 ? "match" : "matches"} for “${search.q}”`}
+          : search.error
+            ? `Search failed: ${search.error}`
+            : search.truncated
+              ? `${SEARCH_PAGE}+ matches for “${search.q}”`
+              : `${search.results.length} ${search.results.length === 1 ? "match" : "matches"} for “${search.q}”`}
       </div>
-      {!search.busy && search.results.length === 0 && (
+      {!search.busy && search.error && (
+        <div className="empty">The search did not complete, so nothing is shown — there may or may not be matches. Try again.</div>
+      )}
+      {!search.busy && !search.error && search.results.length === 0 && (
         <div className="empty">Nothing in this conversation matches “{search.q}”.</div>
       )}
       {search.results.map((m) => {
@@ -249,6 +256,9 @@ function SearchResults({ channelId }: { channelId: string }) {
           </div>
         );
       })}
+      {!search.busy && !search.error && search.truncated && (
+        <div className="search-note">Showing the {SEARCH_PAGE} newest; older matches exist. Narrow the search to reach them.</div>
+      )}
     </div>
   );
 }
