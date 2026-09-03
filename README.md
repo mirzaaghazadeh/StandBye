@@ -20,9 +20,9 @@ they learn. **Not cron jobs with a chat window. A team.**
 
 <br>
 
-<img src=".github/assets/home.png" width="900" alt="The Standbye Home screen: four agents, who is working, who needs you, what each is doing and what today cost">
+<img src=".github/assets/demo.gif" width="900" alt="The Standbye Home screen cycling through six teams — dev, marketing, sales, support, research and a founder's office — each showing who is working, who needs you, what each agent is doing and what today cost">
 
-<sub>The Home screen: who's working, who needs you, what each agent is doing, what today cost.<br>A team can be about anything — this one ships with the app.</sub>
+<sub>The Home screen: who's working, who needs you, what each agent is doing, what today cost.<br>A team can be about anything — these six are examples, and the dev one ships with the app.</sub>
 
 </div>
 
