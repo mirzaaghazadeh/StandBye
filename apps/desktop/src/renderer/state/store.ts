@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { dmChannelId } from "@crew/shared";
 import type {
-  Agent, AgentFiles, ArchivedTeam, Channel, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunStep, SkillScope, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft, TeamSummary,
+  Agent, AgentFiles, ArchivedTeam, Channel, MessageDraft, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunStep, SkillScope, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft, TeamSummary,
 } from "@crew/shared";
 
 export type Route =
@@ -41,6 +41,8 @@ export interface State {
   agents: Agent[];
   channels: Channel[];
   messages: Record<string, Message[]>;
+  /** channelId -> the reply an agent is writing right now, shown until the real message lands. */
+  drafts: Record<string, MessageDraft>;
   questions: Question[];
   runs: Run[];
   steps: Record<string, RunStep[]>;
@@ -62,7 +64,7 @@ export interface State {
 
 const initial: State = {
   ready: false, error: null, route: { name: "home" }, sheet: { kind: "none" }, status: null,
-  keys: {}, providers: null, models: null, teams: [], archived: [], activeTeamId: null, team: null, agents: [], channels: [], messages: {}, questions: [], runs: [], steps: {},
+  keys: {}, providers: null, models: null, teams: [], archived: [], activeTeamId: null, team: null, agents: [], channels: [], messages: {}, drafts: {}, questions: [], runs: [], steps: {},
   spend: null, selectedAgentId: null, pendingWorkspace: null, seen: {}, waking: {}, firstStepsDismissed: false, skillsStamp: 0, builderDraft: null, builderBusy: false, toast: null,
 };
 
@@ -143,7 +145,16 @@ class Store {
     switch (e.event) {
       case "agents.updated": this.set({ agents: e.data, selectedAgentId: this.state.selectedAgentId && e.data.some((a) => a.id === this.state.selectedAgentId) ? this.state.selectedAgentId : e.data[0]?.id ?? null }); break;
       case "agent.updated": this.set((s) => ({ agents: s.agents.some((a) => a.id === e.data.id) ? s.agents.map((a) => (a.id === e.data.id ? e.data : a)) : [...s.agents, e.data] })); break;
-      case "message.created": this.set((s) => ({ messages: { ...s.messages, [e.data.channelId]: [...(s.messages[e.data.channelId] ?? []), e.data].slice(-500) } })); break;
+      case "message.created": this.set((s) => {
+        const { [e.data.channelId]: _gone, ...drafts } = s.drafts;
+        return { messages: { ...s.messages, [e.data.channelId]: [...(s.messages[e.data.channelId] ?? []), e.data].slice(-500) }, drafts };
+      }); break;
+      case "message.draft": this.set((s) => {
+        // `done` with no message following means the agent thought better of it; the real
+        // message.created above is what normally clears the draft.
+        if (e.data.done && !e.data.text.trim()) { const { [e.data.channelId]: _x, ...rest } = s.drafts; return { drafts: rest }; }
+        return { drafts: { ...s.drafts, [e.data.channelId]: e.data } };
+      }); break;
       case "question.created": this.set((s) => ({ questions: [e.data, ...s.questions] })); break;
       case "question.updated": this.set((s) => ({ questions: s.questions.map((q) => (q.id === e.data.id ? e.data : q)) })); break;
       case "run.updated": this.set((s) => ({ runs: s.runs.some((r) => r.id === e.data.id) ? s.runs.map((r) => (r.id === e.data.id ? e.data : r)) : [e.data, ...s.runs] })); break;

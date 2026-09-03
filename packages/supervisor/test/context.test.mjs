@@ -66,3 +66,45 @@ test("trimming is stable when applied repeatedly", async (t) => {
     assert.deepEqual(twice, once, "otherwise every step would rewrite the prefix and break caching");
   });
 });
+
+test("re-reading a file does not pay for the old copy", async (t) => {
+  // Measured on a real run: nine reads of four files, one read four times. Every copy but the
+  // newest is stale, and each is re-sent on every following step.
+  const body = "x".repeat(4000);
+  const read = (id, path, value) => ([
+    { role: "assistant", content: [{ type: "tool-call", toolCallId: id, toolName: "read_file", input: { path } }] },
+    { role: "tool", content: [{ type: "tool-result", toolCallId: id, toolName: "read_file", output: { type: "text", value } }] },
+  ]);
+  const messages = [
+    { role: "user", content: "wire up the classifier" },
+    ...read("a", "src/types.ts", "FIRST" + body),
+    ...read("b", "src/openai.ts", "OTHER" + body),
+    ...read("c", "src/types.ts", "SECOND" + body),
+  ];
+  const out = trimConversation(messages);
+  const text = JSON.stringify(out);
+
+  await t.test("the newest copy of the file survives in full", () => {
+    assert.ok(text.includes("SECOND" + body.slice(0, 50)), "latest read is kept verbatim");
+  });
+  await t.test("the earlier copy of the same file is dropped", () => {
+    assert.ok(!text.includes("FIRST" + body.slice(0, 50)), "the stale copy is gone");
+    assert.match(text, /you read src\/types\.ts again later in this run/);
+  });
+  await t.test("a different file is untouched", () => {
+    assert.ok(text.includes("OTHER" + body.slice(0, 50)), "openai.ts was only read once");
+  });
+  await t.test("nothing changes when every file was read once", () => {
+    const once = [{ role: "user", content: "go" }, ...read("a", "src/a.ts", body), ...read("b", "src/b.ts", body)];
+    assert.equal(trimConversation(once), once, "same reference, so the cached prefix stays byte-identical");
+  });
+  await t.test("a windowed read is not superseded by a full one", () => {
+    const windowed = [
+      { role: "user", content: "go" },
+      { role: "assistant", content: [{ type: "tool-call", toolCallId: "w", toolName: "read_file", input: { path: "src/big.ts", offset: 200 } }] },
+      { role: "tool", content: [{ type: "tool-result", toolCallId: "w", toolName: "read_file", output: { type: "text", value: "WINDOW" + body } }] },
+      ...read("f", "src/big.ts", "FULL" + body),
+    ];
+    assert.ok(JSON.stringify(trimConversation(windowed)).includes("WINDOW" + body.slice(0, 40)), "the slice is still its own fact");
+  });
+});

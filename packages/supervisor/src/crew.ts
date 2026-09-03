@@ -79,6 +79,7 @@ export class Crew {
     });
     const stale = this.db.recoverStaleRuns();
     if (stale > 0) log(`marked ${stale} stale run(s) as failed after restart`, { team: this.team?.id });
+    this.restoreChannels();
     for (const a of this.store.listAgentConfigs()) this.ensureDm(a.id); // teams created before direct chats existed
   }
 
@@ -161,6 +162,7 @@ export class Crew {
       channels.push({ id: name, name, purpose: c.purpose, members: c.members.map((n) => nameToId.get(n.toLowerCase())).filter((x): x is string => Boolean(x)), kind: "group", dmAgentId: null });
     }
     for (const c of channels) this.db.upsertChannel(c);
+    this.syncChannels();
 
     for (const a of draft.agents) this.createAgent(a, channels);
     this.bus.emit("team.updated", team);
@@ -282,6 +284,24 @@ export class Crew {
   listChannels(): Channel[] {
     return this.db.listChannels();
   }
+  /** Keep `channels.json` in step with the rooms, so the setup travels even though the talk does not. */
+  private syncChannels(): void {
+    try { this.store.writeChannels(this.db.listChannels()); } catch (e) { log(`could not write channels.json: ${e instanceof Error ? e.message : String(e)}`, { team: this.team?.id }); }
+  }
+  /**
+   * Bring back the rooms recorded in the team folder. On a fresh clone `crew.db` does not exist
+   * — the history is deliberately not shared — so without this the team would arrive with its
+   * agents and no channels to talk in. Existing rooms win: this only fills in what is missing.
+   */
+  private restoreChannels(): void {
+    if (!this.team) return;
+    const saved = this.store.readChannels();
+    if (!saved.length) return;
+    const have = new Set(this.db.listChannels().map((c) => c.id));
+    const missing = saved.filter((c) => !have.has(c.id));
+    for (const c of missing) this.db.upsertChannel({ ...c, kind: "group", dmAgentId: null });
+    if (missing.length) log(`restored ${missing.length} channel(s) from channels.json`, { team: this.team.id });
+  }
   ensureChannel(name: string, purpose = "", members: string[] = []): Channel {
     // Validate before looking up, so "dm-kai" can never hand back someone's private chat.
     const id = name.replace(/^#/, "").toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-|-$/g, "");
@@ -294,6 +314,7 @@ export class Crew {
       const cfg = this.store.readAgentConfig(a);
       if (cfg && !cfg.channels.includes(id)) this.store.writeAgentConfig({ ...cfg, channels: [...cfg.channels, id] });
     }
+    this.syncChannels();
     this.bus.emit("team.updated", this.team);
     return c;
   }
@@ -308,6 +329,7 @@ export class Crew {
       if (inChannel && !listed) this.store.writeAgentConfig({ ...a, channels: [...a.channels, id] });
       if (!inChannel && listed) this.store.writeAgentConfig({ ...a, channels: a.channels.filter((x) => x !== id) });
     }
+    this.syncChannels();
     this.bus.emit("team.updated", this.team);
     return next;
   }
@@ -316,6 +338,7 @@ export class Crew {
     if (!c || c.kind === "dm" || c.id === "general") throw new Error("That channel can't be deleted");
     this.db.deleteChannel(id);
     for (const a of this.store.listAgentConfigs()) if (a.channels.includes(id)) this.store.writeAgentConfig({ ...a, channels: a.channels.filter((x) => x !== id) });
+    this.syncChannels();
     this.bus.emit("team.updated", this.team);
   }
 

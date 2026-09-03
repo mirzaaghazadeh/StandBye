@@ -164,3 +164,50 @@ test("a team works on the folder it is actually in", async (t) => {
     assert.equal(JSON.parse(fs.readFileSync(path.join(original, TEAM_DIR_NAME, "team.json"), "utf8")).workspaceRoot, original);
   });
 });
+
+test("a clone gets the team's rooms but not its transcript", async (t) => {
+  // channels.json is setup and travels; crew.db is history and is git-ignored. Without the
+  // first, a cloned team would arrive with agents and nowhere to talk.
+  const dataDir = tempDir("standbye-hub-");
+  const project = tempDir("standbye-original-");
+  const clone = tempDir("standbye-clone-");
+  t.after(() => { for (const d of [dataDir, project, clone] ) fs.rmSync(d, { recursive: true, force: true }); });
+
+  const first = new Hub({ dataDir, port: 0, token: "t" });
+  const rt = first.createTeam(draft(), { workspaceRoot: project, ownerName: "Navid" });
+  rt.crew.ensureChannel("release", "Shipping and release notes", rt.crew.listAgents().map((a) => a.id));
+  rt.crew.postMessage({ channel: "release", authorId: "user", text: "a secret about the release", kind: "chat" });
+  const before = rt.crew.listChannels().filter((c) => c.kind !== "dm").map((c) => c.id).sort();
+  first.stop();
+
+  const teamDir = path.join(project, TEAM_DIR_NAME);
+  await t.test("the rooms are written down next to the agents", () => {
+    const saved = JSON.parse(fs.readFileSync(path.join(teamDir, "channels.json"), "utf8"));
+    assert.deepEqual(saved.map((c) => c.id).sort(), before);
+    assert.ok(saved.every((c) => c.kind !== "dm"), "private chats are not part of the setup");
+    assert.equal(JSON.stringify(saved).includes("a secret about the release"), false, "and no messages are in there");
+  });
+
+  // `git clone` brings the committed files; crew.db is ignored, so it does not come.
+  fs.mkdirSync(path.join(clone, TEAM_DIR_NAME), { recursive: true });
+  for (const f of ["team.json", "channels.json", "agents", ".gitignore"]) {
+    fs.cpSync(path.join(teamDir, f), path.join(clone, TEAM_DIR_NAME, f), { recursive: true });
+  }
+
+  const h = new Hub({ dataDir: tempDir("standbye-hub2-"), port: 0, token: "t" });
+  t.after(() => h.stop());
+  const opened = h.openFolder(clone);
+
+  await t.test("the clone comes up with the same rooms", () => {
+    assert.deepEqual(opened.crew.listChannels().filter((c) => c.kind !== "dm").map((c) => c.id).sort(), before);
+    assert.equal(opened.crew.listChannels().find((c) => c.id === "release").purpose, "Shipping and release notes");
+  });
+  await t.test("but with none of what was said in them", () => {
+    assert.equal(opened.crew.db.listMessages("release").length, 0);
+  });
+  await t.test("and everyone still has their own direct chat", () => {
+    for (const a of opened.crew.listAgents()) {
+      assert.ok(opened.crew.listChannels().some((c) => c.kind === "dm" && c.dmAgentId === a.id), `${a.name} has a DM`);
+    }
+  });
+});

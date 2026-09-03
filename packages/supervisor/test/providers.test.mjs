@@ -51,8 +51,11 @@ test("the catalog is internally consistent", async (t) => {
 
   await t.test("every provider has a mark to draw", () => {
     for (const p of PROVIDERS) {
-      assert.match(providerAccent(p.id), /^#[0-9a-fA-F]{6}$/);
-      assert.ok(providerMonogram(p.id).length >= 1 && providerMonogram(p.id).length <= 2);
+      assert.match(providerAccent(p.id), /^#[0-9a-fA-F]{6}$/, `${p.id} has no accent colour`);
+      // The fallback for a vendor no icon set carries. Three glyphs is what the tile holds
+      // before the type has to shrink past legibility.
+      const mono = providerMonogram(p.id);
+      assert.ok(mono.length >= 1 && mono.length <= 3, `${p.id} monogram "${mono}" does not fit its tile`);
     }
   });
 

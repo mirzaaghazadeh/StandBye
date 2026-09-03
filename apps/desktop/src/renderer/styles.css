@@ -226,3 +226,7 @@ input.field { min-width: 0; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.28); background-clip: padding-box; border: 2px solid transparent; }
+
+/* The cursor on a message an agent is still writing. */
+.caret { display: inline-block; width: 7px; height: 1em; margin-left: 2px; vertical-align: text-bottom; background: var(--accent); opacity: 0.75; animation: caret 1s steps(2, start) infinite; }
+@keyframes caret { 0%, 50% { opacity: 0.75; } 50.01%, 100% { opacity: 0; } }

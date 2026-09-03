@@ -83,7 +83,8 @@ export function ProviderMark({ id, size = 18, variant = "tile" }: { id: string; 
         width: size, height: size, borderRadius: Math.max(4, Math.round(size * 0.24)), flexShrink: 0,
         background: providerAccent(id), color: "#fff",
         display: "inline-flex", alignItems: "center", justifyContent: "center",
-        fontSize: size * 0.46, fontWeight: 700, letterSpacing: -0.2,
+        // A three-letter monogram (AWS) needs to shrink to sit in the same square as a two.
+        fontSize: size * (providerMonogram(id).length > 2 ? 0.34 : 0.46), fontWeight: 700, letterSpacing: -0.2,
       }}
     >
       {icon

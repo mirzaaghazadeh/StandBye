@@ -334,6 +334,17 @@ export interface Message {
 export type QuestionKind = "question" | "approval" | "hire" | "report";
 export type QuestionStatus = "open" | "answered" | "expired" | "dismissed";
 
+/** A message an agent is part-way through writing. Replaced by the real message when it lands. */
+export interface MessageDraft {
+  runId: string;
+  agentId: string;
+  channelId: string;
+  /** Everything written so far, not just the newest piece. */
+  text: string;
+  /** True when the agent stopped writing: either the message is about to land, or it was abandoned. */
+  done: boolean;
+}
+
 export interface Question {
   id: string;
   kind: QuestionKind;
@@ -476,6 +487,12 @@ export type PushEvent = (
   | { event: "agent.updated"; data: Agent }
   | { event: "agents.updated"; data: Agent[] }
   | { event: "message.created"; data: Message }
+  /**
+   * An agent is writing a message right now. The text grows as the model produces it, so a
+   * channel can show the reply arriving instead of a spinner. Always followed by the real
+   * `message.created` (or by `done: true` with no message, if the agent changed its mind).
+   */
+  | { event: "message.draft"; data: MessageDraft }
   | { event: "question.created"; data: Question }
   | { event: "question.updated"; data: Question }
   | { event: "run.updated"; data: Run }

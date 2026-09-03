@@ -1,4 +1,4 @@
-import { ToolLoopAgent, isStepCount, tool, type LanguageModel, type ToolSet } from "ai";
+import { ToolLoopAgent, isStepCount, parsePartialJson, tool, type LanguageModel, type ToolSet } from "ai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { z } from "zod";
@@ -103,8 +103,40 @@ export const openaiRunner: Runner = async (input) => {
         if (costUsd > agent.budget.perRunUsd) { finished = true; error = `Per-run budget ($${agent.budget.perRunUsd}) exceeded`; failure = "budget"; }
       },
     });
-    const result = await loop.generate({ prompt: input.prompt, abortSignal: signal });
-    if (result.text?.trim()) text = result.text.trim();
+    // Stream rather than generate, so a reply can be watched as it is written. An agent's
+    // message to a channel is the *input* to `post_message`, not free text, so what we follow
+    // is the tool call being composed: the model emits its arguments as JSON deltas, and the
+    // `text` field of that half-finished JSON is the message so far.
+    const result = await loop.stream({ prompt: input.prompt, abortSignal: signal });
+    const drafting = new Map<string, { channelId: string; json: string; sent: string }>();
+    for await (const part of result.fullStream) {
+      if (part.type === "tool-input-start") {
+        if (part.toolName === "post_message") drafting.set(part.id, { channelId: "", json: "", sent: "" });
+        continue;
+      }
+      if (part.type === "tool-input-delta") {
+        const d = drafting.get(part.id);
+        if (!d) continue;
+        d.json += part.delta;
+        const { value } = await parsePartialJson(d.json);
+        const draft = value as { channel?: unknown; text?: unknown } | undefined;
+        if (typeof draft?.channel === "string") d.channelId = draft.channel;
+        const so_far = typeof draft?.text === "string" ? draft.text : "";
+        // Only publish real growth: a partial parse can flap while a string is being escaped.
+        if (so_far.length > d.sent.length && d.channelId) {
+          d.sent = so_far;
+          crew.bus.emit("message.draft", { runId: run.id, agentId: agent.id, channelId: d.channelId, text: so_far, done: false });
+        }
+        continue;
+      }
+      if (part.type === "tool-input-end") {
+        const d = drafting.get(part.id);
+        if (d?.channelId) crew.bus.emit("message.draft", { runId: run.id, agentId: agent.id, channelId: d.channelId, text: d.sent, done: true });
+        drafting.delete(part.id);
+      }
+    }
+    const finalText = await result.text;
+    if (finalText?.trim()) text = finalText.trim();
   } catch (e) {
     const f = classifyFailure(e, spec.name);
     error = f.text;

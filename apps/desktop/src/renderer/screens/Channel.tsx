@@ -62,6 +62,7 @@ export function ChannelScreen({ channelId, dmAgentId }: { channelId: string; dmA
                 </div>
               );
             })}
+            <DraftRow channelId={channelId} />
           </div>
           <WorkingNow channelId={channelId} dmAgentId={dmAgentId} messages={messages} />
           <div style={{ flexShrink: 0, padding: "10px 18px 12px", borderTop: "1px solid var(--border-soft)" }}>
@@ -84,6 +85,30 @@ function statusLine(a: Agent): string {
   if (a.status === "needs_you") return "waiting for you";
   if (a.status === "idle") return a.nextWakeAt ? `idle · next check-in ${hhmm(a.nextWakeAt)}` : "idle";
   return a.status.replace("_", " ");
+}
+
+/**
+ * The reply an agent is writing, appearing as it is written.
+ *
+ * An agent's message is the argument to `post_message`, so what arrives from the model is a
+ * half-finished tool call rather than free text. The runner parses that partial JSON and sends
+ * the message-so-far, which lands here. When the message is really posted, `message.created`
+ * clears the draft and the row below becomes the real one — so the text never jumps.
+ */
+function DraftRow({ channelId }: { channelId: string }) {
+  const draft = useStore((s) => s.drafts[channelId]);
+  const agents = useStore((s) => s.agents);
+  if (!draft?.text) return null;
+  const a = agents.find((x) => x.id === draft.agentId);
+  return (
+    <div className="msg" style={{ opacity: 0.85 }}>
+      <Avatar agent={a} name={draft.agentId} size={26} />
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div className="msg-h"><span className="msg-n">{a?.name ?? draft.agentId}</span><span className="msg-t">{a?.role ? `${a.role} · ` : ""}writing…</span></div>
+        <div className="msg-body sel">{draft.text}<span className="caret" /></div>
+      </div>
+    </div>
+  );
 }
 
 /**

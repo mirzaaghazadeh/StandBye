@@ -803,12 +803,27 @@ export function providerAccent(id: string): string {
   return ACCENTS[id] ?? "#7A756C";
 }
 
-/** One or two letters for the monogram tile. */
+/**
+ * Where initials do not say the right thing. "Azure AI Foundry" derives to AA, and Bedrock is
+ * the AWS one — the letters people actually look for are not always the first two.
+ */
+const MONOGRAMS: Record<string, string> = {
+  bedrock: "AWS",
+  foundry: "Az",
+  codex: "Cx",
+  openai: "AI",
+  custom: "···",
+};
+
+/** Two or three letters for the tile of a provider no icon set carries. */
 export function providerMonogram(id: string): string {
+  if (MONOGRAMS[id]) return MONOGRAMS[id];
   const name = BY_ID.get(id)?.name ?? id;
   const words = name.replace(/[^A-Za-z0-9 ]/g, " ").split(/\s+/).filter(Boolean);
-  if (words.length >= 2) return ((words[0]?.[0] ?? "") + (words[1]?.[0] ?? "")).toUpperCase();
-  return name.slice(0, 2).replace(/^./, (c) => c.toUpperCase());
+  // Title case either way, so "Together AI" and "Droid" sit next to each other as Ta and Dr
+  // rather than TA and Dr.
+  const two = words.length >= 2 ? (words[0]?.[0] ?? "") + (words[1]?.[0] ?? "") : name.slice(0, 2);
+  return two.charAt(0).toUpperCase() + two.slice(1).toLowerCase();
 }
 
 export const PROVIDER_IDS: string[] = PROVIDERS.map((p) => p.id);

@@ -114,3 +114,68 @@ test("a check-in gets the smallest prompt that can make its one decision", async
     }
   });
 });
+
+test("the project's own house rules ride in the cached prompt", async (t) => {
+  // Measured on a real task: about half the steps were orientation, including a step spent
+  // reading CLAUDE.md. That detour repeats on every run, so the rules belong in the prefix.
+  const work = tempDir("standbye-conv-");
+  fs.writeFileSync(path.join(work, "CLAUDE.md"), "# CLAUDE.md\n\nRun `pnpm test` before committing. Never mention AI in a commit message.\n");
+  const { crew } = makeCrew(t, { workspaceRoot: work });
+  const agent = crew.listAgents()[0];
+  const sys = systemPrompt(crew, agent, "full");
+
+  await t.test("the rules are in the prompt already", () => {
+    assert.match(sys, /pnpm test` before committing/);
+    assert.match(sys, /CLAUDE\.md — this project's own instructions/);
+  });
+  await t.test("and the agent is told not to go and fetch them again", () => {
+    assert.match(sys, /you do not need to go and read it again/);
+  });
+  await t.test("a check-in does not carry them, since it never does the work", () => {
+    assert.ok(!systemPrompt(crew, agent, "checkin").includes("pnpm test` before committing"));
+  });
+
+  await t.test("a very long one is clipped rather than sent whole", () => {
+    const big = tempDir("standbye-conv2-");
+    fs.writeFileSync(path.join(big, "AGENTS.md"), "# Rules\n\n" + "policy line\n".repeat(2000));
+    const { crew: c2 } = makeCrew(t, { workspaceRoot: big });
+    const s2 = systemPrompt(c2, c2.listAgents()[0], "full");
+    assert.match(s2, /AGENTS\.md — this project's own instructions/);
+    assert.match(s2, /read `AGENTS\.md` yourself if you need the rest/);
+    assert.ok(s2.length < 12000, `prompt stayed bounded, was ${s2.length}`);
+  });
+
+  await t.test("a project with no such file is unaffected", () => {
+    const bare = tempDir("standbye-conv3-");
+    const { crew: c3 } = makeCrew(t, { workspaceRoot: bare });
+    assert.ok(!systemPrompt(c3, c3.listAgents()[0], "full").includes("this project's own instructions"));
+  });
+});
+
+test("a direct message is a conversation, not a work order", async (t) => {
+  // Measured: "hi" in a DM sent the agent to run `git log` and `git status` before answering —
+  // three model round-trips and 41 seconds to say hello.
+  const { crew } = makeCrew(t);
+  const agent = crew.listAgents()[0];
+  const dm = crew.listChannels().find((c) => c.kind === "dm" && c.dmAgentId === agent.id);
+  const msg = crew.postMessage({ channel: dm.id, authorId: "user", text: "hi", kind: "chat", mentions: [agent.id] });
+  const run = crew.createRun(agent.id, { kind: "mention", messageId: msg.id, by: "user", depth: 0 }, "m");
+  const p = runPrompt(crew, agent, run);
+
+  await t.test("it is framed as the owner talking to them", () => {
+    assert.match(p, /wrote to you directly/);
+    assert.match(p, /This is a conversation/);
+  });
+  await t.test("it says answer first, and do not go poking at the repo", () => {
+    assert.match(p, /do not go and check the repo before saying hello/);
+    assert.match(p, /Only look something up or touch the workspace if .* actually asked/);
+  });
+
+  await t.test("a mention in a group channel still means do the work", () => {
+    const gm = crew.postMessage({ channel: "general", authorId: "user", text: `@${agent.name} ship it`, kind: "chat", mentions: [agent.id] });
+    const gr = crew.createRun(agent.id, { kind: "mention", messageId: gm.id, by: "user", depth: 0 }, "m");
+    const gp = runPrompt(crew, agent, gr);
+    assert.match(gp, /Respond in that channel if a response is needed, or do the work/);
+    assert.ok(!gp.includes("This is a conversation"));
+  });
+});

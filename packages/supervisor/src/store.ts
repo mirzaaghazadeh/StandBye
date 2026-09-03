@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { AgentConfig, AgentFiles, TeamConfig } from "@crew/shared";
+import type { AgentConfig, AgentFiles, Channel, TeamConfig } from "@crew/shared";
 
 /**
  * Agents are folders. Everything a person would want to read or edit by hand
@@ -98,5 +98,33 @@ export class Store {
   /** Skills every agent on this team gets. */
   get teamSkillsDir(): string {
     return path.join(this.dataDir, "skills");
+  }
+
+  // ---- channels ----
+  //
+  // The rooms a team talks in are part of how it is set up, so they belong in the team folder
+  // next to the agents and travel with the project. What was *said* in them is history: that
+  // stays in crew.db, which is git-ignored. Clone a repo and you get the team and its rooms,
+  // not a transcript of someone else's week.
+
+  private get channelsFile(): string {
+    return path.join(this.dataDir, "channels.json");
+  }
+
+  /** The group channels this team is set up with. Direct chats are derived from the agents, so they are not listed. */
+  readChannels(): Channel[] {
+    try {
+      const rows = JSON.parse(fs.readFileSync(this.channelsFile, "utf8")) as Channel[];
+      return Array.isArray(rows) ? rows.filter((c) => c && c.kind !== "dm" && typeof c.id === "string") : [];
+    } catch {
+      return [];
+    }
+  }
+
+  writeChannels(channels: Channel[]): void {
+    const groups = channels
+      .filter((c) => c.kind !== "dm")
+      .map((c) => ({ id: c.id, name: c.name, purpose: c.purpose, members: c.members, kind: c.kind, dmAgentId: null }));
+    fs.writeFileSync(this.channelsFile, JSON.stringify(groups, null, 2) + "\n");
   }
 }

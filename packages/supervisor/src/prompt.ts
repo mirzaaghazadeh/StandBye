@@ -28,7 +28,44 @@ function workspaceContext(agent: Agent, crew: Crew): string {
   } catch { /* not a repo */ }
   const tree = shallowTree(root);
   if (tree.length) lines.push("Files:", ...tree.map((f) => `- ${f}`));
+  const conventions = projectConventions(root);
+  if (conventions) lines.push("", conventions);
   return lines.join("\n");
+}
+
+/** Files a repo uses to tell a newcomer how to work in it, best first. */
+const CONVENTION_FILES = ["CLAUDE.md", "AGENTS.md", "CONTRIBUTING.md", ".cursorrules"];
+const CONVENTIONS_MAX = 3000;
+
+/**
+ * Hand the agent the project's own house rules instead of making it go and find them.
+ *
+ * Measured on a real task: about half the run's steps were orientation — locating the tests,
+ * working out how they are run, and reading CLAUDE.md for the conventions — and that whole
+ * detour is repeated on every task, in every run, forever. Here it rides in the system prompt,
+ * which is the stable prefix the provider caches, so it is paid for roughly once per run
+ * instead of costing an uncached tool result plus the step that fetched it.
+ */
+function projectConventions(root: string): string {
+  for (const name of CONVENTION_FILES) {
+    const file = path.join(root, name);
+    let body: string;
+    try {
+      if (!fs.statSync(file).isFile()) continue;
+      body = fs.readFileSync(file, "utf8").trim();
+    } catch { continue; }
+    if (!body) continue;
+    const clipped = body.length > CONVENTIONS_MAX;
+    const text = clipped ? body.slice(0, CONVENTIONS_MAX).replace(/\n[^\n]*$/, "") : body;
+    return [
+      `# ${name} — this project's own instructions`,
+      "Written by the owner for whoever works here. Follow it; you do not need to go and read it again.",
+      clipped ? `(first ${CONVENTIONS_MAX} characters; read \`${name}\` yourself if you need the rest)` : "",
+      "",
+      text,
+    ].filter(Boolean).join("\n");
+  }
+  return "";
 }
 
 /** A two-level listing, capped, so the agent can see the shape of the project without running `ls -R`. */
@@ -196,7 +233,21 @@ function triggerText(crew: Crew, t: RunTrigger, owner: string): string {
       return `## Scheduled: ${t.name}\n${t.prompt}`;
     case "mention": {
       const m = crew.db.getMessage(t.messageId);
-      return `## You were mentioned by ${crew.findAgent(t.by)?.name ?? (t.by === "user" ? owner : t.by)} in #${m?.channelId ?? "?"}\n${m ? formatMessage(m) : ""}\nRespond in that channel if a response is needed, or do the work.`;
+      const who = crew.findAgent(t.by)?.name ?? (t.by === "user" ? owner : t.by);
+      // A direct chat is a conversation, not a work order. Measured: "hi" in a DM sent the agent
+      // off to run `git log` and `git status` before answering, three model round-trips and 41
+      // seconds to say hello. Someone talking to you expects an answer first.
+      const dm = m && crew.db.getChannel(m.channelId)?.kind === "dm";
+      if (dm && t.by === "user") {
+        return [
+          `## ${owner} wrote to you directly`,
+          m ? formatMessage(m) : "",
+          `Answer ${owner} with post_message to #${m?.channelId ?? "your direct chat"}, then finish.`,
+          "This is a conversation. Reply from what you already know — you have your memory and what you last did, above.",
+          `Only look something up or touch the workspace if ${owner} actually asked for something that needs it; do not go and check the repo before saying hello.`,
+        ].filter(Boolean).join("\n");
+      }
+      return `## You were mentioned by ${who} in #${m?.channelId ?? "?"}\n${m ? formatMessage(m) : ""}\nRespond in that channel if a response is needed, or do the work.`;
     }
     case "task":
       return `## Task from ${crew.findAgent(t.from)?.name ?? (t.from === "user" ? owner : t.from)}: ${t.title}\n${t.details}\nDo it. Report the result in the channel where it was assigned.`;
