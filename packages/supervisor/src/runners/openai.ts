@@ -110,6 +110,10 @@ export const openaiRunner: Runner = async (input) => {
     const result = await loop.stream({ prompt: input.prompt, abortSignal: signal });
     const drafting = new Map<string, { channelId: string; json: string; sent: string }>();
     for await (const part of result.fullStream) {
+      // A streamed run reports provider trouble as a part rather than by rejecting, so without
+      // this an expired key or an empty balance would arrive as a nameless "other" failure and
+      // the agent would never be paused for it.
+      if (part.type === "error") throw part.error;
       if (part.type === "tool-input-start") {
         if (part.toolName === "post_message") drafting.set(part.id, { channelId: "", json: "", sent: "" });
         continue;

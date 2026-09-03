@@ -6,6 +6,13 @@
 // and no API key is ever set, so any run that does reach a provider fails instantly.
 process.env.CREW_DISABLE_CLAUDE_LOGIN = "1";
 
+// Enforce the "no API key is ever set" contract: a developer shell that exports a provider
+// key (e.g. OPENROUTER_API_KEY) would flip provider readiness mid-suite — providers.test.mjs
+// failed outright and scheduler.test.mjs flaked on teardown. Hide the catalog's env keys
+// before any test module body runs. (Tests that need a key set one themselves and restore it.)
+import { PROVIDERS as PROVIDER_SPECS } from "@crew/shared";
+for (const spec of PROVIDER_SPECS) if (spec.envKey) delete process.env[spec.envKey];
+
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
