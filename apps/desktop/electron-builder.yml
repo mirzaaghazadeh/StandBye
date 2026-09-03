@@ -54,7 +54,10 @@ linux:
   # Without this the executable is named after the package (@crew/desktop), and AppImage refuses
   # the "@" and "/". It is also the WM_CLASS the .desktop entry matches windows against.
   executableName: standbye
-  desktopName: standbye.desktop
+  # electron-builder 26 dropped linux.desktopName; syncDesktopName names the .desktop entry after
+  # executableName instead, which is what the window manager matches against.
+  syncDesktopName: true
+  maintainer: Standbye <hello@standbye.org>
   icon: build/icon.png
   category: Development
   synopsis: BYOK desktop app for 24/7 AI agent teams

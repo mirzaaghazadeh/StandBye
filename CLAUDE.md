@@ -21,7 +21,7 @@ docker build -f apps/web/Dockerfile -t standbye-web .   # from the repo root: ng
 ```
 
 - Shared types must be rebuilt before the supervisor or desktop typecheck sees changes: `pnpm --filter @crew/shared build`.
-- Live tests that spend money: point OpenRouter at `z-ai/glm-5.3-flash` (`providers.set { openrouter: { defaultModel, checkinModel } }`) on a scratch data dir. The OpenRouter key for tests is in `.env` as `openrouter=…` (git-ignored). Set `CREW_DISABLE_CLAUDE_LOGIN=1` on a supervisor to make sure it never uses the machine's Claude Code login.
+- Live tests that spend money: point OpenRouter at `z-ai/glm-5.3-flash` (`providers.set { openrouter: { defaultModel, checkinModel } }`) on a scratch data dir. Pass the OpenRouter key for tests through the environment (`OPENROUTER_API_KEY`); the repo keeps no `.env`. Set `CREW_DISABLE_CLAUDE_LOGIN=1` on a supervisor to make sure it never uses the machine's Claude Code login.
 - Run the supervisor by hand: `node packages/supervisor/dist/index.js --data <dir> --port <n> --token <t>`; talk to it over WebSocket JSON-RPC (`{id, method, params}`), see `scripts/smoke.mjs` for the client shape.
 - Headless UI checks: `CREW_DATA_DIR=<dir> CREW_SCREENSHOT=/path.png CREW_SCREENSHOT_QUIT=1 ./node_modules/.bin/electron .` from `apps/desktop` after `electron-vite build`.
 

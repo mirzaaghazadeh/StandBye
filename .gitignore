@@ -7,10 +7,9 @@ out/
 apps/desktop/release/
 apps/desktop/resources/
 
-# secrets — never commit a real key (see .env.example)
+# secrets — the project uses no .env; this is a backstop so a stray one never lands again
 .env
 .env.*
-!.env.example
 
 # local artifacts
 *.log

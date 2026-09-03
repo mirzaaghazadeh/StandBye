@@ -65,9 +65,9 @@ it's an accurate map for humans too.
 ## Tests
 
 `pnpm test` runs against built output, so build first (the script does it for you). Tests that spend
-real money are opt-in and point at a cheap model — copy `.env.example` to `.env`, put an OpenRouter
-key in it, and point the provider at `z-ai/glm-5.3-flash` on a scratch data directory. Never commit
-`.env`.
+real money are opt-in and point at a cheap model — set `OPENROUTER_API_KEY` in your shell and point
+the provider at `z-ai/glm-5.3-flash` on a scratch data directory. Keep keys in your environment;
+the repo has no `.env` and shouldn't grow one.
 
 If you're touching the scheduler, the queue, permissions or budgets, add a test. Those four are
 where a subtle regression costs somebody real money.
