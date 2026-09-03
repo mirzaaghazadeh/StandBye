@@ -11,32 +11,39 @@ const caffeinates = () => {
   catch { return 0; }
 };
 
+/** Spawning and killing a process is not instant, so wait for the count rather than guess at it. */
+async function settles(want, why) {
+  for (let i = 0; i < 60; i++) {
+    if (caffeinates() === want) return;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  assert.equal(caffeinates(), want, why);
+}
+const onMac = process.platform === "darwin";
+
 test("the machine is held awake only while there is work in flight", async (t) => {
   const before = caffeinates();
   const k = new KeepAwake();
   t.after(() => k.dispose());
 
-  await t.test("nothing is held while the team is idle", () => {
+  await t.test("nothing is held while the team is idle", async () => {
     k.set(0);
-    assert.equal(caffeinates(), before, "no assertion for an idle team");
+    await settles(before, "no assertion for an idle team");
   });
 
   await t.test("a run in flight holds one", async () => {
     k.set(1);
-    await new Promise((r) => setTimeout(r, 300));
-    assert.equal(caffeinates(), before + (process.platform === "darwin" ? 1 : 0));
+    await settles(before + (onMac ? 1 : 0), "a run in flight holds one");
   });
 
   await t.test("more runs do not stack more of them", async () => {
     k.set(3);
-    await new Promise((r) => setTimeout(r, 200));
-    assert.equal(caffeinates(), before + (process.platform === "darwin" ? 1 : 0), "one is enough");
+    await settles(before + (onMac ? 1 : 0), "one is enough");
   });
 
   await t.test("it is let go the moment the last run ends", async () => {
     k.set(0);
-    await new Promise((r) => setTimeout(r, 300));
-    assert.equal(caffeinates(), before, "the Mac may sleep again");
+    await settles(before, "the Mac may sleep again");
   });
 
   await t.test("the owner can switch it off, and it is honoured without a restart", async () => {
@@ -44,20 +51,17 @@ test("the machine is held awake only while there is work in flight", async (t) =
     const off = new KeepAwake(() => allowed);
     t.after(() => off.dispose());
     off.set(1);
-    await new Promise((r) => setTimeout(r, 250));
-    const withIt = caffeinates();
+    await settles(before + (onMac ? 1 : 0), "held while allowed");
     allowed = false;
     off.set(2);            // still working, but no longer permitted
-    await new Promise((r) => setTimeout(r, 250));
-    assert.ok(caffeinates() < withIt || process.platform !== "darwin", "it lets go when the setting says no");
+    await settles(before, "it lets go when the setting says no");
     off.dispose();
   });
 
   await t.test("dispose never leaves one behind holding the machine awake for nobody", async () => {
     k.set(2);
-    await new Promise((r) => setTimeout(r, 200));
+    await settles(before + (onMac ? 1 : 0), "held while working");
     k.dispose();
-    await new Promise((r) => setTimeout(r, 300));
-    assert.equal(caffeinates(), before);
+    await settles(before, "and let go on shutdown");
   });
 });

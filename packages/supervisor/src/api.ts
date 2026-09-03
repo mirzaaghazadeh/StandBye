@@ -3,8 +3,8 @@ import { WebSocketServer, WebSocket } from "ws";
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import type { AgentConfig, AgentFiles, GitSettings, Provider, ProviderConfig, PushEvent, RpcRequest, RpcResponse, SkillInstallKind, SkillScope, SkillTarget, TeamConfig, TeamDraft } from "@crew/shared";
-import { PROVIDERS, providerSpec, TeamDraftSchema } from "@crew/shared";
+import type { AgentConfig, AgentDraft, AgentFiles, GitSettings, Provider, ProviderConfig, PushEvent, RpcRequest, RpcResponse, SkillInstallKind, SkillScope, SkillTarget, TeamConfig, TeamDraft } from "@crew/shared";
+import { AgentDraftSchema, PROVIDERS, providerSpec, TeamDraftSchema } from "@crew/shared";
 import { probeProvider } from "./providers.js";
 import { previewCommand } from "./runners/cli.js";
 import { skillOrigins } from "./skills.js";
@@ -157,6 +157,23 @@ export class Api {
 
       // ----- agents -----
       "agents.list": (_p, conn) => (conn.teamId ? this.crewFor(conn).listAgents() : []),
+      /**
+       * Hire someone into a team that already exists. Until this, an agent could only be created
+       * when the team was first built or by another agent proposing a hire the owner approved —
+       * so the owner could not simply add the teammate they knew they wanted.
+       */
+      "agents.create": (p: { draft: AgentDraft }, conn) => {
+        const { crew, scheduler } = this.rtFor(conn);
+        const draft = AgentDraftSchema.parse(p.draft);
+        if (crew.listAgents().some((a) => a.name.toLowerCase() === draft.name.trim().toLowerCase())) {
+          throw new Error(`This team already has someone called ${draft.name}.`);
+        }
+        const agent = crew.createAgent(draft);
+        scheduler.rebuildCrons();
+        scheduler.tick();
+        hub.touched();
+        return agent;
+      },
       "agent.get": (p: { id: string }, conn) => this.crewFor(conn).getAgent(p.id),
       "agent.update": (p: { id: string; patch: Partial<AgentConfig> }, conn) => { const { crew, scheduler } = this.rtFor(conn); const a = crew.updateAgent(p.id, p.patch); scheduler.rebuildCrons(); return a; },
       "agent.files.get": (p: { id: string }, conn) => this.crewFor(conn).store.readAgentFiles(p.id),

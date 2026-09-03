@@ -113,6 +113,14 @@ export class Scheduler {
   private subscribe(): void {
     const { crew, queue } = this;
 
+    // The team can change under us: the owner edits a soul or a schedule in their editor, or drops
+    // a whole agent folder in by hand. Rebuild the crons so a changed schedule takes effect now,
+    // and tick so an agent that has just appeared gets its first check-in rather than waiting.
+    crew.bus.on("agents.updated", () => {
+      this.rebuildCrons();
+      this.tick();
+    });
+
     crew.bus.on("message.created", (m) => {
       if (m.kind === "system") return;
       const cap = crew.team?.chatDepthCap ?? DEFAULTS.chatDepthCap;

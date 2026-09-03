@@ -14,6 +14,7 @@ import { runDiff } from "./git.js";
 import { Store } from "./store.js";
 import { SkillLibrary } from "./skills.js";
 import { Backlog } from "./backlog.js";
+import { watchTeamFolder, type FolderWatch } from "./folder-watch.js";
 import { DEFAULTS } from "./config.js";
 import { DEFAULT_DEV_RULES } from "./permissions.js";
 import { defaultSettings, hasClaudeLogin, preferredProvider, readSettings, statusFor, writeSettings, type Keys } from "./providers.js";
@@ -76,6 +77,7 @@ export class Crew {
 
   /** Runs cut off by a restart, waiting for the scheduler to start them again. Read once. */
   interrupted: Run[] = [];
+  private folderWatch: FolderWatch | null = null;
 
   private readonly runtime = new Map<string, AgentRuntime>();
   private readonly waiters = new Map<string, (answer: string | null) => void>();
@@ -102,13 +104,45 @@ export class Crew {
     if (this.interrupted.length) log(`${this.interrupted.length} run(s) were cut off by a restart; they will be picked up again`, { team: this.team?.id });
     this.restoreChannels();
     this.ensureGeneral();
+    this.watchFolder();
     for (const a of this.store.listAgentConfigs()) this.ensureDm(a.id); // teams created before direct chats existed
   }
 
   get id(): string | null {
     return this.team?.id ?? null;
   }
+  /**
+   * Follow the folder. A team is files so a person can edit them; when they do, the running app
+   * should already agree with what is on disk rather than needing a restart.
+   */
+  private watchFolder(): void {
+    // Not conditional on a team existing yet: a crew is often constructed before its team.json is
+    // written, and the folder is the thing being watched either way.
+    if (this.folderWatch) return;
+    this.folderWatch = watchTeamFolder(this.opts.dataDir, () => this.reloadFromDisk());
+  }
+
+  /**
+   * Re-read what the team is. Safe to call at any time: everything here is derived from the files
+   * rather than accumulated, so an edit, a new agent folder, or a deleted one all land the same way.
+   */
+  reloadFromDisk(): void {
+    const before = this.store.listAgentConfigs().map((a) => a.id).join(",");
+    this.team = this.store.readTeam();
+    if (!this.team) return;
+    this.restoreChannels();
+    this.ensureGeneral();
+    // Someone dropped an agent folder in by hand: it needs its direct chat and its place in the
+    // rooms, exactly as if it had been hired through the app.
+    for (const cfg of this.store.listAgentConfigs()) this.ensureDm(cfg.id);
+    const after = this.store.listAgentConfigs().map((a) => a.id).join(",");
+    if (before !== after) log(`the team on disk changed: now ${after.split(",").filter(Boolean).length} agent(s)`, { team: this.team.id });
+    this.bus.emit("team.updated", this.team);
+    this.bus.emit("agents.updated", this.listAgents());
+  }
+
   close(): void {
+    this.folderWatch?.close();
     this.skills.dispose();
     this.db.sqlite.close();
   }
