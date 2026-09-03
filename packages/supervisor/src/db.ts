@@ -37,6 +37,29 @@ CREATE TABLE IF NOT EXISTS decisions (
 );
 `;
 
+/**
+ * Ordered schema migrations, applied in one transaction at open. MIGRATIONS[i] upgrades a
+ * database stamped user_version i to i + 1; after applying, user_version is stamped to
+ * MIGRATIONS.length. Each migration must be safe on any database the previous schema could
+ * have produced: SQLite has no ADD COLUMN IF NOT EXISTS, so column migrations check
+ * PRAGMA table_info themselves instead of assuming the column is missing.
+ */
+export type Migration = { name: string; apply: (sqlite: Database.Database) => void };
+
+export const MIGRATIONS: Migration[] = [
+  {
+    name: "channels-kind-and-dm-agent-id",
+    // First versioned migration, moved here from the ad-hoc guard that used to run after
+    // SCHEMA. The columns may already exist: every install before user_version had them
+    // added by that guard, so only alter when missing.
+    apply(sqlite) {
+      const cols = (sqlite.prepare("PRAGMA table_info(channels)").all() as { name: string }[]).map((c) => c.name);
+      if (!cols.includes("kind")) sqlite.exec("ALTER TABLE channels ADD COLUMN kind TEXT NOT NULL DEFAULT 'group'");
+      if (!cols.includes("dm_agent_id")) sqlite.exec("ALTER TABLE channels ADD COLUMN dm_agent_id TEXT");
+    },
+  },
+];
+
 export class Db {
   readonly sqlite: Database.Database;
 
@@ -44,8 +67,23 @@ export class Db {
     this.sqlite = new Database(path.join(dataDir, "crew.db"));
     this.sqlite.pragma("journal_mode = WAL");
     this.sqlite.exec(SCHEMA);
-    const cols = (this.sqlite.prepare("PRAGMA table_info(channels)").all() as { name: string }[]).map((c) => c.name);
-    if (!cols.includes("kind")) this.sqlite.exec("ALTER TABLE channels ADD COLUMN kind TEXT NOT NULL DEFAULT 'group'; ALTER TABLE channels ADD COLUMN dm_agent_id TEXT;");
+    this.migrate();
+  }
+
+  /**
+   * Applies pending migrations in one transaction, then stamps user_version to
+   * MIGRATIONS.length. A failing migration aborts open with the database untouched:
+   * the transaction rolls back including the version stamp, so the same migration
+   * simply runs again on the next boot.
+   */
+  private migrate(): void {
+    const from = this.sqlite.pragma("user_version", { simple: true }) as number;
+    if (from >= MIGRATIONS.length) return;
+    const run = this.sqlite.transaction(() => {
+      for (const migration of MIGRATIONS.slice(from)) migration.apply(this.sqlite);
+      this.sqlite.pragma(`user_version = ${MIGRATIONS.length}`);
+    });
+    run();
   }
 
   // ---- channels ----
