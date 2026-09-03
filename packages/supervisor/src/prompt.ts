@@ -47,57 +47,80 @@ function workspaceContext(agent: Agent, crew: Crew): string {
 function autonomySection(crew: Crew, agent: Agent, owner: string): string {
   const level: Autonomy = crew.team?.autonomy ?? "pr";
   const lead = isLead(agent);
-  const board = crew.backlog.summary();
   const lines = [
     "# Deciding what to do",
-    `${owner} is not always here. Between them asking for things, it is on you to notice what this project needs and to keep the backlog honest.`,
+    `${owner} is not always here. Between them asking for things, it is on you to notice what this project needs and to keep the board honest.`,
     `What you may do without asking: ${AUTONOMY_RULE[level]}`,
-    "The backlog is how work survives between runs. add_idea when you notice something real; list_backlog before you start anything, so you do not repeat a teammate; claim_item before you build; finish_item when it is done, in review, or not worth doing.",
-    "An idea needs a case: what is wrong or missing today and who it hurts. \"Add tests\" is not an idea; \"approval.ts has no test for the deadlock we just fixed, so it can silently come back\" is.",
-    "Do not invent work to look busy. A quiet day where nothing needed doing is a good day, and saying so costs the team nothing.",
+    "The board is where work lives, and it is the same board ${owner} sees in the app. `list_tasks` before you start anything, so you do not repeat a teammate; `claim_task` before you build, so nobody does it twice; `finish_task` when it is done. `file_task` when you notice something worth doing that nobody should start right now.",
+    "A task needs enough for someone else to pick it up: what is wrong today and what done looks like, with file paths where you know them. \"Add tests\" is not a task; \"approval.ts has no test for the deadlock we just fixed, so it can silently come back\" is.",
+    "Do not invent work to look busy. A quiet day where the board is empty and nothing needed doing is a good day, and saying so costs the team nothing.",
   ];
   if (lead) {
     lines.push(
-      `You are the lead, so ranking is yours: decide what actually serves the charter next with rank_backlog, mark it ready, and hand it out with assign_task. Ask ${owner} only when the call is genuinely theirs — money, product direction, or anything irreversible.`,
+      `You are the lead, so the order is yours: decide what actually serves the charter next, hand work out with assign_task, and keep the board from filling with things nobody will do. Ask ${owner} only when the call is genuinely theirs — money, product direction, or anything irreversible.`,
     );
   }
   if (level === "auto") {
     lines.push(
-      `Nobody is waiting to answer you. Do not use ask_user to ask a question — there is no one to answer it, and the run would stall until it timed out. Decide it yourself, do the smaller safer version when you are unsure, and write the decision and your reasoning into the backlog item or your memory so ${owner} can see afterwards what you chose and why.`,
+      `Nobody is waiting to answer you. Do not use ask_user to ask a question — there is no one to answer it, and the run would stall until it timed out. Decide it yourself, do the smaller safer version when you are unsure, and write the decision and your reasoning into the task and your memory so ${owner} can see afterwards what you chose and why.`,
       `Keep ${owner} informed rather than consulted: ask_user with kind "report" does not block, and a short note in #general costs nothing.`,
-      "A rule set to block is still a hard stop. Do not try to work around one; find another way or drop the item and say why.",
+      "A rule set to block is still a hard stop. Do not try to work around one; find another way or drop the task and say why.",
     );
   }
   if (level === "propose") {
-    lines.push(`Because the team is set to propose-only, do not write code for a backlog item until ${owner} has said yes to that item.`);
+    lines.push(`Because the team is set to propose-only, do not write code for a task until ${owner} has said yes to it.`);
   }
-  if (board) lines.push("", "## The backlog right now", board);
+  const board = boardSummary(crew, agent);
+  if (board) lines.push("", board);
   return lines.join("\n");
+}
+
+/**
+ * The board as the agent needs to see it: what is waiting, what is being done and by whom, and
+ * what this agent already owns. Only the open columns — done work is history, and the point of a
+ * shared board is that nobody starts something a teammate is already holding.
+ */
+function boardSummary(crew: Crew, agent: Agent): string {
+  const tasks = crew.db.listTasks().filter((t) => t.column !== "done");
+  if (!tasks.length) return "## The board is empty\nNothing is waiting. If you can see something worth doing, file it.";
+  const name = (id: string | null): string =>
+    !id ? "unclaimed" : id === "owner" ? crew.team?.ownerName ?? "the owner" : crew.findAgent(id)?.name ?? id;
+  const line = (t: { id: string; title: string; assignee: string | null; detail: string | null }): string =>
+    `- [${t.id}] ${t.title}${t.assignee ? ` — ${name(t.assignee)}` : " — unclaimed"}${t.detail ? `\n    ${t.detail.split("\n")[0]!.slice(0, 140)}` : ""}`;
+  const mine = tasks.filter((t) => t.assignee === agent.id);
+  const free = tasks.filter((t) => !t.assignee);
+  const theirs = tasks.filter((t) => t.assignee && t.assignee !== agent.id);
+  const out = ["## The board right now"];
+  if (mine.length) out.push("Yours, already claimed — finish these before starting anything else:", ...mine.map(line));
+  if (free.length) out.push("Waiting for someone:", ...free.slice(0, 10).map(line));
+  if (theirs.length) out.push("Being done by a teammate — leave them alone:", ...theirs.slice(0, 10).map(line));
+  return out.join("\n");
 }
 
 /**
  * What an idle check-in should do with itself.
  *
- * A check-in that finds nothing new used to answer "nothing new" and stop, which is most
- * wake-ups — and it is exactly the moment an agent has time to notice what the project needs.
- * The rule here is deliberately narrow: escalate when there is real work waiting, or when the
- * backlog is empty and nobody has looked lately. Otherwise stop. A check-in runs on the cheap
- * model and cannot do the work itself; its only job is to decide whether the full model should.
+ * A check-in that finds nothing new used to answer "nothing new" and stop, which is most wake-ups
+ * — and it is exactly the moment an agent has time to notice what the project needs. The rule is
+ * deliberately narrow: escalate when there is real work waiting, or when the board is empty and
+ * nobody has looked lately. Otherwise stop. A check-in runs on the cheap model and cannot do the
+ * work itself; its only job is to decide whether the full model should.
  */
 function idleWork(crew: Crew, agent: Agent): string {
-  const ready = crew.backlog.open().filter((i) => i.status === "ready" && !i.claimedBy);
-  const mine = crew.backlog.open().filter((i) => i.claimedBy === agent.id);
+  const open = crew.db.listTasks().filter((t) => t.column !== "done");
+  const mine = open.filter((t) => t.assignee === agent.id);
   if (mine.length) {
-    return `You still own ${mine.map((i) => `[${i.id}] ${i.title}`).join(", ")}. Escalate and finish it.`;
+    return `You still own ${mine.map((t) => `[${t.id}] ${t.title}`).join(", ")}. Escalate and finish it.`;
   }
-  if (ready.length) {
-    const top = ready[0]!;
-    return `The backlog has work ready and unclaimed: [${top.id}] ${top.title}. Escalate to pick it up.`;
+  const free = open.filter((t) => !t.assignee);
+  if (free.length) {
+    const top = free[0]!;
+    return `The board has work nobody has picked up: [${top.id}] ${top.title}. Escalate to take it.`;
   }
-  if (!crew.backlog.open().length) {
-    return "The backlog is empty. If you have not looked lately, escalate to go and find what this project needs — read the recent commits, the failing or missing tests, the TODOs, the rough edges you have hit yourself — and write what you find down with add_idea. If you looked recently and found nothing, just finish.";
+  if (!open.length) {
+    return "The board is empty. If you have not looked lately, escalate to go and find what this project needs — read the recent commits, the failing or missing tests, the rough edges you have hit yourself — and file what you find. If you looked recently and found nothing, just finish.";
   }
-  return "Everything on the backlog is either unranked or already taken, so there is nothing for you to start. Finish.";
+  return "Everything on the board is already being done by someone. Finish.";
 }
 
 /** The lead is whoever the team calls one; teams built from the template have exactly one. */

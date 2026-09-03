@@ -84,32 +84,32 @@ test("agents are told what they may decide alone", async (t) => {
   await t.test("propose-only says plainly not to write code yet", () => {
     crew.updateTeam({ autonomy: "propose" });
     const p = systemPrompt(crew, lead, "full");
-    assert.match(p, /do not write code for a backlog item until/);
+    assert.match(p, /do not write code for a task until/);
   });
 
   await t.test("full autonomy drops that line", () => {
     crew.updateTeam({ autonomy: "auto" });
     const p = systemPrompt(crew, lead, "full");
-    assert.ok(!p.includes("do not write code for a backlog item until"));
+    assert.ok(!p.includes("do not write code for a task until"));
     assert.match(p, new RegExp(AUTONOMY_RULE.auto.slice(0, 40)));
   });
 
   await t.test("the lead is told ranking is theirs, and a teammate is not", () => {
     crew.updateTeam({ autonomy: "pr" });
-    assert.match(systemPrompt(crew, lead, "full"), /ranking is yours/);
+    assert.match(systemPrompt(crew, lead, "full"), /the order is yours/);
     const other = crew.listAgents().find((a) => a.id !== lead.id);
-    if (other) assert.ok(!systemPrompt(crew, other, "full").includes("ranking is yours"));
+    if (other) assert.ok(!systemPrompt(crew, other, "full").includes("the order is yours"));
   });
 
-  await t.test("the board itself rides in the prompt, so nobody has to go and read the file", () => {
-    crew.backlog.add({ title: "Ship the release notes", rationale: "nobody knows what changed", addedBy: "user", status: "ready" });
+  await t.test("the board itself rides in the prompt, so nobody has to go and read it", () => {
+    crew.db.createTask({ title: "Ship the release notes", detail: "what changed, in plain words", createdBy: "owner" });
     assert.match(systemPrompt(crew, lead, "full"), /Ship the release notes/);
   });
 
   await t.test("a check-in stays lean and carries none of it", () => {
     const c = systemPrompt(crew, lead, "checkin");
     assert.ok(!c.includes("Ship the release notes"));
-    assert.ok(!c.includes("add_idea"));
+    assert.ok(!c.includes("list_tasks"));
   });
 });
 
@@ -123,24 +123,24 @@ test("an idle check-in looks for work instead of napping", async (t) => {
     return runPrompt(crew, agent, crew.createRun(agent.id, { kind: "heartbeat" }, "m"));
   };
 
-  await t.test("an empty backlog is a reason to go and find something", () => {
-    assert.match(idle(), /backlog is empty.*escalate to go and find what this project needs/is);
+  await t.test("an empty board is a reason to go and find something", () => {
+    assert.match(idle(), /board is empty.*escalate to go and find what this project needs/is);
   });
 
-  await t.test("ready and unclaimed work is a reason to escalate and take it", () => {
-    const item = crew.backlog.add({ title: "Fix the flaky scheduler test", rationale: "it fails on teardown", addedBy: "user", status: "ready" });
-    assert.match(idle(), new RegExp(`\\[${item.id}\\] Fix the flaky scheduler test`));
+  await t.test("unclaimed work is a reason to escalate and take it", () => {
+    const task = crew.db.createTask({ title: "Fix the flaky scheduler test", createdBy: "owner" });
+    assert.match(idle(), new RegExp(`\\[${task.id}\\] Fix the flaky scheduler test`));
   });
 
   await t.test("work you already own outranks anything else", () => {
-    const mine = crew.backlog.add({ title: "Half-finished refactor", rationale: "started it yesterday", addedBy: agent.id, status: "ready" });
-    crew.backlog.claim(mine.id, agent.id);
+    const mine = crew.db.createTask({ title: "Half-finished refactor", createdBy: agent.id, assignee: agent.id });
+    assert.ok(mine.id);
     assert.match(idle(), /You still own .*Half-finished refactor.*Escalate and finish it/s);
   });
 
   await t.test("when everything is taken, it says so and stops", () => {
-    for (const i of crew.backlog.open()) crew.backlog.update(i.id, { status: "claimed", claimedBy: "someone-else" });
-    assert.match(idle(), /nothing for you to start\. Finish\./);
+    for (const t2 of crew.db.listTasks()) crew.db.updateTask(t2.id, { assignee: "someone-else" });
+    assert.match(idle(), /already being done by someone\. Finish\./);
   });
 });
 

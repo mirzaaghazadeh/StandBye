@@ -21,7 +21,7 @@ interface TeamRuntime {
  * gets the team. What is ignored is either this machine's own business (the database, the logs)
  * or regenerated on every run (`.skillset`, the plugin folder of symlinks the Claude runner builds).
  */
-const TEAM_IGNORE = ["crew.db", "crew.db-wal", "crew.db-shm", "logs/", "agents/*/.skillset/", ""];
+const TEAM_IGNORE = ["crew.db", "crew.db-wal", "crew.db-shm", "logs/", "agents/*/.skillset/", ".DS_Store", ""];
 
 /** Write the team's .gitignore, and top up an older one that predates a rule rather than clobbering it. */
 function writeTeamIgnore(dir: string): void {

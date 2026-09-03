@@ -16,7 +16,7 @@ test("answering the owner does not carry the whole working apparatus", async (t)
   const { crew } = makeCrew(t, { workspaceRoot: work });
   t.after(() => fs.rmSync(work, { recursive: true, force: true }));
   const agent = crew.listAgents()[0];
-  crew.backlog.add({ title: "Something on the board", rationale: "because", addedBy: "user", status: "ready" });
+  crew.db.createTask({ title: "Something on the board", detail: "what done looks like", createdBy: "owner" });
 
   const full = systemPrompt(crew, agent, "full");
   const reply = systemPrompt(crew, agent, "reply");
