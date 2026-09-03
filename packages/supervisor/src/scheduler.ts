@@ -18,6 +18,11 @@ export class Scheduler {
 
   constructor(private readonly crew: Crew) {
     this.queue = new Queue(crew, (agentId, reason) => this.queue.enqueue(agentId, { kind: "escalated", reason }));
+    // Runs waiting on an owner answer park themselves and free their queue slot.
+    this.crew.setSlotBridge({
+      suspend: (runId) => this.queue.suspendSlot(runId),
+      resume: (runId) => this.queue.resumeSlot(runId),
+    });
     this.subscribe();
   }
 

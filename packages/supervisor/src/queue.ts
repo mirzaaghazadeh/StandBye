@@ -8,11 +8,17 @@ import { executeRun } from "./runner.js";
  * Wake-ups from the owner go to the front. Duplicate wake-ups collapse: a run already sees
  * every new message and open question, so a second queued mention adds nothing.
  * Every run has a hard timeout.
+ * A run blocked on an owner answer parks itself (suspendSlot) to free its slot for other
+ * runs; when the answer arrives it re-enters FIFO, ahead of fresh pending runs.
  */
 export class Queue {
   private readonly pending: Run[] = [];
   private readonly active = new Map<string, AbortController>(); // runId -> abort
   private readonly busyAgents = new Set<string>();
+  // Runs parked while their agent waits on an owner answer (needs_you): their concurrency
+  // slot is freed but the run itself keeps executing. Map insertion order is the FIFO
+  // re-entry order; `resolve` is set once the run wants its slot back.
+  private readonly suspended = new Map<string, { ac: AbortController; resolve?: () => void }>();
 
   constructor(private readonly crew: Crew, private readonly onEscalate: (agentId: string, reason: string) => void) {}
 
@@ -40,13 +46,60 @@ export class Queue {
       this.crew.finishRun(run!, "cancelled", "Cancelled before it started");
       return true;
     }
+    const parked = this.suspended.get(runId);
+    if (parked) {
+      this.suspended.delete(runId);
+      parked.resolve?.();
+      parked.ac.abort("cancelled");
+      return true;
+    }
     const ac = this.active.get(runId);
     if (ac) { ac.abort("cancelled"); return true; }
     return false;
   }
   cancelAll(): void {
     for (const run of this.pending.splice(0)) this.crew.finishRun(run, "cancelled", "Paused");
+    for (const s of this.suspended.values()) {
+      s.resolve?.();
+      s.ac.abort("cancelled");
+    }
+    this.suspended.clear();
     for (const ac of this.active.values()) ac.abort("cancelled");
+  }
+
+  /**
+   * Park a run that is waiting on an owner answer: its concurrency slot goes back to the
+   * pool so other runs can use it. The agent stays busy (the run is still executing) and
+   * the abort controller moves with the run, so timeouts and cancel() still reach it.
+   */
+  suspendSlot(runId: string): void {
+    const ac = this.active.get(runId);
+    if (!ac) return;
+    this.active.delete(runId);
+    this.suspended.set(runId, { ac }); // Map order = FIFO re-entry
+    void this.pump();
+  }
+
+  /**
+   * A parked run got its answer and wants its slot back. Resolves once `pump` has
+   * re-granted the slot — parked runs re-enter FIFO (oldest parked first) and ahead of
+   * fresh pending runs — or immediately if the run was settled/cancelled while parked.
+   */
+  resumeSlot(runId: string): Promise<void> {
+    const parked = this.suspended.get(runId);
+    if (!parked) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      parked.resolve = resolve;
+      void this.pump();
+    });
+  }
+
+  /** A parked run is gone without resuming (cancelled, timed out, finished): drop it. */
+  settleSlot(runId: string): void {
+    const parked = this.suspended.get(runId);
+    if (!parked) return;
+    this.suspended.delete(runId);
+    parked.resolve?.();
   }
 
   private isDuplicate(agentId: string, trigger: RunTrigger): boolean {
@@ -73,6 +126,16 @@ export class Queue {
 
   private async pump(): Promise<void> {
     while (this.active.size < DEFAULTS.maxConcurrentRuns) {
+      // A parked run whose owner answer arrived gets its slot back before any fresh
+      // pending run: it is mid-work, and FIFO by suspension order.
+      const resumed = [...this.suspended.entries()].find(([, s]) => s.resolve);
+      if (resumed) {
+        const [runId, parked] = resumed;
+        this.suspended.delete(runId);
+        this.active.set(runId, parked.ac);
+        parked.resolve?.();
+        continue;
+      }
       const idx = this.pending.findIndex((r) => !this.busyAgents.has(r.agentId));
       if (idx < 0) return;
       const [run] = this.pending.splice(idx, 1);
@@ -95,6 +158,9 @@ export class Queue {
           clearTimeout(timer);
           this.active.delete(run.id);
           this.busyAgents.delete(run.agentId);
+          // The run may have ended while parked on an owner answer (timeout, cancel):
+          // drop any leftover suspended entry so nothing waits on a dead promise.
+          this.settleSlot(run.id);
           void this.pump();
         });
     }

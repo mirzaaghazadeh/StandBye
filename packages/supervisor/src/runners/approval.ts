@@ -41,7 +41,7 @@ export async function gate(ctx: ToolContext, rules: PermissionRule[], toolName: 
   });
   ctx.crew.addStep(ctx.run.id, "ask", `Waiting for ${owner}'s approval: ${sig}`);
   ctx.crew.updateRun(ctx.run, { status: "needs_you" });
-  const answer = await ctx.crew.waitForAnswer(q.id, DEFAULTS.approvalTimeoutMinutes * 60_000);
+  const answer = await ctx.crew.waitOnOwner(q.id, ctx.run.id, DEFAULTS.approvalTimeoutMinutes * 60_000);
   ctx.crew.updateRun(ctx.run, { status: "running" });
   if (answer && /^(approve|yes|ok|allow)/i.test(answer)) {
     ctx.crew.addStep(ctx.run.id, "info", `${owner} approved: ${sig}`);

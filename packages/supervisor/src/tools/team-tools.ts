@@ -110,7 +110,7 @@ export const TEAM_TOOLS = [
       });
       ctx.crew.addStep(ctx.run.id, "ask", `Asked ${ctx.crew.team?.ownerName ?? "the owner"}: ${args.title}`);
       if (args.wait) {
-        const answer = await ctx.crew.waitForAnswer(q.id, DEFAULTS.approvalTimeoutMinutes * 60_000);
+        const answer = await ctx.crew.waitOnOwner(q.id, ctx.run.id, DEFAULTS.approvalTimeoutMinutes * 60_000);
         if (answer !== null) return `Answer: ${answer}`;
         if (q.defaultAnswer) return `No answer within ${DEFAULTS.approvalTimeoutMinutes} minutes. Proceed with your default: ${q.defaultAnswer}`;
         return `No answer yet. Do what you can without it and finish; you'll be woken when they answer.`;

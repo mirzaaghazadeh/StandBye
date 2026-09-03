@@ -450,6 +450,30 @@ export class Crew {
     });
   }
 
+  /** Queue slot bridge, wired by the scheduler (Queue is a scheduler concern, not crew's). */
+  private slotBridge: { suspend(runId: string): void; resume(runId: string): Promise<void> } | null = null;
+  setSlotBridge(bridge: { suspend(runId: string): void; resume(runId: string): Promise<void> } | null): void {
+    this.slotBridge = bridge;
+  }
+
+  /**
+   * Wait for the owner to answer a question, freeing the run's concurrency slot while
+   * parked. With no bridge (unit tests, crew without scheduler) this is just
+   * waitForAnswer. With a bridge, the slot is released BEFORE the wait (the run sits in
+   * needs_you slotless) and re-taken afterwards — in `finally`, so the run re-enters the
+   * FIFO even when the wait times out.
+   */
+  async waitOnOwner(questionId: string, runId: string, timeoutMs: number): Promise<string | null> {
+    const bridge = this.slotBridge;
+    if (!bridge) return this.waitForAnswer(questionId, timeoutMs);
+    try {
+      bridge.suspend(runId);
+      return await this.waitForAnswer(questionId, timeoutMs);
+    } finally {
+      await bridge.resume(runId);
+    }
+  }
+
   /** Apply default answers whose deadline passed. Called by the scheduler tick. */
   expireQuestions(): Question[] {
     const expired = this.db.expiredQuestions(new Date().toISOString());
