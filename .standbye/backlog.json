@@ -20,16 +20,16 @@
     "title": "Versioned schema migrations in db.ts (PRAGMA user_version)",
     "detail": "packages/supervisor/src/db.ts:47-48 applies schema changes as ad-hoc per-column guards (PRAGMA table_info(\"channels\") then ALTER TABLE). Introduce PRAGMA user_version plus an ordered migrations array executed in one transaction at open; move the existing channels guard into it. Future column/table changes become numbered migrations.",
     "rationale": "Every schema change to an existing table is one forgotten table_info guard away from failing boot on every existing install — including live user data dirs. Nothing enforces the guard pattern; a versioned list makes schema changes obvious and idempotent.",
-    "status": "claimed",
+    "status": "done",
     "addedBy": "mina",
-    "claimedBy": "arash",
+    "claimedBy": null,
     "rank": 20,
     "size": "small",
     "branch": "fix/db-migrations",
     "pr": null,
-    "outcome": null,
+    "outcome": "Versioned schema migrations (PRAGMA user_version) landed as eb8d572 on fix/db-migrations: MIGRATIONS list with {name, apply} entries, applied in one transaction on open, version stamped in the same transaction. Sina reviewed and approved with evidence (409/409 tests, typecheck clean, failure-mode checks on legacy db, fresh db, mid-migration crash). One non-blocking nit (sqlite handle leak on failed migrate) filed as its own backlog item. Branch stays local on fix/db-migrations per Mina's spec; promotion to origin/main is Mina's call. 7e223a5 on the branch is Navid's .standbye team-state commit, no code delta.",
     "createdAt": "2026-09-03T16:25:24.181Z",
-    "updatedAt": "2026-09-03T16:41:55.627Z"
+    "updatedAt": "2026-09-03T16:56:12.094Z"
   },
   {
     "id": "e1CmFonw",
@@ -78,5 +78,21 @@
     "outcome": null,
     "createdAt": "2026-09-03T16:25:41.259Z",
     "updatedAt": "2026-09-03T16:25:50.918Z"
+  },
+  {
+    "id": "OoYsT9jV",
+    "title": "Close sqlite handle when a migration fails in db.ts open()",
+    "detail": "In eb8d572 (fix/db-migrations, packages/supervisor/src/db.ts), migrate() runs this.sqlite.transaction(...) and lets a failing migration propagate out of open(). The transaction rolls back correctly, but the better-sqlite3 Database handle is never closed: the caller never receives the object, so the fd and the db lock leak for the life of the process. Fix: wrap the migrate()/open() body in try/catch, call this.sqlite.close() before rethrowing. Test in packages/supervisor/test/db-migrations.test.mjs: a MIGRATIONS entry that throws -> open() rejects AND the underlying file is unlocked (e.g. a second Database open on the same file succeeds). Needs the migrations code from fix/db-migrations, so pick it up on that branch or after it merges to main.",
+    "rationale": "Every failed migration leaks an open sqlite fd and lock until the supervisor process dies; on a corrupt-schema boot loop that is one leaked handle per boot. Graded non-blocking by Sina in the Mexno2W8 review but it is a real defect on an error path.",
+    "status": "idea",
+    "addedBy": "arash",
+    "claimedBy": null,
+    "rank": 60,
+    "size": "small",
+    "branch": null,
+    "pr": null,
+    "outcome": null,
+    "createdAt": "2026-09-03T16:56:12.094Z",
+    "updatedAt": "2026-09-03T16:56:12.094Z"
   }
 ]
