@@ -1,70 +1,109 @@
-// /download/: every platform in one place. macOS ships today; the rest is labelled honestly as coming.
+// /download/: every platform in one place. File names follow apps/desktop/electron-builder.yml; the version
+// and build come from src/commits.json (scripts/fetch-commits.mjs: latest v* tag, else the app's package.json).
+import { useEffect, useState } from "react";
 import { Ic } from "@kit/icons";
 import { Avatar, Button, KindPill, Pill, Progress, Switch, ago } from "@kit/kit";
-import desktopPkg from "@desktop-pkg";
-import { DOWNLOAD, GITHUB, agents, questions, spentToday, team } from "./data";
+import { GITHUB, agents, questions, spentToday, team } from "./data";
 import { Footer, Nav } from "./App";
+import snapshot from "./commits.json";
 
-const VERSION = desktopPkg.version;
+const VERSION = snapshot.version;
 const RELEASES = `${GITHUB}/releases`;
-const NOTIFY = `${GITHUB}/subscription`;
+const asset = (file: string) => `${GITHUB}/releases/latest/download/${file}`;
 
-type Platform = { name: string; icon: React.ReactNode; status: "available" | "soon"; blurb: string; files?: string[]; note: string };
+type Build = { label: string; file: string; primary?: boolean };
+type Platform = { id: "mac" | "win" | "linux"; name: string; icon: React.ReactNode; blurb: string; builds: Build[]; note: string };
 
-const DESKTOP: Platform[] = [
+const PLATFORMS: Platform[] = [
   {
-    name: "macOS", icon: <AppleIcon />, status: "available",
-    blurb: "The full app: the team runs on your Mac, in the menu bar, on your keys.",
-    files: [`Standbye-${VERSION}-arm64.dmg`, `Standbye-${VERSION}-arm64-mac.zip`],
-    note: "Apple silicon. macOS 13 or newer, and Node 22 on the machine (Homebrew, nvm or the official installer).",
+    id: "mac", name: "macOS", icon: <AppleIcon />,
+    blurb: "The team runs on your Mac and lives in the menu bar.",
+    builds: [
+      { label: "Apple silicon", file: `Standbye-${VERSION}-mac-arm64.dmg`, primary: true },
+      { label: "Intel", file: `Standbye-${VERSION}-mac-x64.dmg` },
+    ],
+    note: "macOS 13 or newer. Not notarized yet: the first launch is right-click, Open.",
   },
-  { name: "Windows", icon: <WindowsIcon />, status: "soon", blurb: "Same app, same supervisor, on Windows 11.", note: "The supervisor is plain Node and already runs there; the installer and the tray UI are what's left." },
-  { name: "Linux", icon: <LinuxIcon />, status: "soon", blurb: "AppImage and deb for the machines that never sleep.", note: "Headless mode first, so a team can live on a server and you drive it from the phone app." },
+  {
+    id: "win", name: "Windows", icon: <WindowsIcon />,
+    blurb: "Same app, same supervisor, in the system tray.",
+    builds: [
+      { label: "Installer", file: `Standbye-${VERSION}-win-x64-setup.exe`, primary: true },
+      { label: "Portable zip", file: `Standbye-${VERSION}-win-x64-setup.zip` },
+    ],
+    note: "Windows 10 or 11, 64-bit. Unsigned for now: More info, then Run anyway.",
+  },
+  {
+    id: "linux", name: "Linux", icon: <LinuxIcon />,
+    blurb: "AppImage and deb, for the machines that never sleep.",
+    builds: [
+      { label: "AppImage x64", file: `Standbye-${VERSION}-linux-x86_64.AppImage`, primary: true },
+      { label: "deb x64", file: `Standbye-${VERSION}-linux-amd64.deb` },
+      { label: "AppImage arm64", file: `Standbye-${VERSION}-linux-arm64.AppImage` },
+      { label: "deb arm64", file: `Standbye-${VERSION}-linux-arm64.deb` },
+    ],
+    note: "Any recent distribution. Works headless too, so a team can live on a server.",
+  },
 ];
 
+function detectPlatform(): Platform["id"] {
+  const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
+  if (/Windows/i.test(ua)) return "win";
+  if (/Linux|X11/i.test(ua) && !/Android/i.test(ua)) return "linux";
+  return "mac";
+}
+
 export function DownloadPage() {
+  const [mine, setMine] = useState<Platform["id"]>("mac");
+  useEffect(() => { setMine(detectPlatform()); }, []);
   return (
     <>
       <Nav />
       <main>
         <section className="hero hero-dl">
           <div className="wrap">
-            <div className="eyebrow"><Pill bg="var(--accent-soft)" ink="var(--accent-dark)">Free · open source</Pill><Pill>Version {VERSION}</Pill></div>
+            <div className="eyebrow">
+              <Pill bg="var(--accent-soft)" ink="var(--accent-dark)">Free · open source</Pill>
+              <Pill>macOS · Windows · Linux</Pill>
+              <Pill mono>v{VERSION} · {snapshot.head}</Pill>
+            </div>
             <h1>Get Standbye</h1>
-            <p className="lede">One download for your Mac today. The other platforms, and the phone app for running the team from wherever you are, are on the way.</p>
+            <p className="lede">One app for your Mac, your PC or your Linux box. The phone app for running the team from wherever you are is on the way.</p>
           </div>
         </section>
 
         <section className="sec-block" style={{ paddingTop: 0 }}>
           <div className="wrap wrap-wide">
             <div className="plats">
-              {DESKTOP.map((p) => (
-                <div key={p.name} className={"card plat" + (p.status === "soon" ? " plat-soon" : "")}>
-                  <div className="plat-h">
-                    <span className="plat-i">{p.icon}</span>
-                    <div className="plat-n">{p.name}</div>
-                    {p.status === "available" ? <Pill bg="var(--green-bg)" ink="var(--green-ink)">Available</Pill> : <Pill bg="var(--amber-bg)" ink="var(--amber-ink)">Coming soon</Pill>}
+              {PLATFORMS.map((p) => {
+                const primary = p.builds.find((b) => b.primary) ?? p.builds[0]!;
+                const rest = p.builds.filter((b) => b !== primary);
+                return (
+                  <div key={p.id} className={"card plat" + (p.id === mine ? " plat-mine" : "")}>
+                    <div className="plat-h">
+                      <span className="plat-i">{p.icon}</span>
+                      <div className="plat-n">{p.name}</div>
+                      {p.id === mine ? <Pill bg="var(--accent-soft)" ink="var(--accent-dark)">Your machine</Pill> : <Pill bg="var(--green-bg)" ink="var(--green-ink)">v{VERSION}</Pill>}
+                    </div>
+                    <p>{p.blurb}</p>
+                    <a className="btn btn-primary btn-xl plat-btn" href={asset(primary.file)}><Ic.File size={14} />Download for {p.name}<span className="plat-arch">{primary.label}</span></a>
+                    <div className="plat-files">
+                      {rest.map((b) => <a key={b.file} href={asset(b.file)}><span className="mono">{b.file}</span><span className="fine"> · {b.label}</span></a>)}
+                    </div>
+                    <div className="fine">{p.note}</div>
                   </div>
-                  <p>{p.blurb}</p>
-                  {p.status === "available" ? (
-                    <>
-                      <a className="btn btn-primary btn-xl plat-btn" href={DOWNLOAD}><Ic.File size={14} />Download for macOS</a>
-                      <div className="plat-files">
-                        {p.files?.map((f) => <a key={f} className="mono" href={`${GITHUB}/releases/latest/download/${f}`}>{f}</a>)}
-                        <a href={RELEASES}>All releases and notes</a>
-                      </div>
-                    </>
-                  ) : (
-                    <a className="btn btn-xl plat-btn" href={NOTIFY} target="_blank" rel="noreferrer"><Ic.Clock size={14} />Watch releases on GitHub</a>
-                  )}
-                  <div className="fine">{p.note}</div>
-                </div>
-              ))}
+                );
+              })}
+            </div>
+            <div className="dl-meta">
+              <span>Version {VERSION}{snapshot.tagged ? "" : " (next release)"} · built from <span className="mono">{snapshot.head}</span> on {snapshot.headDate}</span>
+              <a href={RELEASES}>All releases and notes</a>
+              <a href={`${GITHUB}/releases/latest`}>Checksums</a>
             </div>
             <div className="dl-steps card">
-              <div className="dl-step"><span className="step-i">1</span><div><b>Open the .dmg</b> and drag Standbye to Applications. The build is not notarized yet, so the first launch is right-click, Open.</div></div>
-              <div className="dl-step"><span className="step-i">2</span><div><b>Connect a provider.</b> Your Claude Code login is picked up on its own. Otherwise paste an Anthropic or OpenRouter key.</div></div>
-              <div className="dl-step"><span className="step-i">3</span><div><b>Describe the team</b> or start from the built-in one, point it at a repo, set the daily cap. They start on the next heartbeat.</div></div>
+              <div className="dl-step"><span className="step-i">1</span><div><b>Install it.</b> Standbye needs Node 22 or newer on the machine; it launches its supervisor with your own <span className="mono">node</span>, found via PATH, Homebrew, nvm, fnm or Volta.</div></div>
+              <div className="dl-step"><span className="step-i">2</span><div><b>Connect a provider.</b> Your Claude Code login is picked up on its own. Otherwise paste an Anthropic or OpenRouter key, or any of the others.</div></div>
+              <div className="dl-step"><span className="step-i">3</span><div><b>Describe the team</b> or start from the built-in one, point it at a repo, set the daily cap. Close the window; they start on the next heartbeat.</div></div>
             </div>
           </div>
         </section>
@@ -75,7 +114,7 @@ export function DownloadPage() {
               <div>
                 <div className="eyebrow" style={{ marginBottom: 10 }}><Pill bg="var(--amber-bg)" ink="var(--amber-ink)">Coming soon</Pill><Pill>iOS · Android</Pill></div>
                 <h2 style={{ marginTop: 0 }}>Manage the team from anywhere</h2>
-                <p className="muted">Your Mac keeps running the team. Your phone is where you answer it. The companion app talks to your own supervisor over an encrypted tunnel, so nothing about your repo or your keys goes through us.</p>
+                <p className="muted">Your computer keeps running the team. Your phone is where you answer it. The companion app talks to your own supervisor over an encrypted tunnel, so nothing about your repo or your keys goes through us.</p>
                 <ul className="checks">
                   <li><b>The inbox in your pocket.</b> Questions, approvals and hire proposals with the recommended answer one tap away.</li>
                   <li><b>A push when someone needs you.</b> Only for things that are yours to decide, with the deadline and the default that applies if you don't.</li>

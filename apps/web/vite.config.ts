@@ -14,7 +14,6 @@ export default defineConfig({
       "@kit": resolve(desktopUi, "ui"),
       "@kit-styles": resolve(desktopUi, "styles.css"),
       "@templates": resolve(supervisorSrc, "templates.ts"),
-      "@desktop-pkg": resolve(__dirname, "../desktop/package.json"),
     },
     dedupe: ["react", "react-dom"],
   },

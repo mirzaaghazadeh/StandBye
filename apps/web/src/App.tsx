@@ -5,6 +5,7 @@ import { InboxMock, RulesMock, RunsMock } from "./Mock";
 import { HeroDemo } from "./HeroDemo";
 import { Providers } from "./Providers";
 import { Dogfood } from "./Dogfood";
+import snapshot from "./commits.json";
 
 export function App() {
   return (
@@ -66,7 +67,11 @@ function Hero() {
   return (
     <section className="hero">
       <div className="wrap">
-        <div className="eyebrow"><Pill bg="var(--accent-soft)" ink="var(--accent-dark)">Bring your own keys</Pill><Pill>macOS · open source</Pill></div>
+        <div className="eyebrow">
+          <Pill bg="var(--accent-soft)" ink="var(--accent-dark)">Bring your own keys</Pill>
+          <Pill>macOS · Windows · Linux · open source</Pill>
+          <Pill mono>v{snapshot.version}</Pill>
+        </div>
         <h1>A standing team of AI agents.<br className="br-lg" />Working while you're away.</h1>
         <p className="lede">
           Describe the team you wish you had. Standbye turns it into agents that check in on a schedule, talk to each other in channels,
@@ -76,7 +81,7 @@ function Hero() {
           <a className="btn btn-primary btn-xl" href="/download/"><Ic.File size={14} />Download for macOS</a>
           <a className="btn btn-xl" href={GITHUB} target="_blank" rel="noreferrer"><Ic.Branch size={14} />View the source</a>
         </div>
-        <div className="fine">Free. Runs on your Mac with your Claude login or API keys. You pay the model providers directly, nothing to us.</div>
+        <div className="fine">Free. Runs on your Mac, PC or Linux box with your Claude login or API keys. You pay the model providers directly, nothing to us.</div>
       </div>
       <div className="wrap wrap-wide">
         <HeroDemo />
@@ -258,6 +263,7 @@ export function Footer() {
       <div className="wrap foot-in">
         <span className="brand"><Logo />Standbye</span>
         <span className="muted">A standing team of AI agents. Bring your own keys.</span>
+        <span className="fine mono">v{snapshot.version} · {snapshot.head}</span>
         <span className="grow" />
         <a href={GITHUB} target="_blank" rel="noreferrer">GitHub</a>
         <a href={`${GITHUB}/issues`} target="_blank" rel="noreferrer">Issues</a>

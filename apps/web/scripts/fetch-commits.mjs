@@ -12,8 +12,16 @@ try {
   const raw = execFileSync("git", ["log", "-n", "14", "--format=%h%x1f%ad%x1f%s", "--date=short"], { encoding: "utf8" });
   const commits = raw.trim().split("\n").map((l) => { const [hash, date, subject] = l.split("\x1f"); return { hash, date, subject }; });
   const count = Number(execFileSync("git", ["rev-list", "--count", "HEAD"], { encoding: "utf8" }).trim());
-  fs.writeFileSync(out, JSON.stringify({ fetchedAt: new Date().toISOString().slice(0, 10), count, commits }, null, 2) + "\n");
-  console.log(`${out}: ${commits.length} of ${count} commits`);
+  // Version: the latest v* tag when there is one, otherwise the desktop app's package.json version.
+  let version = JSON.parse(fs.readFileSync(path.resolve(path.dirname(out), "../../desktop/package.json"), "utf8")).version;
+  let tagged = false;
+  try {
+    const tag = execFileSync("git", ["describe", "--tags", "--abbrev=0", "--match", "v*"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    if (tag) { version = tag.replace(/^v/, ""); tagged = true; }
+  } catch { /* no tag yet */ }
+  const head = commits[0] ?? { hash: "", date: "" };
+  fs.writeFileSync(out, JSON.stringify({ fetchedAt: new Date().toISOString().slice(0, 10), version, tagged, head: head.hash, headDate: head.date, count, commits }, null, 2) + "\n");
+  console.log(`${out}: v${version}${tagged ? " (tag)" : " (package.json)"} at ${head.hash}, ${commits.length} of ${count} commits`);
 } catch (e) {
   if (fs.existsSync(out)) console.log(`git unavailable, keeping ${out}`);
   else throw e;

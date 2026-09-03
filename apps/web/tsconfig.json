@@ -10,9 +10,8 @@
     "baseUrl": ".",
     "paths": {
       "@kit/*": ["../desktop/src/renderer/ui/*"],
-      "@templates": ["../../packages/supervisor/src/templates.ts"],
-      "@desktop-pkg": ["../desktop/package.json"]
+      "@templates": ["../../packages/supervisor/src/templates.ts"]
     }
   },
-  "include": ["src", "vite.config.ts", "../desktop/src/renderer/ui", "../../packages/supervisor/src/templates.ts", "../desktop/package.json"]
+  "include": ["src", "vite.config.ts", "../desktop/src/renderer/ui", "../../packages/supervisor/src/templates.ts"]
 }

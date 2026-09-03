@@ -1,6 +1,53 @@
+import fs from "node:fs";
+import path from "node:path";
+import { execFileSync } from "node:child_process";
 import type { Agent, Message, Question, Run, RunTrigger } from "@crew/shared";
 import type { Crew } from "./crew.js";
 import { gitPrompt } from "./git.js";
+
+const IGNORED = new Set([".git", "node_modules", "dist", "build", ".next", "__pycache__", ".venv", "venv", ".DS_Store"]);
+
+/**
+ * Where the agent is and what is in front of it.
+ *
+ * Without this an agent opens every run by hunting for its own working directory
+ * (`cd /workspace 2>/dev/null || cd ~; pwd; ls -la; find ...`). In one measured build that
+ * guesswork was 17 of 75 shell commands, and every one of them re-sent the whole conversation.
+ * Handing over the path, the branch and a shallow tree costs ~150 tokens once per run.
+ */
+function workspaceContext(agent: Agent, crew: Crew): string {
+  const root = agent.workspace ?? crew.team?.workspaceRoot ?? null;
+  if (!root || !fs.existsSync(root)) {
+    return "# Your workspace\nThis team has no workspace folder, so you have no files to work on. Say so rather than looking for one.";
+  }
+  const lines = [`# Your workspace`, `\`${root}\` — you are already in it; every relative path resolves from there, so never go hunting for it with \`cd\` or \`find\`. You cannot read or write outside it.`];
+  try {
+    const branch = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd: root, encoding: "utf8", timeout: 4000, stdio: ["ignore", "pipe", "ignore"] }).trim();
+    const dirty = execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8", timeout: 4000, stdio: ["ignore", "pipe", "ignore"] }).trim();
+    lines.push(`Git: on \`${branch}\`, working tree ${dirty ? `dirty (${dirty.split("\n").length} file(s) changed)` : "clean"}.`);
+  } catch { /* not a repo */ }
+  const tree = shallowTree(root);
+  if (tree.length) lines.push("Files:", ...tree.map((f) => `- ${f}`));
+  return lines.join("\n");
+}
+
+/** A two-level listing, capped, so the agent can see the shape of the project without running `ls -R`. */
+function shallowTree(root: string, limit = 60): string[] {
+  const out: string[] = [];
+  const walk = (dir: string, prefix: string, depth: number): void => {
+    if (depth > 1 || out.length >= limit) return;
+    let entries: fs.Dirent[];
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries.sort((a, b) => Number(b.isDirectory()) - Number(a.isDirectory()) || a.name.localeCompare(b.name))) {
+      if (out.length >= limit) { out.push("… (truncated)"); return; }
+      if (IGNORED.has(e.name) || e.name.startsWith(".")) continue;
+      if (e.isDirectory()) { out.push(prefix + e.name + "/"); walk(path.join(dir, e.name), prefix + "  ", depth + 1); }
+      else out.push(prefix + e.name);
+    }
+  };
+  walk(root, "", 0);
+  return out;
+}
 
 /** Build the system prompt for an agent: soul, rules, team, memory, how the tools work. */
 export function systemPrompt(crew: Crew, agent: Agent, mode: "full" | "checkin"): string {
@@ -22,6 +69,8 @@ export function systemPrompt(crew: Crew, agent: Agent, mode: "full" | "checkin")
 
   const parts = [
     files.soul || `# ${agent.name}\n\nYou are ${agent.name}, ${agent.role} on ${owner}'s team.`,
+    "",
+    workspaceContext(agent, crew),
     "",
     "# Your team",
     `You work for ${owner}, a human who is not always around. Team charter: ${team?.charter ?? "(none)"}`,
@@ -76,6 +125,15 @@ export function runPrompt(crew: Crew, agent: Agent, run: Run): string {
 
   const sections: string[] = [`Now: ${new Date().toLocaleString()}`, "", triggerText(crew, run.trigger, owner)];
 
+  // What this agent itself already finished. Without it an agent re-explores work it completed an
+  // hour ago and reports "already done" as if it were news: two wasted runs in one measured build.
+  const mine = crew.db
+    .listRuns({ agentId: agent.id, limit: 6 })
+    .filter((r) => r.id !== run.id && r.summary && (r.status === "done" || r.status === "needs_you"));
+  if (mine.length) {
+    sections.push("", "## What you already did (do not redo or re-verify this)", ...mine.map((r) => `- ${hhmm(r.createdAt)}: ${r.summary}`));
+  }
+
   if (fresh.length) {
     sections.push("", "## New messages in your channels", ...fresh.map(formatMessage));
   }
@@ -116,6 +174,10 @@ function triggerText(crew: Crew, t: RunTrigger, owner: string): string {
     case "manual":
       return `## Message from ${owner}\n${t.prompt}`;
   }
+}
+
+function hhmm(iso: string): string {
+  return iso.slice(11, 16);
 }
 
 function formatMessage(m: Message): string {

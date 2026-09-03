@@ -165,10 +165,21 @@ function workspaceTools(ctx: ToolContext, cwd: string, rules: PermissionRule[]):
   };
 }
 
+/** Keep the first and last of a long output, and say plainly how much was dropped. */
+export function clamp(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const head = text.slice(0, Math.floor(max * 0.7));
+  const tail = text.slice(-Math.floor(max * 0.3));
+  const dropped = text.length - head.length - tail.length;
+  return `${head}\n\n… ${dropped} characters cut from the middle; narrow the command if you need them …\n\n${tail}`;
+}
+
 function run(cmd: string, args: string[], cwd: string, timeout: number): Promise<string> {
   return new Promise((resolve) => {
     execFile(cmd, args, { cwd, timeout, maxBuffer: 4 * 1024 * 1024 }, (err, stdout, stderr) => {
-      const out = [stdout, stderr].filter(Boolean).join("\n").slice(0, 20_000);
+      // Every byte here is re-sent on every later step of the run, so a fat `ls -R` or DOM dump is
+      // paid for many times over. Keep the head and the tail, which is where the answer usually is.
+      const out = clamp([stdout, stderr].filter(Boolean).join("\n"), 6000);
       if (err && !(err as NodeJS.ErrnoException).code) resolve(out || err.message);
       else if (err) resolve(`${out}\n[exit ${(err as { code?: number | string }).code}]`);
       else resolve(out || "(no output)");

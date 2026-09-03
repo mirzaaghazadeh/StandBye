@@ -78,10 +78,13 @@ input, textarea, select { font: inherit; color: inherit; }
 
 /* ---- controls ---- */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 24px; padding: 0 10px; border-radius: 6px; background: var(--surface); border: 1px solid #cfcbc3; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05); font-size: 12px; font-weight: 500; color: var(--ink); white-space: nowrap; cursor: default; }
-.btn:hover { background: #fbfaf8; }
-.btn:active { background: #efede8; }
+/* Buttons are sometimes anchors, so every state re-states its own colour: the
+   generic a:hover rule would otherwise repaint the label on hover. */
+.btn:hover { background: #fbfaf8; color: var(--ink); }
+.btn:active { background: #efede8; color: var(--ink); }
 .btn:disabled { color: var(--ink-6); box-shadow: none; }
-.btn-primary { background: var(--accent); border-color: var(--accent-dark); color: #fff; }
+.btn-primary, .btn-primary:hover, .btn-primary:active { color: #fff; }
+.btn-primary { background: var(--accent); border-color: var(--accent-dark); }
 .btn-primary:hover { background: #b84c26; }
 .btn-primary:active { background: var(--accent-dark); }
 .btn-primary:disabled { background: #e0b5a4; border-color: #e0b5a4; color: #fff; }

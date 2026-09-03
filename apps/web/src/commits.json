@@ -1,7 +1,21 @@
 {
   "fetchedAt": "2026-09-03",
-  "count": 14,
+  "version": "0.1.0",
+  "tagged": false,
+  "head": "4192b0c",
+  "headDate": "2026-09-03",
+  "count": 16,
   "commits": [
+    {
+      "hash": "4192b0c",
+      "date": "2026-09-03",
+      "subject": "Open-source repo setup and cross-platform release builds"
+    },
+    {
+      "hash": "dcf4199",
+      "date": "2026-09-03",
+      "subject": "Landing page and a curated Claude model list"
+    },
     {
       "hash": "67baec4",
       "date": "2026-09-03",
@@ -61,16 +75,6 @@
       "hash": "a989ea3",
       "date": "2026-09-02",
       "subject": "Team builder on any ready provider, per-provider default models, floating model picker"
-    },
-    {
-      "hash": "97b3fbd",
-      "date": "2026-09-02",
-      "subject": "First-open wizard, searchable model catalog, flexible budgets"
-    },
-    {
-      "hash": "f49b7a9",
-      "date": "2026-09-02",
-      "subject": "Standbye: supervisor, team tools, Claude and OpenRouter runners, Electron app"
     }
   ]
 }
