@@ -416,3 +416,46 @@ test("switchTeam drops cached run diffs so another team's diff never shows", asy
   await store.switchTeam("t2");
   assert.deepEqual(store.get().runDiffs, {});
 });
+
+test("createAgent hires one agent into the current team via agents.create, closes the sheet and refreshes", async () => {
+  const { store, rpcLog } = await freshStore({
+    "agents.create": ({ draft }) => ({ id: "a9", name: draft.name, status: "idle" }),
+  });
+  store.set({ sheet: { kind: "add-agent" } });
+  await store.createAgent({
+    name: "Rex", role: "Reviewer", provider: "anthropic", model: "test-model", soul: "Careful reviewer.",
+    rules: ["Ask before pushing"], responsibilities: ["Review diffs"], heartbeatMinutes: 45,
+    dailyBudgetUsd: 3, channels: ["general"], color: "#D7E3DA",
+  });
+  assert.deepEqual(rpcLog.find((e) => e.method === "agents.create"), {
+    method: "agents.create",
+    params: { draft: {
+      name: "Rex", role: "Reviewer", provider: "anthropic", model: "test-model", soul: "Careful reviewer.",
+      rules: ["Ask before pushing"], responsibilities: ["Review diffs"], heartbeatMinutes: 45,
+      dailyBudgetUsd: 3, channels: ["general"], color: "#D7E3DA",
+    } },
+  });
+  assert.equal(store.get().sheet.kind, "none");
+});
+
+test("draftTeammate drafts one teammate via builder.draftTeammate and returns the draft", async () => {
+  const draft = {
+    name: "Quill", role: "Editor", provider: "openai", model: "test-model",
+    soul: "Polishes prose.", rules: ["Never invent quotes"], responsibilities: ["Edit posts"],
+    heartbeatMinutes: 60, dailyBudgetUsd: 2, perRunBudgetUsd: 0.5, hourlyBudgetUsd: null, capBy: "per-run",
+    channels: ["general"], color: "#CBD5E1",
+  };
+  const { store, rpcLog } = await freshStore({
+    "builder.draftTeammate": ({ description, ownerName, provider }) => ({
+      ...draft,
+      soul: `Drafter saw: ${description} (${ownerName}, via ${provider})`,
+    }),
+  });
+  const got = await store.draftTeammate("A careful editor", "Navid", "anthropic");
+  assert.deepEqual(rpcLog.find((e) => e.method === "builder.draftTeammate"), {
+    method: "builder.draftTeammate",
+    params: { description: "A careful editor", ownerName: "Navid", provider: "anthropic" },
+  });
+  assert.equal(got.name, "Quill");
+  assert.equal(got.soul, "Drafter saw: A careful editor (Navid, via anthropic)");
+});

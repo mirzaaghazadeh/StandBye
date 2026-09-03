@@ -7,11 +7,11 @@ import { ModelPicker } from "../components/ModelPicker";
 import { BudgetEditor } from "../components/BudgetEditor";
 import { GitSettingsPanel } from "../components/GitSettingsPanel";
 
-const SWATCHES = ["#E9D9CF", "#D7E3DA", "#DDDCE8", "#F3E4C8", "#D9E6EE", "#EFEDE8"];
+export const SWATCHES = ["#E9D9CF", "#D7E3DA", "#DDDCE8", "#F3E4C8", "#D9E6EE", "#EFEDE8"];
 
-interface Preset { role: string; name: string; responsibilities: string[]; soul: (owner: string, name: string) => string; heartbeat: number; daily: number }
+export interface Preset { role: string; name: string; responsibilities: string[]; soul: (owner: string, name: string) => string; heartbeat: number; daily: number }
 
-const PRESETS: Preset[] = [
+export const PRESETS: Preset[] = [
   { role: "Tech lead", name: "Ada", heartbeat: 30, daily: 4, responsibilities: ["Daily plan at 09:00 in #general", "Assign and follow up on tasks", "End-of-day report to the owner"],
     soul: (o, n) => `# ${n}, tech lead\n\nYou are ${n}, the tech lead on ${o}'s team. You turn goals into small, well-defined tasks and make sure they get finished.\n\n## How you work\n- Break big asks into tasks a teammate can finish in one sitting. Say what done looks like.\n- Follow up. If a task is stuck for a day, find out why.\n- At the end of the day, post a short report for ${o}.\n\n## How you talk\nCalm, specific, no cheerleading.` },
   { role: "Backend engineer", name: "Kai", heartbeat: 30, daily: 3, responsibilities: ["Implement backend tasks", "Keep main green"],

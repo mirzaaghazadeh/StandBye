@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { dmChannelId } from "@crew/shared";
 import type {
-  Agent, AgentFiles, ArchivedTeam, Channel, MessageDraft, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunDiff, RunStep, SkillScope, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft, TeamSummary, UpdateState,
+  Agent, AgentDraft, AgentFiles, ArchivedTeam, Channel, MessageDraft, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunDiff, RunStep, SkillScope, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft, TeamSummary, UpdateState,
 } from "@crew/shared";
 
 /** Matches shown per search. One extra is requested from the supervisor so overflow can be labelled. */
@@ -20,6 +20,7 @@ export type Sheet =
   | { kind: "onboarding" }
   | { kind: "builder"; mode?: "describe" | "template" }
   | { kind: "manual" }
+  | { kind: "add-agent" }
   | { kind: "keys"; tab?: "team" | "providers" | "data" | "updates" }
   | { kind: "channel"; channelId?: string }
   | { kind: "agent"; agentId: string; tab?: string }
@@ -371,6 +372,19 @@ class Store {
     this.set({ activeTeamId: team.id, sheet: { kind: "none" }, builderDraft: null, pendingWorkspace: null, route: { name: "home" } });
     await this.refreshAll();
     this.toast(`Team "${team.name}" created. First check-ins in about a minute.`);
+  }
+  // ---------- hiring into an existing team ----------
+
+  /** The owner adding one more agent to the team they are already in. The supervisor guards duplicate names and rebuilds crons. */
+  async createAgent(draft: AgentDraft): Promise<void> {
+    const agent = await this.rpc<Agent>("agents.create", { draft });
+    this.set({ sheet: { kind: "none" } });
+    await this.refreshAll();
+    this.toast(`${agent.name} joined ${this.state.team?.name ?? "the team"}. First check-in in about a minute.`);
+  }
+  /** Draft one teammate from a plain description — the same drafter New Team uses, one agent instead of a crew. Returns the draft for the sheet to fill. */
+  async draftTeammate(description: string, ownerName: string, provider?: Provider): Promise<AgentDraft> {
+    return this.rpc<AgentDraft>("builder.draftTeammate", { description, ownerName, provider });
   }
   // ---------- removing a team ----------
 
