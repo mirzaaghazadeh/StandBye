@@ -4,6 +4,7 @@ import { once } from "node:events";
 import fs from "node:fs";
 import path from "node:path";
 import type { UpdateRelease, UpdateState } from "@crew/shared";
+import { checksumSidecarName, digestFromGitHubAsset, isSafeAssetName, pickAsset, sha512ForAsset, verifyDownloadedFile, type ReleaseAsset } from "./updateAssets";
 
 /**
  * Keeping the app up to date, without a service and without a signing certificate.
@@ -15,7 +16,9 @@ import type { UpdateRelease, UpdateState } from "@crew/shared";
  * a process can replace its own bundle: it has to outlive it.
  *
  * The rule everywhere below: never surprise the owner. Downloading happens on its own, installing
- * happens at a moment the owner chose — the Restart button, or the next quit.
+ * happens at a moment the owner chose — the Restart button, or the next quit. And nothing is
+ * installed that the release did not vouch for: asset names must look like electron-builder's
+ * output, and the bytes must hash to a digest the release published, when it published one.
  */
 
 /**
@@ -77,46 +80,6 @@ export function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-// ---------- picking the file for this machine ----------
-
-export interface ReleaseAsset { name: string; url: string; size: number }
-
-/**
- * electron-builder writes the architecture into the file name, but not always the name Node uses
- * for it: an x64 AppImage is `x86_64`. Match on any of the spellings.
- */
-function archTokens(arch: string): string[] {
-  if (arch === "x64") return ["x86_64", "x64", "amd64"];
-  if (arch === "arm64") return ["arm64", "aarch64"];
-  return [arch];
-}
-
-/**
- * The one asset this machine can install over itself, or null when the release has nothing it can
- * use. Only formats that can replace an installed app qualify: the macOS `.zip` (the `.dmg` is for
- * humans), the Windows NSIS `setup.exe`, and the Linux AppImage — and the AppImage only when we are
- * actually running from one, since a `.deb` install belongs to the package manager, not to us.
- */
-export function pickAsset(
-  assets: ReleaseAsset[],
-  platform: string = process.platform,
-  arch: string = process.arch,
-  appImagePath: string | undefined = process.env.APPIMAGE,
-): ReleaseAsset | null {
-  const lower = (a: ReleaseAsset) => a.name.toLowerCase();
-  let candidates: ReleaseAsset[];
-  if (platform === "darwin") candidates = assets.filter((a) => lower(a).endsWith(".zip") && lower(a).includes("mac"));
-  else if (platform === "win32") candidates = assets.filter((a) => lower(a).endsWith(".exe"));
-  else if (platform === "linux" && appImagePath) candidates = assets.filter((a) => lower(a).endsWith(".appimage"));
-  else return null;
-
-  // Every artifactName in electron-builder.yml carries the architecture, so a release with nothing
-  // matching this one genuinely has no build for this machine. Installing the only file that looks
-  // close would put an x86_64 binary on an arm64 box; the release page is the honest answer.
-  const tokens = archTokens(arch);
-  return candidates.find((a) => tokens.some((t) => lower(a).includes(t))) ?? null;
-}
-
 // ---------- the updater ----------
 
 interface GhRelease {
@@ -125,7 +88,7 @@ interface GhRelease {
   body?: string;
   html_url?: string;
   published_at?: string;
-  assets?: { name?: string; browser_download_url?: string; size?: number }[];
+  assets?: { name?: string; browser_download_url?: string; size?: number; digest?: string }[];
 }
 
 export interface UpdaterOptions {
@@ -239,6 +202,10 @@ export class Updater {
         // A dev run is not something we can replace: `out/` is a build directory, not an install.
         const canInstall = app.isPackaged && Boolean(asset);
         this.set({ stage: "available", release, checkedAt, progress: 0, canInstall });
+        // Best effort: remember what the release published about the asset's bytes, so the download
+        // can be proven before it installs. A release with no checksums at all still gets the size
+        // check, and a sidecar that will not fetch must not fail the check — see attachExpectedDigest.
+        if (canInstall && asset) await this.attachExpectedDigest(asset, json.assets ?? []);
         if (canInstall && asset && this.opts.isAutoUpdate()) {
           await this.fetchAndStage(asset, release);
         } else if (!this.told.has(version)) {
@@ -272,15 +239,50 @@ export class Updater {
     return this.get();
   }
 
+  /**
+   * Remember what the release says the asset's bytes should hash to, if it says anything: GitHub's
+   * own sha256 digest for the asset when the API provides it, else the sha512 in electron-builder's
+   * `latest-*.yml` sidecar, which is uploaded next to the builds. Nothing here is worth failing a
+   * check over: a release that publishes neither simply keeps the size-only check.
+   */
+  private async attachExpectedDigest(asset: ReleaseAsset, ghAssets: GhRelease["assets"]): Promise<void> {
+    const fromGitHub = digestFromGitHubAsset(ghAssets?.find((a) => a?.name === asset.name)?.digest);
+    if (fromGitHub) {
+      asset.expectedDigest = fromGitHub;
+      return;
+    }
+    const sidecarUrl = ghAssets?.find((a) => a?.name === checksumSidecarName(process.platform))?.browser_download_url;
+    if (!sidecarUrl) return;
+    try {
+      const res = await net.fetch(sidecarUrl, {
+        headers: { Accept: "application/octet-stream", "User-Agent": `Standbye/${app.getVersion()}` },
+      });
+      if (!res.ok) return;
+      const value = sha512ForAsset(await res.text(), asset.name);
+      if (value) asset.expectedDigest = { algo: "sha512", value };
+    } catch {
+      /* no published digest we can read; the size check still applies */
+    }
+  }
+
   private async fetchAndStage(asset: ReleaseAsset, release: UpdateRelease): Promise<void> {
     const dir = updatesDir();
     try {
+      // pickAsset already filtered the name, but this is where the name becomes a path under the
+      // updates directory and is handed to the installer — checking again is one line against a
+      // crafted `../…` name that reached this point by any other route.
+      if (!isSafeAssetName(asset.name)) {
+        throw new Error(`"${asset.name}" does not look like a Standbye release file, so it will not be installed`);
+      }
       this.set({ stage: "downloading", progress: 0, error: null });
       // Whatever a previous attempt left behind is dead weight; only one update is ever in flight.
       fs.rmSync(dir, { recursive: true, force: true });
       fs.mkdirSync(dir, { recursive: true });
       const file = path.join(dir, asset.name);
       await this.downloadTo(asset, file);
+      // The size was checked during the download; this is the content check, against the digest
+      // the release published — GitHub's sha256 for the asset, or the sha512 in its sidecar.
+      await verifyDownloadedFile(file, asset);
       this.staged = await stageForInstall(file, dir);
       this.set({ stage: "ready", progress: 1 });
       if (!this.told.has(`ready:${release.version}`)) {
