@@ -13,6 +13,7 @@
   "desktopName": "standbye.desktop",
   "scripts": {
     "dev": "electron-vite dev",
+    "test": "node --test \"test/*.test.mjs\"",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "gui": "electron-vite build && node e2e/gui.mjs",
