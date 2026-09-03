@@ -20,6 +20,7 @@ export function App() {
         <Guardrails />
         <Providers />
         <Faq />
+        <Maker />
       </main>
       <Footer />
     </>
@@ -78,7 +79,7 @@ function Hero() {
           ask you only when a decision is yours, propose hires, and remember what they learn. Not cron jobs with a chat window. A team.
         </p>
         <div className="cta">
-          <a className="btn btn-primary btn-xl" href="/download/"><Ic.File size={14} />Download for macOS</a>
+          <a className="btn btn-primary btn-xl" href="/download/"><Ic.File size={14} />Download Standbye</a>
           <a className="btn btn-xl" href={GITHUB} target="_blank" rel="noreferrer"><Ic.Branch size={14} />View the source</a>
         </div>
         <div className="fine">Free. Runs on your Mac, PC or Linux box with your Claude login or API keys. You pay the model providers directly, nothing to us.</div>
@@ -249,9 +250,32 @@ function Faq() {
           </details>
         ))}
         <div className="cta cta-end">
-          <a className="btn btn-primary btn-xl" href="/download/"><Ic.File size={14} />Download for macOS</a>
+          <a className="btn btn-primary btn-xl" href="/download/"><Ic.File size={14} />Download Standbye</a>
           <a className="btn btn-xl" href={GITHUB} target="_blank" rel="noreferrer"><Ic.Branch size={14} />Star on GitHub</a>
         </div>
+      </div>
+    </section>
+  );
+}
+
+// Who made this, in his own words. The portrait is navid.tr/navid.jpg, vendored into public/
+// so the page never depends on another host loading.
+function Maker() {
+  return (
+    <section id="maker" className="maker-sec">
+      <div className="wrap wrap-narrow">
+        <figure className="maker">
+          <img className="maker-face" src="/navid.jpg" alt="Navid Mirzaaghazadeh" width={56} height={56} loading="lazy" />
+          <blockquote className="maker-quote">
+            I kept opening a chat window, explaining the same repository from scratch, and closing it again an hour later.
+            I wanted colleagues instead: people who already know the project, keep going while I sleep, and only wake me when
+            the decision is actually mine. So I built them — and then handed them this codebase to maintain.
+          </blockquote>
+          <figcaption className="maker-by">
+            <a className="maker-name" href="https://navid.tr/" target="_blank" rel="noreferrer">Navid Mirzaaghazadeh</a>
+            <span className="fine">StandBye Maker :) · <a href="https://navid.tr/" target="_blank" rel="noreferrer">navid.tr</a></span>
+          </figcaption>
+        </figure>
       </div>
     </section>
   );

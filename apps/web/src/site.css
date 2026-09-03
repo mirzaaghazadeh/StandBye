@@ -268,6 +268,17 @@ a.land-r:hover { background: #f6f4f0; color: var(--ink); }
 .faq summary::-webkit-details-marker { display: none; }
 .faq p { color: var(--ink-3); font-size: 14px; margin: 0 0 12px 28px; }
 
+/* maker: one small quote from the person who made it, right above the footer */
+.maker-sec { padding: 40px 0 52px; border-top: 1px solid var(--border-faint); }
+.maker { margin: 0; display: grid; grid-template-columns: 56px 1fr; grid-template-rows: auto auto; column-gap: 18px; row-gap: 8px; align-items: start; }
+.maker-face { grid-row: span 2; width: 56px; height: 56px; border-radius: 999px; object-fit: cover; background: var(--alt); border: 1px solid var(--border); }
+.maker-quote { margin: 0; font-size: 15.5px; line-height: 1.6; color: var(--ink-2); font-style: italic; }
+.maker-quote::before { content: "“"; }
+.maker-quote::after { content: "”"; }
+.maker-by { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.maker-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+.maker-name:hover { color: var(--accent-dark); }
+
 /* footer */
 .foot { border-top: 1px solid var(--border); padding: 28px 0; background: var(--side-solid); }
 .foot-in { display: flex; align-items: center; gap: 18px; font-size: 13px; flex-wrap: wrap; }
