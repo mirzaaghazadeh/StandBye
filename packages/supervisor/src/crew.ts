@@ -5,11 +5,12 @@ import path from "node:path";
 import { nanoid } from "nanoid";
 import type {
   Agent, AgentConfig, AgentDraft, AgentStatus, Channel, GitSettings, KeyStatus, Message, MessageKind, Provider, ProviderConfig, ProviderSettings, ProviderStatus, Question, QuestionKind,
-  Run, RunStatus, RunStep, RunStepKind, RunTrigger, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft,
+  Run, RunDiff, RunStatus, RunStep, RunStepKind, RunTrigger, SpendSummary, SupervisorStatus, TeamConfig, TeamDraft,
 } from "@crew/shared";
 import { dmChannelId, providerLabel, providerSpec } from "@crew/shared";
 import { Bus } from "./bus.js";
 import { Db } from "./db.js";
+import { runDiff } from "./git.js";
 import { Store } from "./store.js";
 import { SkillLibrary } from "./skills.js";
 import { Backlog } from "./backlog.js";
@@ -538,7 +539,7 @@ export class Crew {
 
   createRun(agentId: string, trigger: RunTrigger, model: string): Run {
     const run: Run = {
-      id: nanoid(10), agentId, trigger, status: "queued", summary: "", model, startedAt: null, finishedAt: null,
+      id: nanoid(10), agentId, trigger, status: "queued", summary: "", model, baseHead: null, startedAt: null, finishedAt: null,
       costUsd: 0, inputTokens: 0, outputTokens: 0, stepCount: 0, error: null, createdAt: new Date().toISOString(),
     };
     this.db.insertRun(run);
@@ -560,6 +561,15 @@ export class Crew {
   }
   finishRun(run: Run, status: RunStatus, summary: string, extra: Partial<Run> = {}): Run {
     return this.updateRun(run, { status, summary: summary.slice(0, 500), finishedAt: new Date().toISOString(), ...extra });
+  }
+  /**
+   * What the workspace looks like now vs. when the run started. Always answerable — an
+   * unavailable diff (missing base, no repo, branch switched away) is a result, not an error.
+   */
+  runDiff(runId: string): RunDiff {
+    const run = this.db.getRun(runId);
+    if (!run) return { runId, available: false, reason: "Run not found.", baseHead: null, head: null, stat: null, patch: null };
+    return runDiff(this.team?.workspaceRoot ?? "", runId, run.baseHead ?? null);
   }
 
   // ---------------- spend & status ----------------

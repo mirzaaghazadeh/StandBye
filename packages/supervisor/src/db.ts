@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS runs (
   id TEXT PRIMARY KEY, agent_id TEXT NOT NULL, trigger TEXT NOT NULL, status TEXT NOT NULL, summary TEXT NOT NULL DEFAULT '',
   model TEXT NOT NULL DEFAULT '', started_at TEXT, finished_at TEXT, cost_usd REAL NOT NULL DEFAULT 0,
   input_tokens INTEGER NOT NULL DEFAULT 0, output_tokens INTEGER NOT NULL DEFAULT 0, step_count INTEGER NOT NULL DEFAULT 0,
-  error TEXT, created_at TEXT NOT NULL
+  error TEXT, created_at TEXT NOT NULL, base_head TEXT
 );
 CREATE INDEX IF NOT EXISTS runs_agent ON runs(agent_id, created_at);
 CREATE TABLE IF NOT EXISTS run_steps (
@@ -84,6 +84,17 @@ export const MIGRATIONS: Migration[] = [
       // A full reindex of the content table: a no-op cost on a fresh database, and
       // idempotent, so a database that re-runs this migration cannot drift.
       sqlite.exec("INSERT INTO messages_fts(messages_fts) VALUES ('rebuild');");
+    },
+  },
+  {
+    name: "runs-base-head",
+    // Per-run diff view: the workspace HEAD a run started from. Old runs predate recording,
+    // so they leave base_head NULL and run.diff reports "unavailable" instead of guessing
+    // what they changed against. Column may already exist only if a database was stamped
+    // past this migration and rolled back mid-way; PRAGMA check keeps re-runs safe.
+    apply(sqlite) {
+      const cols = (sqlite.prepare("PRAGMA table_info(runs)").all() as { name: string }[]).map((c) => c.name);
+      if (!cols.includes("base_head")) sqlite.exec("ALTER TABLE runs ADD COLUMN base_head TEXT");
     },
   },
 ];
@@ -233,13 +244,13 @@ export class Db {
   // ---- runs ----
   insertRun(r: Run): void {
     this.sqlite
-      .prepare("INSERT INTO runs (id, agent_id, trigger, status, summary, model, started_at, finished_at, cost_usd, input_tokens, output_tokens, step_count, error, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
-      .run(r.id, r.agentId, JSON.stringify(r.trigger), r.status, r.summary, r.model, r.startedAt, r.finishedAt, r.costUsd, r.inputTokens, r.outputTokens, r.stepCount, r.error, r.createdAt);
+      .prepare("INSERT INTO runs (id, agent_id, trigger, status, summary, model, base_head, started_at, finished_at, cost_usd, input_tokens, output_tokens, step_count, error, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+      .run(r.id, r.agentId, JSON.stringify(r.trigger), r.status, r.summary, r.model, r.baseHead, r.startedAt, r.finishedAt, r.costUsd, r.inputTokens, r.outputTokens, r.stepCount, r.error, r.createdAt);
   }
   updateRun(r: Run): void {
     this.sqlite
-      .prepare("UPDATE runs SET status=?, summary=?, model=?, started_at=?, finished_at=?, cost_usd=?, input_tokens=?, output_tokens=?, step_count=?, error=? WHERE id=?")
-      .run(r.status, r.summary, r.model, r.startedAt, r.finishedAt, r.costUsd, r.inputTokens, r.outputTokens, r.stepCount, r.error, r.id);
+      .prepare("UPDATE runs SET status=?, summary=?, model=?, base_head=?, started_at=?, finished_at=?, cost_usd=?, input_tokens=?, output_tokens=?, step_count=?, error=? WHERE id=?")
+      .run(r.status, r.summary, r.model, r.baseHead, r.startedAt, r.finishedAt, r.costUsd, r.inputTokens, r.outputTokens, r.stepCount, r.error, r.id);
   }
   getRun(id: string): Run | undefined {
     const row = this.sqlite.prepare("SELECT * FROM runs WHERE id = ?").get(id);
@@ -369,7 +380,7 @@ function rowToRun(r: any): Run {
   return {
     id: r.id, agentId: r.agent_id, trigger: JSON.parse(r.trigger) as RunTrigger, status: r.status, summary: r.summary, model: r.model,
     startedAt: r.started_at, finishedAt: r.finished_at, costUsd: r.cost_usd, inputTokens: r.input_tokens, outputTokens: r.output_tokens,
-    stepCount: r.step_count, error: r.error, createdAt: r.created_at,
+    baseHead: r.base_head, stepCount: r.step_count, error: r.error, createdAt: r.created_at,
   };
 }
 function rowToStep(r: any): RunStep {

@@ -511,6 +511,9 @@ export interface Run {
   status: RunStatus;
   summary: string;
   model: string;
+  /** Workspace HEAD when the run started, from one rev-parse where the steps open. Null when the
+   * workspace is not a git repo or the run predates recording; run.diff refuses to guess without it. */
+  baseHead: string | null;
   startedAt: string | null;
   finishedAt: string | null;
   costUsd: number;
@@ -519,6 +522,21 @@ export interface Run {
   stepCount: number;
   error: string | null;
   createdAt: string;
+}
+
+/** Result of run.diff: what changed in the workspace between the run's recorded base and its HEAD.
+ * Unavailable means we will not show a diff rather than show a wrong one (branch switched, rebased,
+ * no repo, or the run predates base recording). An available empty diff means the run made no commits. */
+export interface RunDiff {
+  runId: string;
+  available: boolean;
+  reason: string | null;
+  baseHead: string | null;
+  head: string | null;
+  /** Output of `git diff <base>..HEAD --stat` ("" when the diff is empty). */
+  stat: string | null;
+  /** Full `git diff <base>..HEAD` patch ("" when the diff is empty). */
+  patch: string | null;
 }
 
 export type RunStepKind = "read" | "edit" | "run" | "post" | "ask" | "memory" | "tool" | "text" | "git" | "info";

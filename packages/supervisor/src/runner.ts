@@ -1,7 +1,7 @@
 import type { Agent, ProviderKind, Run } from "@crew/shared";
 import { providerSpec } from "@crew/shared";
 import type { Crew } from "./crew.js";
-import { gitRules } from "./git.js";
+import { gitHead, gitRules } from "./git.js";
 import { runPrompt, systemPrompt } from "./prompt.js";
 import { anthropicRunner } from "./runners/anthropic.js";
 import { openaiRunner } from "./runners/openai.js";
@@ -41,7 +41,12 @@ export async function executeRun(crew: Crew, runId: string, signal: AbortSignal)
   const mode: "full" | "checkin" = run.trigger.kind === "heartbeat" ? "checkin" : "full";
   const model = mode === "checkin" ? agent.checkinModel || agent.model : agent.model;
   const startedAt = new Date().toISOString();
-  run = crew.updateRun(run, { status: "running", startedAt, model });
+  // One rev-parse where the run's steps open: this HEAD is the base the run's diff is
+  // measured against. Null when the workspace is not a git repo (or git is missing),
+  // and run.diff then reports "unavailable" instead of inventing a base.
+  const cwd = agent.workspace ?? crew.team?.workspaceRoot ?? crew.opts.dataDir;
+  const baseHead = gitHead(cwd);
+  run = crew.updateRun(run, { status: "running", startedAt, model, baseHead });
   crew.setAgentRuntime(agent.id, { status: "working", statusText: describeTrigger(run), currentRunId: run.id });
 
   let summary = "";
@@ -54,7 +59,6 @@ export async function executeRun(crew: Crew, runId: string, signal: AbortSignal)
     onEscalate: (r) => { escalate = r; },
   };
 
-  const cwd = agent.workspace ?? crew.team?.workspaceRoot ?? crew.opts.dataDir;
   // Team-level git rules come first so they win over the agent's own rules.
   const effective: Agent = { ...agent, permissions: [...gitRules(crew.team?.git), ...agent.permissions] };
   const out = await runner({

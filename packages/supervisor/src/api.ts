@@ -225,6 +225,7 @@ export class Api {
       // ----- runs -----
       "runs.list": (p: { agentId?: string; since?: string; limit?: number }, conn) => (conn.teamId ? this.crewFor(conn).db.listRuns(p) : []),
       "run.get": (p: { id: string }, conn) => { const crew = this.crewFor(conn); return { run: crew.db.getRun(p.id), steps: crew.db.listSteps(p.id) }; },
+      "run.diff": (p: { id: string }, conn) => this.crewFor(conn).runDiff(p.id),
       "run.cancel": (p: { id: string }, conn) => this.rtFor(conn).scheduler.queue.cancel(p.id),
       "spend.get": (_p, conn) => (conn.teamId ? this.crewFor(conn).spend() : { todayUsd: 0, capUsd: 0, perAgent: {}, checkinsUsd: 0 }),
 

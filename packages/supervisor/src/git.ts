@@ -1,10 +1,43 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import type { GitInfo, GitSettings, PermissionRule } from "@crew/shared";
+import type { GitInfo, GitSettings, PermissionRule, RunDiff } from "@crew/shared";
 
 function git(cwd: string, args: string[]): string {
   return execFileSync("git", args, { cwd, encoding: "utf8", timeout: 10_000, stdio: ["ignore", "pipe", "ignore"] }).trim();
+}
+
+/** Workspace HEAD, or null when there is nothing to measure a run against (not a repo, git missing,
+ * bare/empty repo). Every caller treats null as "no diff available", never as a guess. */
+export function gitHead(cwd: string): string | null {
+  try {
+    return git(cwd, ["rev-parse", "HEAD"]);
+  } catch {
+    return null;
+  }
+}
+
+/** The per-run diff: what changed in the workspace between the run's recorded base and its HEAD.
+ * Refuses to show a diff when the recorded base is no longer an ancestor of HEAD (the agent
+ * switched branches or rebased mid-run), because that diff would splice unrelated work. */
+export function runDiff(cwd: string, runId: string, baseHead: string | null): RunDiff {
+  const unavailable = (reason: string, head: string | null = null): RunDiff =>
+    ({ runId, available: false, reason, baseHead, head, stat: null, patch: null });
+  if (!baseHead) return unavailable("No base commit was recorded when this run started.");
+  const head = gitHead(cwd);
+  if (!head) return unavailable("The workspace is not a git repository.");
+  if (head === baseHead) return { runId, available: true, reason: null, baseHead, head, stat: "", patch: "" };
+  try {
+    execFileSync("git", ["merge-base", "--is-ancestor", baseHead, head], { cwd, stdio: "ignore", timeout: 10_000 });
+  } catch {
+    return unavailable("The agent switched branches or rebased mid-run, so the recorded base is no longer an ancestor of HEAD.", head);
+  }
+  const range = `${baseHead}..${head}`;
+  return {
+    runId, available: true, reason: null, baseHead, head,
+    stat: git(cwd, ["diff", range, "--stat"]),
+    patch: git(cwd, ["diff", range]),
+  };
 }
 
 /** What the app needs to know about a workspace before offering git settings. */
