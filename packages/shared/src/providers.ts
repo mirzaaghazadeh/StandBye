@@ -567,6 +567,7 @@ export const PROVIDERS: ProviderSpec[] = [
     keyUrl: "https://openrouter.ai/keys",
     keyPlaceholder: "sk-or-…",
     baseUrl: "https://openrouter.ai/api/v1",
+    catalogUrl: "https://openrouter.ai/api/v1",
     envKey: "OPENROUTER_API_KEY",
     models: [
       m("z-ai/glm-5.3", "Z.AI: GLM 5.3", "openrouter", null, null, 1_310_720, ["default"]),
