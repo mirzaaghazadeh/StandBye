@@ -1,7 +1,9 @@
 // Failure classification in the OpenAI-compatible runner: whatever the provider throws
 // must come back as a RunnerOutput.failure kind the owner can act on (auth, credit,
-// rate_limit, ...), never as a generic crash — because `auth` and `credit` pause the
-// agent via blocksAgent() until the owner fixes something.
+// rate_limit, ...), never as a generic crash. blocksAgent() marks which kinds are
+// owner-actionable; executeRun does not consume out.failure yet, so nothing pauses the
+// agent today — the scheduler just re-fails it on the next check-in. Wiring the pause
+// into executeRun is the owner's call (asked 2026-09-03).
 //
 // House rule (test/helpers.mjs): no test may make a network call or a model call.
 // globalThis.fetch is stubbed, so the runner runs its real tool loop against an error
