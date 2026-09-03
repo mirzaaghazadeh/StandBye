@@ -5,7 +5,7 @@
 Please **do not open a public issue** for a security problem.
 
 Report it through [GitHub private vulnerability reporting](https://github.com/mirzaaghazadeh/StandBye/security/advisories/new),
-or email **security@standbye.org**. Include what you found, how to reproduce it, and what an
+or email **security@navid.tr**. Include what you found, how to reproduce it, and what an
 attacker gets out of it.
 
 We aim to acknowledge within 3 working days and to ship a fix or a mitigation plan within 30 days.

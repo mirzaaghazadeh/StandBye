@@ -63,4 +63,4 @@ privacy policy will cover it before it launches.
 
 ## Contact
 
-Questions, or a correction to this page: **hello@standbye.org**, or open an issue.
+Questions, or a correction to this page: **hello@navid.tr**, or open an issue.

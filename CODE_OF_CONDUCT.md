@@ -26,7 +26,7 @@ when representing the project in public.
 
 ## Enforcement
 
-Report a problem to **conduct@standbye.org**. Reports are handled confidentially and you'll get a
+Report a problem to **conduct@navid.tr**. Reports are handled confidentially and you'll get a
 response. Maintainers may edit or delete comments, close threads, or ban an account, at their
 discretion and in proportion to what happened.
 

@@ -30,4 +30,4 @@ its own name is welcome. A fork that ships under ours is a support burden for us
 download for the user.
 
 Questions, or want permission for something on the second list? Open an issue or write to
-**hello@standbye.org**.
+**hello@navid.tr**.
