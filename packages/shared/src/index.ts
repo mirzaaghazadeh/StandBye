@@ -24,6 +24,17 @@ export interface ModelInfo {
   tags: string[];
 }
 
+/** Curated Claude models with list prices (USD per million tokens). The supervisor merges the live Models API on top; the site shows this list as-is. */
+export const ANTHROPIC_MODELS: ModelInfo[] = [
+  { id: "claude-opus-5", name: "Claude Opus 5", provider: "anthropic", inputPerM: 5, outputPerM: 25, context: 1_000_000, tools: true, tags: ["default", "reasoning"] },
+  { id: "claude-sonnet-5", name: "Claude Sonnet 5", provider: "anthropic", inputPerM: 2, outputPerM: 10, context: 1_000_000, tools: true, tags: ["balanced"] },
+  { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", provider: "anthropic", inputPerM: 1, outputPerM: 5, context: 200_000, tools: true, tags: ["cheap", "check-ins"] },
+  { id: "claude-opus-4-8", name: "Claude Opus 4.8", provider: "anthropic", inputPerM: 5, outputPerM: 25, context: 1_000_000, tools: true, tags: ["reasoning"] },
+  { id: "claude-opus-4-7", name: "Claude Opus 4.7", provider: "anthropic", inputPerM: 5, outputPerM: 25, context: 1_000_000, tools: true, tags: [] },
+  { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6", provider: "anthropic", inputPerM: 3, outputPerM: 15, context: 1_000_000, tools: true, tags: [] },
+  { id: "claude-fable-5-1", name: "Claude Fable 5.1", provider: "anthropic", inputPerM: 10, outputPerM: 50, context: 1_000_000, tools: true, tags: ["most capable", "expensive"] },
+];
+
 export interface ProviderConfig {
   enabled: boolean;
   /** Model new agents and the team builder use on this provider */

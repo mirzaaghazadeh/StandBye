@@ -1,23 +1,13 @@
 import { logError } from "./log.js";
 import Anthropic from "@anthropic-ai/sdk";
-import type { ModelInfo, Provider } from "@crew/shared";
+import { ANTHROPIC_MODELS, type ModelInfo, type Provider } from "@crew/shared";
 import type { Crew } from "./crew.js";
 
 /**
- * Model catalog, grouped by provider. Anthropic models come from a curated list (prices included)
- * merged with the live Models API when a key is present; OpenRouter models come from its public
- * catalog, filtered to tool-capable ones. Cached for an hour.
+ * Model catalog, grouped by provider. Anthropic models come from the curated list in @crew/shared
+ * (prices included) merged with the live Models API when a key is present; OpenRouter models come
+ * from its public catalog, filtered to tool-capable ones. Cached for an hour.
  */
-
-const ANTHROPIC_MODELS: ModelInfo[] = [
-  { id: "claude-opus-5", name: "Claude Opus 5", provider: "anthropic", inputPerM: 5, outputPerM: 25, context: 1_000_000, tools: true, tags: ["default", "reasoning"] },
-  { id: "claude-sonnet-5", name: "Claude Sonnet 5", provider: "anthropic", inputPerM: 2, outputPerM: 10, context: 1_000_000, tools: true, tags: ["balanced"] },
-  { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", provider: "anthropic", inputPerM: 1, outputPerM: 5, context: 200_000, tools: true, tags: ["cheap", "check-ins"] },
-  { id: "claude-opus-4-8", name: "Claude Opus 4.8", provider: "anthropic", inputPerM: 5, outputPerM: 25, context: 1_000_000, tools: true, tags: ["reasoning"] },
-  { id: "claude-opus-4-7", name: "Claude Opus 4.7", provider: "anthropic", inputPerM: 5, outputPerM: 25, context: 1_000_000, tools: true, tags: [] },
-  { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6", provider: "anthropic", inputPerM: 3, outputPerM: 15, context: 1_000_000, tools: true, tags: [] },
-  { id: "claude-fable-5-1", name: "Claude Fable 5.1", provider: "anthropic", inputPerM: 10, outputPerM: 50, context: 1_000_000, tools: true, tags: ["most capable", "expensive"] },
-];
 
 interface OpenRouterModel {
   id: string;

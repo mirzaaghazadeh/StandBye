@@ -1,0 +1,648 @@
+{
+  "fetchedAt": "2026-09-03",
+  "catalogTotal": 424,
+  "total": 280,
+  "free": 17,
+  "reasoning": 204,
+  "vendors": [
+    {
+      "id": "openai",
+      "name": "OpenAI",
+      "count": 53,
+      "free": 0,
+      "maxContext": 1050000,
+      "cheapest": {
+        "id": "openai/gpt-oss-20b",
+        "name": "gpt-oss-20b",
+        "inputPerM": 0.03,
+        "outputPerM": 0.13
+      }
+    },
+    {
+      "id": "qwen",
+      "name": "Qwen",
+      "count": 48,
+      "free": 0,
+      "maxContext": 1048576,
+      "cheapest": {
+        "id": "qwen/qwen3.7-flash",
+        "name": "Qwen3.7 Flash",
+        "inputPerM": 0.03,
+        "outputPerM": 0.13
+      }
+    },
+    {
+      "id": "google",
+      "name": "Google",
+      "count": 22,
+      "free": 2,
+      "maxContext": 1048576,
+      "cheapest": {
+        "id": "google/gemma-3-12b-it",
+        "name": "Gemma 3 12B",
+        "inputPerM": 0.049999999999999996,
+        "outputPerM": 0.15
+      }
+    },
+    {
+      "id": "z-ai",
+      "name": "Z.ai",
+      "count": 15,
+      "free": 1,
+      "maxContext": 1310720,
+      "cheapest": {
+        "id": "z-ai/glm-4.7-flash",
+        "name": "GLM 4.7 Flash",
+        "inputPerM": 0.06,
+        "outputPerM": 0.39999999999999997
+      }
+    },
+    {
+      "id": "mistralai",
+      "name": "Mistral",
+      "count": 15,
+      "free": 0,
+      "maxContext": 262144,
+      "cheapest": {
+        "id": "mistralai/mistral-nemo",
+        "name": "Mistral Nemo",
+        "inputPerM": 0.019000000000000003,
+        "outputPerM": 0.03
+      }
+    },
+    {
+      "id": "anthropic",
+      "name": "Anthropic",
+      "count": 14,
+      "free": 0,
+      "maxContext": 1000000,
+      "cheapest": {
+        "id": "anthropic/claude-3-haiku",
+        "name": "Claude 3 Haiku",
+        "inputPerM": 0.25,
+        "outputPerM": 1.25
+      }
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek",
+      "count": 13,
+      "free": 0,
+      "maxContext": 1310720,
+      "cheapest": {
+        "id": "deepseek/deepseek-v4-flash-0731",
+        "name": "DeepSeek V4 Flash 0731",
+        "inputPerM": 0.065,
+        "outputPerM": 0.18
+      }
+    },
+    {
+      "id": "meta",
+      "name": "Meta",
+      "count": 11,
+      "free": 0,
+      "maxContext": 1310720,
+      "cheapest": {
+        "id": "meta-llama/llama-3.1-8b-instruct",
+        "name": "Llama 3.1 8B Instruct",
+        "inputPerM": 0.049999999999999996,
+        "outputPerM": 0.08
+      }
+    },
+    {
+      "id": "nvidia",
+      "name": "NVIDIA",
+      "count": 8,
+      "free": 4,
+      "maxContext": 1000000,
+      "cheapest": {
+        "id": "nvidia/nemotron-3-nano-30b-a3b",
+        "name": "Nemotron 3 Nano 30B A3B",
+        "inputPerM": 0.049999999999999996,
+        "outputPerM": 0.19999999999999998
+      }
+    },
+    {
+      "id": "minimax",
+      "name": "MiniMax",
+      "count": 8,
+      "free": 2,
+      "maxContext": 1048576,
+      "cheapest": {
+        "id": "minimax/minimax-m2",
+        "name": "MiniMax M2",
+        "inputPerM": 0.255,
+        "outputPerM": 1.02
+      }
+    },
+    {
+      "id": "moonshotai",
+      "name": "MoonshotAI",
+      "count": 7,
+      "free": 0,
+      "maxContext": 1048576,
+      "cheapest": {
+        "id": "moonshotai/kimi-k2.5",
+        "name": "Kimi K2.5",
+        "inputPerM": 0.44999999999999996,
+        "outputPerM": 2.25
+      }
+    },
+    {
+      "id": "bytedance-seed",
+      "name": "ByteDance Seed",
+      "count": 6,
+      "free": 0,
+      "maxContext": 262144,
+      "cheapest": {
+        "id": "bytedance-seed/seed-1.6-flash",
+        "name": "Seed 1.6 Flash",
+        "inputPerM": 0.075,
+        "outputPerM": 0.3
+      }
+    },
+    {
+      "id": "x-ai",
+      "name": "SpaceXAI",
+      "count": 5,
+      "free": 0,
+      "maxContext": 2000000,
+      "cheapest": {
+        "id": "x-ai/grok-build-0.1",
+        "name": "Grok Build 0.1",
+        "inputPerM": 1,
+        "outputPerM": 2
+      }
+    },
+    {
+      "id": "amazon",
+      "name": "Amazon",
+      "count": 5,
+      "free": 0,
+      "maxContext": 1000000,
+      "cheapest": {
+        "id": "amazon/nova-micro-v1",
+        "name": "Nova Micro 1.0",
+        "inputPerM": 0.035,
+        "outputPerM": 0.14
+      }
+    },
+    {
+      "id": "thinkingmachines",
+      "name": "Thinking Machines",
+      "count": 4,
+      "free": 2,
+      "maxContext": 1048576,
+      "cheapest": {
+        "id": "thinkingmachines/inkling-small",
+        "name": "Inkling Small",
+        "inputPerM": 0.44999999999999996,
+        "outputPerM": 1.2
+      }
+    },
+    {
+      "id": "poolside",
+      "name": "Poolside",
+      "count": 4,
+      "free": 2,
+      "maxContext": 1048576,
+      "cheapest": {
+        "id": "poolside/laguna-xs-2.1",
+        "name": "Laguna XS 2.1",
+        "inputPerM": 0.06,
+        "outputPerM": 0.12
+      }
+    },
+    {
+      "id": "tencent",
+      "name": "Tencent",
+      "count": 3,
+      "free": 0,
+      "maxContext": 1048576,
+      "cheapest": {
+        "id": "tencent/hy3",
+        "name": "Hy3",
+        "inputPerM": 0.13199999999999998,
+        "outputPerM": 0.5279999999999999
+      }
+    },
+    {
+      "id": "openrouter",
+      "name": "openrouter",
+      "count": 3,
+      "free": 0,
+      "maxContext": 2000000,
+      "cheapest": null
+    },
+    {
+      "id": "aion-labs",
+      "name": "AionLabs",
+      "count": 3,
+      "free": 0,
+      "maxContext": 131072,
+      "cheapest": {
+        "id": "aion-labs/aion-3.0-mini",
+        "name": "Aion-3.0-Mini",
+        "inputPerM": 0.7,
+        "outputPerM": 1.4
+      }
+    },
+    {
+      "id": "cohere",
+      "name": "Cohere",
+      "count": 3,
+      "free": 1,
+      "maxContext": 256000,
+      "cheapest": {
+        "id": "cohere/command-r-08-2024",
+        "name": "Command R (08-2024)",
+        "inputPerM": 0.15,
+        "outputPerM": 0.6
+      }
+    },
+    {
+      "id": "inception",
+      "name": "Inception",
+      "count": 2,
+      "free": 0,
+      "maxContext": 260000,
+      "cheapest": {
+        "id": "inception/mercury-2.5-preview",
+        "name": "Mercury 2.5 Preview",
+        "inputPerM": 0.04,
+        "outputPerM": 0.15
+      }
+    },
+    {
+      "id": "ibm-granite",
+      "name": "IBM",
+      "count": 2,
+      "free": 0,
+      "maxContext": 131072,
+      "cheapest": {
+        "id": "ibm-granite/granite-4.1-8b",
+        "name": "Granite 4.1 8B",
+        "inputPerM": 0.049999999999999996,
+        "outputPerM": 0.09999999999999999
+      }
+    },
+    {
+      "id": "inclusionai",
+      "name": "inclusionai",
+      "count": 2,
+      "free": 1,
+      "maxContext": 262144,
+      "cheapest": {
+        "id": "inclusionai/ling-3.0-flash",
+        "name": "Ling-3.0-flash",
+        "inputPerM": 0.020999999999999998,
+        "outputPerM": 0.063
+      }
+    },
+    {
+      "id": "sakana",
+      "name": "Sakana",
+      "count": 2,
+      "free": 0,
+      "maxContext": 1000000,
+      "cheapest": {
+        "id": "sakana/sakana-namazu",
+        "name": "Sakana Namazu",
+        "inputPerM": 0.95,
+        "outputPerM": 4
+      }
+    },
+    {
+      "id": "upstage",
+      "name": "Upstage",
+      "count": 2,
+      "free": 0,
+      "maxContext": 524288,
+      "cheapest": {
+        "id": "upstage/solar-pro4",
+        "name": "Solar Pro 4",
+        "inputPerM": 0.03,
+        "outputPerM": 0.12
+      }
+    },
+    {
+      "id": "kwaipilot",
+      "name": "Kwaipilot",
+      "count": 2,
+      "free": 0,
+      "maxContext": 262144,
+      "cheapest": {
+        "id": "kwaipilot/kat-coder-pro-v2",
+        "name": "KAT-Coder-Pro V2",
+        "inputPerM": 0.3,
+        "outputPerM": 1.2
+      }
+    },
+    {
+      "id": "nex-agi",
+      "name": "Nex AGI",
+      "count": 2,
+      "free": 0,
+      "maxContext": 262144,
+      "cheapest": {
+        "id": "nex-agi/nex-n2-mini",
+        "name": "Nex-N2-Mini",
+        "inputPerM": 0.024999999999999998,
+        "outputPerM": 0.09999999999999999
+      }
+    },
+    {
+      "id": "stepfun",
+      "name": "StepFun",
+      "count": 2,
+      "free": 0,
+      "maxContext": 262144,
+      "cheapest": {
+        "id": "stepfun/step-3.5-flash",
+        "name": "Step 3.5 Flash",
+        "inputPerM": 0.09999999999999999,
+        "outputPerM": 0.3
+      }
+    },
+    {
+      "id": "xiaomi",
+      "name": "Xiaomi",
+      "count": 2,
+      "free": 0,
+      "maxContext": 1050000,
+      "cheapest": {
+        "id": "xiaomi/mimo-v2.5",
+        "name": "MiMo-V2.5",
+        "inputPerM": 0.14,
+        "outputPerM": 0.28
+      }
+    },
+    {
+      "id": "mistralai",
+      "name": "mistralai",
+      "count": 2,
+      "free": 0,
+      "maxContext": 131072,
+      "cheapest": {
+        "id": "mistralai/mistral-large-2407",
+        "name": "Mistral Large 2407",
+        "inputPerM": 2,
+        "outputPerM": 6
+      }
+    },
+    {
+      "id": "dots-studio",
+      "name": "Dots Studio",
+      "count": 1,
+      "free": 1,
+      "maxContext": 512000,
+      "cheapest": null
+    },
+    {
+      "id": "liquid",
+      "name": "LiquidAI",
+      "count": 1,
+      "free": 1,
+      "maxContext": 65536,
+      "cheapest": null
+    },
+    {
+      "id": "anthropic",
+      "name": "anthropic",
+      "count": 1,
+      "free": 0,
+      "maxContext": 1000000,
+      "cheapest": {
+        "id": "anthropic/claude-opus-5",
+        "name": "Claude Opus 5",
+        "inputPerM": 5,
+        "outputPerM": 25
+      }
+    },
+    {
+      "id": "meituan",
+      "name": "Meituan",
+      "count": 1,
+      "free": 0,
+      "maxContext": 1048756,
+      "cheapest": {
+        "id": "meituan/longcat-2.0",
+        "name": "LongCat 2.0",
+        "inputPerM": 0.3,
+        "outputPerM": 1.2
+      }
+    },
+    {
+      "id": "arcee-ai",
+      "name": "Arcee AI",
+      "count": 1,
+      "free": 0,
+      "maxContext": 262144,
+      "cheapest": {
+        "id": "arcee-ai/trinity-large-thinking",
+        "name": "Trinity Large Thinking",
+        "inputPerM": 0.25,
+        "outputPerM": 0.7999999999999999
+      }
+    },
+    {
+      "id": "rekaai",
+      "name": "rekaai",
+      "count": 1,
+      "free": 0,
+      "maxContext": 16384,
+      "cheapest": {
+        "id": "rekaai/reka-edge",
+        "name": "Reka Edge",
+        "inputPerM": 0.09999999999999999,
+        "outputPerM": 0.09999999999999999
+      }
+    },
+    {
+      "id": "relace",
+      "name": "Relace",
+      "count": 1,
+      "free": 0,
+      "maxContext": 256000,
+      "cheapest": {
+        "id": "relace/relace-search",
+        "name": "Relace Search",
+        "inputPerM": 1,
+        "outputPerM": 3
+      }
+    },
+    {
+      "id": "thedrummer",
+      "name": "TheDrummer",
+      "count": 1,
+      "free": 0,
+      "maxContext": 1024000,
+      "cheapest": {
+        "id": "thedrummer/unslopnemo-12b",
+        "name": "UnslopNemo 12B",
+        "inputPerM": 0.39999999999999997,
+        "outputPerM": 0.39999999999999997
+      }
+    },
+    {
+      "id": "qwen",
+      "name": "qwen",
+      "count": 1,
+      "free": 0,
+      "maxContext": 32768,
+      "cheapest": {
+        "id": "qwen/qwen-2.5-72b-instruct",
+        "name": "Qwen2.5 72B Instruct",
+        "inputPerM": 0.36,
+        "outputPerM": 0.39999999999999997
+      }
+    },
+    {
+      "id": "sao10k",
+      "name": "Sao10K",
+      "count": 1,
+      "free": 0,
+      "maxContext": 131072,
+      "cheapest": {
+        "id": "sao10k/l3.1-euryale-70b",
+        "name": "Llama 3.1 Euryale 70B v2.2",
+        "inputPerM": 0.85,
+        "outputPerM": 0.85
+      }
+    }
+  ],
+  "featured": [
+    {
+      "id": "z-ai/glm-5.3",
+      "name": "Z.ai: GLM 5.3",
+      "vendor": "z-ai",
+      "vendorName": "Z.ai",
+      "inputPerM": 1.4,
+      "outputPerM": 4.4,
+      "context": 1310720,
+      "free": false,
+      "reasoning": true
+    },
+    {
+      "id": "z-ai/glm-5.3-flash",
+      "name": "Z.ai: GLM 5.3 Flash",
+      "vendor": "z-ai",
+      "vendorName": "Z.ai",
+      "inputPerM": 0.075,
+      "outputPerM": 0.25,
+      "context": 1310720,
+      "free": false,
+      "reasoning": true
+    },
+    {
+      "id": "openai/gpt-5.5",
+      "name": "OpenAI: GPT-5.5",
+      "vendor": "openai",
+      "vendorName": "OpenAI",
+      "inputPerM": 5,
+      "outputPerM": 30,
+      "context": 1050000,
+      "free": false,
+      "reasoning": true
+    },
+    {
+      "id": "openai/gpt-oss-20b",
+      "name": "OpenAI: gpt-oss-20b",
+      "vendor": "openai",
+      "vendorName": "OpenAI",
+      "inputPerM": 0.03,
+      "outputPerM": 0.13,
+      "context": 131072,
+      "free": false,
+      "reasoning": true
+    },
+    {
+      "id": "moonshotai/kimi-k3",
+      "name": "MoonshotAI: Kimi K3",
+      "vendor": "moonshotai",
+      "vendorName": "MoonshotAI",
+      "inputPerM": 3,
+      "outputPerM": 15,
+      "context": 1048576,
+      "free": false,
+      "reasoning": true
+    },
+    {
+      "id": "minimax/minimax-m3",
+      "name": "MiniMax: MiniMax M3",
+      "vendor": "minimax",
+      "vendorName": "MiniMax",
+      "inputPerM": 0.3,
+      "outputPerM": 1.2,
+      "context": 1048576,
+      "free": false,
+      "reasoning": true
+    },
+    {
+      "id": "deepseek/deepseek-v4-flash-0731",
+      "name": "DeepSeek: DeepSeek V4 Flash 0731",
+      "vendor": "deepseek",
+      "vendorName": "DeepSeek",
+      "inputPerM": 0.065,
+      "outputPerM": 0.18,
+      "context": 1310720,
+      "free": false,
+      "reasoning": true
+    },
+    {
+      "id": "qwen/qwen3.7-flash",
+      "name": "Qwen: Qwen3.7 Flash",
+      "vendor": "qwen",
+      "vendorName": "Qwen",
+      "inputPerM": 0.03,
+      "outputPerM": 0.13,
+      "context": 1000000,
+      "free": false,
+      "reasoning": true
+    },
+    {
+      "id": "mistralai/mistral-nemo",
+      "name": "Mistral: Mistral Nemo",
+      "vendor": "mistralai",
+      "vendorName": "Mistral",
+      "inputPerM": 0.019000000000000003,
+      "outputPerM": 0.03,
+      "context": 131072,
+      "free": false,
+      "reasoning": false
+    },
+    {
+      "id": "google/gemma-3-12b-it",
+      "name": "Google: Gemma 3 12B",
+      "vendor": "google",
+      "vendorName": "Google",
+      "inputPerM": 0.049999999999999996,
+      "outputPerM": 0.15,
+      "context": 131072,
+      "free": false,
+      "reasoning": false
+    },
+    {
+      "id": "x-ai/grok-build-0.1",
+      "name": "SpaceXAI: Grok Build 0.1",
+      "vendor": "x-ai",
+      "vendorName": "SpaceXAI",
+      "inputPerM": 1,
+      "outputPerM": 2,
+      "context": 256000,
+      "free": false,
+      "reasoning": true
+    },
+    {
+      "id": "nvidia/nemotron-3-nano-30b-a3b",
+      "name": "NVIDIA: Nemotron 3 Nano 30B A3B",
+      "vendor": "nvidia",
+      "vendorName": "NVIDIA",
+      "inputPerM": 0.049999999999999996,
+      "outputPerM": 0.19999999999999998,
+      "context": 262144,
+      "free": false,
+      "reasoning": true
+    }
+  ]
+}

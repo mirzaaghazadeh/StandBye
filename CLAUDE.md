@@ -16,6 +16,8 @@ pnpm test           # 133 unit/integration tests against dist/ (packages/supervi
 pnpm smoke          # no-key end-to-end test of the supervisor (scripts/smoke.mjs)
 pnpm package        # icon + bundled supervisor + macOS dmg/zip into apps/desktop/release
 pnpm --filter @crew/desktop gui   # Playwright drives the real app and screenshots each screen (apps/desktop/e2e/gui.mjs)
+pnpm --filter @crew/web dev       # landing page with hot reload on :5174; `build` writes apps/web/dist
+docker build -f apps/web/Dockerfile -t standbye-web .   # from the repo root: nginx image of the landing page
 ```
 
 - Shared types must be rebuilt before the supervisor or desktop typecheck sees changes: `pnpm --filter @crew/shared build`.
@@ -27,7 +29,7 @@ Commit messages never mention Claude, sessions or AI assistance (owner's rule).
 
 ## Architecture
 
-Three workspaces: `packages/shared` (types + zod schemas, the contract between the other two), `packages/supervisor` (the daemon), `apps/desktop` (Electron + React UI).
+Three workspaces: `packages/shared` (types + zod schemas, the contract between the other two), `packages/supervisor` (the daemon), `apps/desktop` (Electron + React UI). A fourth, `apps/web`, is the landing page: a static Vite site that imports the desktop kit (`@kit` → `apps/desktop/src/renderer/ui`, `@kit-styles` → `styles.css`) and the starter team (`@templates` → `packages/supervisor/src/templates.ts`) straight from source via Vite aliases, so the site's mock windows are the real components. It has no runtime link to the supervisor. `apps/web/Dockerfile` builds it into an nginx image from the repo root.
 
 **The supervisor is a separate process.** Electron spawns it with the user's `node` (found via PATH, Homebrew, nvm) and talks over a local WebSocket with a per-launch token. The supervisor writes `supervisor.json` (pid, port, token) into the data dir; a starting app attaches to a live one instead of spawning, and only stops a supervisor it started. Packaging copies a flat, symlink-free supervisor tree into the app bundle (`scripts/deploy-supervisor.mjs` + `apps/desktop/scripts/after-pack.cjs`), because electron-builder drops `node_modules` from extraResources.
 

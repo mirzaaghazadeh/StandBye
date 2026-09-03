@@ -1,0 +1,76 @@
+{
+  "fetchedAt": "2026-09-03",
+  "count": 14,
+  "commits": [
+    {
+      "hash": "67baec4",
+      "date": "2026-09-03",
+      "subject": "Remove an unrequested landing page from the workspace"
+    },
+    {
+      "hash": "7b72aae",
+      "date": "2026-09-03",
+      "subject": "Cap how often teammates can wake each other"
+    },
+    {
+      "hash": "bfc0ba4",
+      "date": "2026-09-03",
+      "subject": "Test suite, failure classification, logging, UX pass"
+    },
+    {
+      "hash": "9195112",
+      "date": "2026-09-03",
+      "subject": "User-created channels and git-aware team settings"
+    },
+    {
+      "hash": "5c7862c",
+      "date": "2026-09-03",
+      "subject": "Direct chats per agent, typing indicator, @-mention autocomplete, queue fairness"
+    },
+    {
+      "hash": "97162c1",
+      "date": "2026-09-03",
+      "subject": "Add CLAUDE.md with commands and architecture notes"
+    },
+    {
+      "hash": "6c710dc",
+      "date": "2026-09-03",
+      "subject": "Wrap and truncate long question options in cards and the Home needs-you pane"
+    },
+    {
+      "hash": "07443c9",
+      "date": "2026-09-03",
+      "subject": "Attach to a running supervisor, GUI test, renderer selector fixes"
+    },
+    {
+      "hash": "0d698fb",
+      "date": "2026-09-03",
+      "subject": "Multiple teams, each with its own workspace; centered sheets"
+    },
+    {
+      "hash": "7bc3694",
+      "date": "2026-09-03",
+      "subject": "Schedules, skills, team settings, smoke test and macOS packaging"
+    },
+    {
+      "hash": "2f023b0",
+      "date": "2026-09-02",
+      "subject": "Explain default vs check-in models in the provider panel"
+    },
+    {
+      "hash": "a989ea3",
+      "date": "2026-09-02",
+      "subject": "Team builder on any ready provider, per-provider default models, floating model picker"
+    },
+    {
+      "hash": "97b3fbd",
+      "date": "2026-09-02",
+      "subject": "First-open wizard, searchable model catalog, flexible budgets"
+    },
+    {
+      "hash": "f49b7a9",
+      "date": "2026-09-02",
+      "subject": "Standbye: supervisor, team tools, Claude and OpenRouter runners, Electron app"
+    }
+  ]
+}
