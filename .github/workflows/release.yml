@@ -176,10 +176,10 @@ jobs:
 
             | Platform | File |
             | --- | --- |
-            | macOS (Apple silicon) | `StandBye-*-mac-arm64.dmg` |
-            | macOS (Intel) | `StandBye-*-mac-x64.dmg` |
-            | Windows | `StandBye-*-win-x64-setup.exe` |
-            | Linux | `StandBye-*-linux-x86_64.AppImage` or `.deb` |
+            | macOS (Apple silicon) | `Standbye-*-mac-arm64.dmg` |
+            | macOS (Intel) | `Standbye-*-mac-x64.dmg` |
+            | Windows | `Standbye-*-win-x64-setup.exe` |
+            | Linux | `Standbye-*-linux-x86_64.AppImage` or `.deb` |
 
             StandBye needs **Node.js 22+** on the machine: the app launches its bundled supervisor
             with your own `node`.
