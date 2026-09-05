@@ -1,7 +1,7 @@
 {
   "name": "crew",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "BYOK desktop app for 24/7 agent teams",
   "packageManager": "pnpm@10.17.0",
   "scripts": {
