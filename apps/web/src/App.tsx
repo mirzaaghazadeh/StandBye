@@ -113,13 +113,11 @@ function HowItWorks() {
         </div>
       </div>
       <div className="wrap wrap-wide" style={{ marginTop: 40 }}>
-        <div className="two">
-          <div>
-            <h3 className="sub">Your inbox, not a chat log</h3>
-            <p className="muted">Questions block the agent until you answer or the deadline passes and the default applies. Reports land without blocking anyone. Every question carries the agent's recommendation, so most answers are one click.</p>
-          </div>
-          <InboxMock />
-        </div>
+        <h3 className="sub" style={{ textAlign: "center" }}>Your inbox, not a chat log</h3>
+        <p className="muted wide" style={{ textAlign: "center", marginTop: -6 }}>
+          Questions block the agent until you answer or the deadline passes and the default applies. Reports land without blocking anyone. Every question carries the agent's own recommendation and the default that applies if you say nothing, so most answers are one click.
+        </p>
+        <InboxMock />
       </div>
     </section>
   );

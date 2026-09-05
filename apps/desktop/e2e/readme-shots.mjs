@@ -27,7 +27,13 @@ await page.waitForSelector(".mock", { timeout: 30_000 });
 
 // The site sizes its mock windows for the page (560px); a README image wants the whole window, so
 // the inspector and the lower columns are not cut off. Shot-only — the site itself is untouched.
-const TALL = ".mock, .hero-stack, .hero-layer .mock { height: 680px !important; }";
+// Wider and taller than the page shows them: a README image wants the whole window at the
+// proportions the real app runs at, with nothing cut off and no column squeezed to an ellipsis.
+// Wider and taller than the page shows them: a README image wants the whole window at the
+// proportions the real app runs at, with nothing cut off and no column squeezed to an ellipsis.
+// `.mock-sm` is the content-height variant (Runs, Permissions) and must keep sizing to its rows.
+const TALL = ".mock:not(.mock-sm), .hero-stack, .hero-layer .mock { height: 680px !important; }"
+  + " .mock, .wrap-wide, .hero-stack { max-width: 1320px !important; }";
 await page.addStyleTag({ content: TALL });
 
 // The hero cycles through the example teams on a timer; hovering it pauses, which is what keeps a

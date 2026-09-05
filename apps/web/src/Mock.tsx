@@ -1,7 +1,7 @@
 // The app's own screens, rebuilt from the desktop UI kit with static demo data.
 import { Ic } from "@kit/icons";
-import { Avatar, Button, Group, IconButton, KV, KindPill, Money, Pill, Progress, RunPill, SearchField, StatusPill, UserAvatar, ago, dur, hhmm, modelLabel } from "@kit/kit";
-import { type Task, type TaskColumn } from "@crew/shared";
+import { Avatar, Button, Checkbox, Group, Segmented, IconButton, KV, KindPill, Money, Pill, Popup, Progress, RunPill, STATUS_COLOR, SearchField, StatusPill, UserAvatar, ago, dur, hhmm, modelLabel } from "@kit/kit";
+import { type Agent, type Task, type TaskColumn } from "@crew/shared";
 import { agents, questions, runs, rules, spentToday, tasks, team, triggerLabel } from "./data";
 import { devTeam, type DemoTeam } from "./teams";
 
@@ -26,32 +26,150 @@ function Sidebar({ active, d }: { active: "home" | "inbox" | "board" | "runs"; d
         <span className="side-ws-name">{team.name}</span>
         <Ic.UpDown size={11} stroke="var(--ink-5)" />
       </div>
-      <div className="sec">TEAM</div>
-      <div className={"srow" + (active === "home" ? " srow-on" : "")}><Ic.Home size={14} /><span className="grow">Home</span></div>
-      <div className={"srow" + (active === "inbox" ? " srow-on" : "")}><Ic.Inbox size={14} /><span className="grow">Inbox</span>{needs > 0 && <span className="badge">{needs}</span>}</div>
-      <div className={"srow" + (active === "board" ? " srow-on" : "")}><Ic.Note size={14} /><span className="grow">Board</span></div>
-      <div className={"srow" + (active === "runs" ? " srow-on" : "")}><Ic.Runs size={14} /><span className="grow">Runs</span></div>
-      <div className="srow"><Ic.Sparkle size={14} /><span className="grow">Skills</span></div>
-      <div className="sec">CHANNELS</div>
-      <div className="srow"><Ic.Hash size={14} /><span className="grow">general</span></div>
+      <div className="sec">Team</div>
+      <div className={"srow" + (active === "home" ? " srow-on" : "")}><Ic.Home size={14} stroke={active === "home" ? "var(--accent)" : "var(--ink-3)"} /><span className="grow">Home</span></div>
+      <div className={"srow" + (active === "inbox" ? " srow-on" : "")}><Ic.Inbox size={14} stroke={active === "inbox" ? "var(--accent)" : "var(--ink-3)"} /><span className="grow">Inbox</span>{needs > 0 && <span className="badge">{needs}</span>}</div>
+      <div className={"srow" + (active === "board" ? " srow-on" : "")}><Ic.Note size={14} stroke={active === "board" ? "var(--accent)" : "var(--ink-3)"} /><span className="grow">Board</span></div>
+      <div className={"srow" + (active === "runs" ? " srow-on" : "")}><Ic.Runs size={14} stroke={active === "runs" ? "var(--accent)" : "var(--ink-3)"} /><span className="grow">Runs</span></div>
+      <div className="srow"><Ic.Sparkle size={14} stroke="var(--ink-3)" /><span className="grow">Skills</span></div>
+      <div className="sec" style={{ display: "flex", alignItems: "center" }}>
+        <span style={{ flex: 1 }}>Channels</span>
+        <span className="ibtn" style={{ width: 20, height: 18 }}><Ic.Plus size={11} /></span>
+      </div>
+      <div className="srow"><Ic.Hash size={14} stroke="var(--ink-3)" /><span className="grow">general</span></div>
       {team.channels.map((c) => (
-        <div key={c.name} className="srow"><Ic.Hash size={14} /><span className="grow">{c.name}</span><span className="hint">{c.members.length}</span></div>
+        <div key={c.name} className="srow"><Ic.Hash size={14} stroke="var(--ink-3)" /><span className="grow">{c.name}</span></div>
       ))}
-      <div className="sec">AGENTS</div>
+      <div className="sec">Direct chats</div>
       {agents.map((a) => (
-        <div key={a.id} className="srow"><Avatar agent={a} size={16} /><span className="grow">{a.name}</span><span className="dot" style={{ background: a.status === "working" ? "var(--green)" : a.status === "needs_you" ? "var(--amber)" : "var(--ink-6)" }} /></div>
+        <div key={a.id} className="srow">
+          <span style={{ position: "relative", display: "inline-flex", flexShrink: 0 }}>
+            <Avatar agent={a} size={18} />
+            <span className="dot" style={{ position: "absolute", right: -2, bottom: -1, width: 7, height: 7, background: STATUS_COLOR[a.status], boxShadow: "0 0 0 1.5px var(--side-solid)" }} />
+          </span>
+          <span className="grow">{a.name}</span>
+          <span className="hint">{a.role.split(" ")[0]?.toLowerCase()}</span>
+        </div>
       ))}
       <div className="grow" />
       <div className="side-spend">
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 5 }}>
-          <span style={{ color: "var(--ink-3)" }}>Today</span>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+          <span style={{ color: "var(--ink-3)" }}>Spend today</span>
           <span className="mono">${spentToday.toFixed(2)} / ${team.dailyCapUsd}</span>
         </div>
-        <span className="bar"><i style={{ width: `${(spentToday / team.dailyCapUsd) * 100}%` }} /></span>
+        <span className="bar" style={{ marginTop: 6 }}><i style={{ width: `${(spentToday / team.dailyCapUsd) * 100}%` }} /></span>
+      </div>
+      <div className="srow" style={{ marginBottom: 10 }}><Ic.Settings size={14} stroke="var(--ink-3)" /><span className="grow">Settings</span></div>
+    </div>
+  );
+}
+
+/**
+ * The lower half of Home: what is waiting on the owner, above the status bar. The rows come from
+ * the team being shown, not from a single global list — the research team on screen must not be
+ * asking the dev team's questions.
+ */
+function NeedsYouMock({ d }: { d: DemoTeam }) {
+  const now = Date.now();
+  const at = (mins: number) => hhmm(new Date(now + mins * 60_000).toISOString());
+  return (
+    <div style={{ height: 230, flexShrink: 0, display: "flex", flexDirection: "column", background: "var(--bg)" }}>
+      <div className="pane-h">
+        <span>Needs you</span>
+        {d.asks.length > 0 && <span className="badge">{d.asks.length}</span>}
+        <span className="grow" />
+        <span style={{ fontWeight: 400, color: "var(--accent)" }}>Open Inbox</span>
+      </div>
+      <div style={{ flex: 1, overflow: "hidden" }}>
+        {d.asks.length === 0 && (
+          <div style={{ padding: "18px 12px", color: "var(--ink-5)", fontSize: 12 }}>
+            Nothing waiting on you. When an agent needs a decision it lands here and in the Inbox, with a default it will fall back to if you're away.
+          </div>
+        )}
+        {d.asks.slice(0, 2).map((q) => {
+          const agent = d.agents.find((a) => a.name === q.from);
+          return (
+            <div key={q.title} className="need">
+              <Avatar agent={agent} size={24} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontWeight: 600 }}>{q.from}</span>
+                  <KindPill kind={q.kind} />
+                  <span style={{ fontSize: 11, color: "var(--ink-4)" }}>{q.minsAgo} min ago</span>
+                </div>
+                <div style={{ marginTop: 2, fontWeight: 500 }} className="cell">{q.title}</div>
+                <div className="mono" style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 3 }}>
+                  If you don't answer: {q.defaultAnswer} at {at(q.defaultInMinutes)}
+                </div>
+              </div>
+              <div className="actions" style={{ flexShrink: 0, justifyContent: "flex-end" }}>
+                {q.options.slice(0, 2).map((o) => <Button key={o} primary={o === q.recommended}>{o}</Button>)}
+                <Button>Reply…</Button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
+
+/**
+ * The agent inspector, which is where the owner actually turns the dials: the model, when it wakes,
+ * what it may touch and what it may spend. Every control here exists in the app — the mock only
+ * stops them from doing anything.
+ */
+function InspectorMock({ agent }: { agent: Agent }) {
+  const wh = agent.heartbeat.workHours;
+  const noop = () => undefined;
+  return (
+    <div className="insp mock-hide-md">
+      <div className="grp" style={{ display: "flex", alignItems: "center", gap: 10, padding: 14 }}>
+        <Avatar agent={agent} size={34} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600 }}>{agent.name}</div>
+          <div style={{ fontSize: 11, color: "var(--ink-4)" }} className="cell">{agent.role} · since {new Date(agent.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}</div>
+        </div>
+        <IconButton><Ic.Pause size={14} /></IconButton>
+      </div>
+      <Group title="Model">
+        <KV k="Model"><Pill mono>{modelLabel(agent.model)}</Pill></KV>
+        <KV k="Check-ins on"><Pill mono>{modelLabel(agent.checkinModel)}</Pill></KV>
+      </Group>
+      <Group title="Wake-ups">
+        <KV k="Check in every"><Popup value={String(agent.heartbeat.everyMinutes)} options={[{ value: String(agent.heartbeat.everyMinutes), label: `${agent.heartbeat.everyMinutes} min` }]} onChange={noop} /></KV>
+        <KV k="Work hours">{wh ? <span className="mono" style={{ fontSize: 11 }}>{wh.start}–{wh.end}</span> : "Around the clock"}</KV>
+        <KV k="On events">
+          <span style={{ display: "flex", flexDirection: "column", gap: 5, padding: "4px 0" }}>
+            <Checkbox checked label="Mentioned in a channel" />
+            <Checkbox checked label="Asked a question by a teammate" />
+            <Checkbox checked label="Given a task" />
+          </span>
+        </KV>
+      </Group>
+      <Group title="Permissions">
+        <KV k="Edit repo"><Popup value="allow" options={PERM} onChange={noop} /></KV>
+        <KV k="Run commands"><Popup value="allow" options={PERM} onChange={noop} /></KV>
+        <KV k="Push to main"><Popup value="ask" options={PERM} onChange={noop} ask /></KV>
+        <KV k="Network"><Popup value="ask" options={PERM} onChange={noop} ask /></KV>
+      </Group>
+      <Group title="Budget">
+        <KV k="Today"><Progress value={agent.spentTodayUsd} max={agent.budget.dailyUsd} /><Money v={agent.spentTodayUsd} /></KV>
+        <KV k="Cap"><Money v={agent.budget.dailyUsd} muted /><span style={{ color: "var(--ink-5)", fontSize: 11 }}>per day</span></KV>
+      </Group>
+      <div style={{ padding: "12px 14px", display: "flex", gap: 6 }}>
+        <Button style={{ flex: 1 }}>Soul &amp; Rules…</Button>
+        <Button style={{ flex: 1 }}>Memory ({agent.memoryCount})</Button>
+      </div>
+      <div style={{ padding: "0 14px 12px", display: "flex", gap: 6 }}>
+        <Button style={{ flex: 1 }}>Talk to {agent.name}…</Button>
+        <Button style={{ flex: 1 }}>Check in now</Button>
+      </div>
+    </div>
+  );
+}
+
+const PERM = [{ value: "allow", label: "Allow" }, { value: "ask", label: "Ask me" }, { value: "block", label: "Block" }];
 
 export function HomeMock({ demo = devTeam, className = "" }: { demo?: DemoTeam; className?: string }) {
   const d = demo;
@@ -71,63 +189,40 @@ export function HomeMock({ demo = devTeam, className = "" }: { demo?: DemoTeam; 
             <div className="tb-title"><b>Home</b><span>{agents.length} agents · {working} working · {needs} needs you · {idle} idle</span></div>
             <div className="grow" />
             <span className="mock-hide-sm"><SearchField /></span>
-            <span className="mock-hide-sm"><Button icon={<Ic.Pause size={12} />}>Pause All</Button></span>
+            <span className="mock-hide-sm"><Button icon={<Ic.Pause size={12} />}>Pause</Button></span>
+            <span className="mock-hide-sm"><Button icon={<Ic.Plus size={12} />}>Add Teammate…</Button></span>
             <Button primary icon={<Ic.Plus size={12} />}>New Team…</Button>
             <IconButton on><Ic.Sidebar size={15} /></IconButton>
           </div>
           <div className="body">
             <div className="split-v">
               <div className="th">
-                <span style={{ width: 150 }}>Agent</span>
-                <span style={{ width: 100 }}>Status</span>
+                <span style={{ width: 170, flexShrink: 0 }}>Agent</span>
+                <span style={{ width: 104, flexShrink: 0 }}>Status</span>
                 <span style={{ flex: 1 }}>Doing now</span>
-                <span style={{ width: 96 }} className="mock-hide-sm">Model</span>
-                <span style={{ width: 56, textAlign: "right" }}>Today</span>
+                <span style={{ width: 100, flexShrink: 0 }} className="mock-hide-sm">Model</span>
+                <span style={{ width: 52, flexShrink: 0 }}>Since</span>
+                <span style={{ width: 60, flexShrink: 0, textAlign: "right" }}>Today</span>
               </div>
               <div style={{ flex: 1, background: "var(--surface)" }}>
                 {agents.map((a, i) => (
                   <div key={a.id} className={["tr", i % 2 === 1 && "tr-alt", a.id === selected.id && "tr-sel"].filter(Boolean).join(" ")}>
-                    <span style={{ width: 150, display: "flex", alignItems: "center", gap: 8 }} className="cell">
+                    <span style={{ width: 170, flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
                       <Avatar agent={a} size={22} />
                       <span className="cell"><b style={{ fontWeight: 500 }}>{a.name}</b><span style={{ color: "var(--ink-4)" }}> · {a.role}</span></span>
                     </span>
-                    <span style={{ width: 100 }}><StatusPill status={a.status} /></span>
+                    <span style={{ width: 104, flexShrink: 0 }}><StatusPill status={a.status} /></span>
                     <span style={{ flex: 1 }} className="cell">{a.statusText}</span>
-                    <span style={{ width: 96 }} className="cell mock-hide-sm"><Pill mono>{modelLabel(a.model)}</Pill></span>
-                    <span style={{ width: 56, textAlign: "right" }}><Money v={a.spentTodayUsd} /></span>
+                    <span style={{ width: 100, flexShrink: 0, color: "var(--ink-3)" }} className="cell mock-hide-sm">{modelLabel(a.model)}</span>
+                    <span style={{ width: 52, flexShrink: 0, color: "var(--ink-4)" }}>{ago(a.lastRunAt)}</span>
+                    <span style={{ width: 60, flexShrink: 0, textAlign: "right" }}><Money v={a.spentTodayUsd} /></span>
                   </div>
                 ))}
-                <div style={{ padding: "12px 12px 0", fontSize: 12, color: "var(--ink-4)" }}>
-                  Next check-ins: {agents.map((a) => `${a.name} ${hhmm(a.nextWakeAt)}`).join(" · ")}
-                </div>
               </div>
+              <div className="divider" />
+              <NeedsYouMock d={d} />
             </div>
-            <div className="insp mock-hide-md">
-              <Group title="AGENT">
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                  <Avatar agent={selected} size={34} />
-                  <div><div style={{ fontWeight: 600 }}>{selected.name}</div><div style={{ fontSize: 12, color: "var(--ink-4)" }}>{selected.role}</div></div>
-                </div>
-                <KV k="Status"><StatusPill status={selected.status} /></KV>
-                <KV k="Model"><Pill mono>{modelLabel(selected.model)}</Pill></KV>
-                <KV k="Check-ins"><Pill mono>{modelLabel(selected.checkinModel)}</Pill><span style={{ color: "var(--ink-4)" }}>every {selected.heartbeat.everyMinutes} min</span></KV>
-                <KV k="Hours">{selected.heartbeat.workHours?.start}–{selected.heartbeat.workHours?.end}</KV>
-              </Group>
-              <Group title="BUDGET">
-                <KV k="Today"><Progress value={selected.spentTodayUsd} max={selected.budget.dailyUsd} /><Money v={selected.spentTodayUsd} /></KV>
-                <KV k="Daily cap"><Money v={selected.budget.dailyUsd} muted /></KV>
-                <KV k="Per run"><Money v={selected.budget.perRunUsd} muted /></KV>
-              </Group>
-              <Group title="RESPONSIBILITIES">
-                {selected.responsibilities.map((r) => (
-                  <div key={r} style={{ fontSize: 12, padding: "3px 0", display: "flex", gap: 6 }}><Ic.Check size={12} stroke="var(--green)" /><span>{r}</span></div>
-                ))}
-              </Group>
-              <Group title="MEMORY">
-                <KV k="Notes">{selected.memoryCount} in MEMORY.md</KV>
-                <KV k="Skills">2 in skills/</KV>
-              </Group>
-            </div>
+            <InspectorMock agent={selected} />
           </div>
           <div className="status">
             <span>Supervisor running</span>
@@ -144,55 +239,88 @@ export function HomeMock({ demo = devTeam, className = "" }: { demo?: DemoTeam; 
 export function InboxMock() {
   const q = questions[0]!;
   const from = agents.find((a) => a.id === q.fromAgentId)!;
+  const count = (k: string) => questions.filter((x) => k === "all" || x.kind === k).length;
   return (
     <div className="mock mock-sm">
       <div className="app">
         <div className="main">
           <div className="tb">
-            <div className="tb-title"><b>Inbox</b><span>{questions.length} open · 2 need an answer</span></div>
+            <div className="tb-title"><b>Inbox</b></div>
+            <div style={{ marginLeft: 16 }}>
+              <Segmented value="all" onChange={() => undefined} options={[
+                { value: "all", label: <>All <Count n={count("all")} /></> },
+                { value: "question", label: <>Questions <Count n={count("question")} /></> },
+                { value: "approval", label: <>Approvals <Count n={count("approval")} /></> },
+                { value: "report", label: <>Reports <Count n={count("report")} /></> },
+              ]} />
+            </div>
             <div className="grow" />
             <UserAvatar size={22} />
           </div>
           <div className="body">
             <div className="list-pane mock-hide-sm" style={{ width: 250 }}>
-              <div className="li-sec">NEEDS YOU</div>
-              {questions.map((x, i) => {
-                const f = agents.find((a) => a.id === x.fromAgentId)!;
-                return (
-                  <div key={x.id} className={"li" + (i === 0 ? " li-sel" : "")}>
-                    <Avatar agent={f} size={22} />
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}><KindPill kind={x.kind} /><span style={{ fontSize: 11, color: "var(--ink-5)", marginLeft: "auto" }}>{ago(x.createdAt)}</span></div>
-                      <div className="cell" style={{ fontSize: 12, marginTop: 4, fontWeight: i === 0 ? 500 : 400 }}>{x.title}</div>
+              {questions.map((x, i) => (
+                <div key={x.id} className={"li" + (i === 0 ? " li-sel" : "")}>
+                  <span className="dot" style={{ width: 7, height: 7, marginTop: 7, background: "var(--accent)" }} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                      <span style={{ fontWeight: 600 }}>{agents.find((a) => a.id === x.fromAgentId)?.name}</span>
+                      <span className="mono" style={{ fontSize: 11, color: "var(--ink-4)" }}>{hhmm(x.createdAt)}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 1 }}><KindPill kind={x.kind} /><span className="cell" style={{ fontWeight: i === 0 ? 500 : 400 }}>{x.title}</span></div>
+                    {x.defaultAt && <div className="cell" style={{ fontSize: 12, color: "var(--ink-4)", marginTop: 2 }}>Auto-answers {x.defaultAnswer} at {hhmm(x.defaultAt)}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ flex: 1, minWidth: 0, background: "var(--surface)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+              <div style={{ padding: "20px 28px 16px", borderBottom: "1px solid var(--border-faint)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <KindPill kind={q.kind} />
+                  <span style={{ fontSize: 12, color: "var(--ink-4)" }}>{hhmm(q.createdAt)} · waiting {ago(q.createdAt)}</span>
+                  <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--accent)" }}>Dismiss</span>
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 600, marginTop: 8 }}>{q.title}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}><Avatar agent={from} /><span style={{ fontWeight: 500 }}>{from.name}</span><span style={{ color: "var(--ink-4)" }}>{from.role}</span></div>
+              </div>
+              <div style={{ flex: 1, minHeight: 0, padding: "18px 28px", display: "grid", gridTemplateColumns: "minmax(0, 1fr) 260px", gap: 28, alignContent: "start" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                  <div>
+                    <div className="grp-t" style={{ marginBottom: 6 }}>Why I'm asking</div>
+                    <div style={{ color: "var(--ink-2)" }}>{q.body}</div>
+                  </div>
+                  <div>
+                    <div className="grp-t" style={{ marginBottom: 8 }}>Your answer</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {q.options.map((o) => (
+                        <div key={o} className={"opt" + (o === q.recommended ? " opt-on" : "")}>
+                          <span className={"rad" + (o === q.recommended ? " rad-on" : "")} />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600 }}>{o}{o === q.recommended && <span style={{ marginLeft: 6 }}><Pill bg="var(--green-bg)" ink="var(--green-ink)">{from.name}&apos;s pick</Pill></span>}</div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-            <div style={{ flex: 1, minWidth: 0, padding: 18, display: "flex", flexDirection: "column", gap: 12, background: "var(--bg)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Avatar agent={from} size={24} />
-                <span style={{ fontWeight: 500 }}>{from.name}</span>
-                <span style={{ color: "var(--ink-4)", fontSize: 12 }}>{from.role}</span>
-                <KindPill kind={q.kind} />
-                <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-4)" }}>defaults in {ago(q.defaultAt).replace(/^(\d+)/, "$1")}</span>
-              </div>
-              <div style={{ fontSize: 15, fontWeight: 600 }}>{q.title}</div>
-              <div style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.5 }}>{q.body}</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {q.options.map((o) => (
-                  <div key={o} className={"opt" + (o === q.recommended ? " opt-on" : "")}>
-                    <span className={"rad" + (o === q.recommended ? " rad-on" : "")} />
-                    <span style={{ flex: 1 }}>{o}</span>
-                    {o === q.recommended && <Pill bg="var(--q-bg)" ink="var(--q-ink)">recommended</Pill>}
-                    {o === q.defaultAnswer && <Pill>default</Pill>}
+                  <Checkbox checked={false} label="Save as a team decision so nobody asks this again" />
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <Button primary lg>Send Answer</Button>
+                    <span className="grow" />
+                    <span className="mono" style={{ fontSize: 11, color: "var(--ink-4)" }}>No answer by {hhmm(q.defaultAt)} → {q.defaultAnswer}</span>
                   </div>
-                ))}
-              </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <Button primary lg icon={<Ic.Check size={12} />}>Answer</Button>
-                <Button lg>Remember this decision</Button>
-                <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-5)" }}>Rex keeps working on something else meanwhile</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div style={{ border: "1px solid var(--border-faint)", borderRadius: 7, background: "var(--bg)", padding: 12 }}>
+                    <div className="grp-t">Context</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 7, fontSize: 12 }}>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}><Ic.Runs size={13} stroke="var(--ink-3)" /><span style={{ color: "var(--accent)" }}>The run that asked</span></div>
+                    </div>
+                  </div>
+                  <div style={{ border: "1px solid var(--border-faint)", borderRadius: 7, background: "var(--bg)", padding: 12 }}>
+                    <div className="grp-t">What {from.name} does meanwhile</div>
+                    <div style={{ fontSize: 12, color: "var(--ink-2)" }}>Keeps working on other things. Continues this the moment you answer.</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -202,29 +330,45 @@ export function InboxMock() {
   );
 }
 
+function Count({ n }: { n: number }) {
+  return <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>{n}</span>;
+}
+
 export function RunsMock() {
+  const total = runs.reduce((s, r) => s + r.costUsd, 0);
   return (
     <div className="mock mock-sm">
       <div className="app">
         <div className="main">
+          <div className="tb">
+            <div className="tb-title"><b>Runs</b><span>{runs.length} runs · ${total.toFixed(2)} · 0 failed</span></div>
+            <div className="grow" />
+            <span className="mock-hide-sm"><Segmented value="today" options={[{ value: "today", label: "Today" }, { value: "week", label: "This Week" }, { value: "all", label: "All" }]} onChange={() => undefined} /></span>
+            <span className="mock-hide-sm"><SearchField width={160} /></span>
+          </div>
           <div className="th">
-            <span style={{ width: 120 }}>Agent</span>
-            <span style={{ width: 88 }}>Status</span>
+            <span style={{ width: 50 }}>Time</span>
+            <span style={{ width: 104 }}>Agent</span>
+            <span style={{ width: 150 }} className="mock-hide-sm">Why it woke up</span>
             <span style={{ flex: 1 }}>Summary</span>
-            <span style={{ width: 96 }} className="mock-hide-sm">Model</span>
-            <span style={{ width: 60 }}>Took</span>
+            <span style={{ width: 46, textAlign: "right" }}>Steps</span>
+            <span style={{ width: 74, textAlign: "right" }}>Duration</span>
             <span style={{ width: 56, textAlign: "right" }}>Cost</span>
+            <span style={{ width: 88, paddingLeft: 16 }}>Status</span>
           </div>
           {runs.map((r, i) => {
             const a = agents.find((x) => x.id === r.agentId)!;
+            const muted = r.status === "noop";
             return (
               <div key={r.id} className={"tr tr-sm" + (i % 2 ? " tr-alt" : "")}>
-                <span style={{ width: 120, display: "flex", gap: 6, alignItems: "center" }} className="cell"><Avatar agent={a} size={18} />{a.name}<span style={{ color: "var(--ink-5)", fontSize: 11 }}>{triggerLabel(r.trigger)}</span></span>
-                <span style={{ width: 88 }}><RunPill status={r.status} /></span>
-                <span style={{ flex: 1 }} className="cell">{r.summary}</span>
-                <span style={{ width: 96 }} className="cell mock-hide-sm"><Pill mono>{modelLabel(r.model)}</Pill></span>
-                <span style={{ width: 60 }} className="mono" >{dur(r.startedAt, r.finishedAt)}</span>
-                <span style={{ width: 56, textAlign: "right" }}><Money v={r.costUsd} /></span>
+                <span className="mono" style={{ width: 50, fontSize: 11, color: "var(--ink-4)" }}>{hhmm(r.createdAt)}</span>
+                <span style={{ width: 104, display: "flex", gap: 6, alignItems: "center" }} className="cell"><Avatar agent={a} size={18} /><span className="cell">{a.name}</span></span>
+                <span className="cell mock-hide-sm" style={{ width: 150, color: "var(--ink-3)" }}>{triggerLabel(r.trigger)}</span>
+                <span style={{ flex: 1, color: muted ? "var(--ink-4)" : undefined }} className="cell">{r.summary}</span>
+                <span className="mono" style={{ width: 46, textAlign: "right", fontSize: 11 }}>{r.stepCount || ""}</span>
+                <span className="mono" style={{ width: 74, textAlign: "right", fontSize: 11, color: "var(--ink-4)" }}>{dur(r.startedAt, r.finishedAt)}</span>
+                <span style={{ width: 56, textAlign: "right" }}><Money v={r.costUsd} muted={r.costUsd < 0.005} /></span>
+                <span style={{ width: 88, paddingLeft: 16 }}><RunPill status={r.status} /></span>
               </div>
             );
           })}
@@ -286,14 +430,23 @@ export function RulesMock() {
     <div className="mock mock-sm">
       <div className="app">
         <div className="main">
-          <div className="pane-h"><Ic.Shield size={13} />Permissions<span className="grow" /><span style={{ fontWeight: 400, color: "var(--ink-4)" }}>Kai · checked by the app before every tool call</span></div>
+          {/* The header the app puts over the rules table, word for word (screens/AgentSheet.tsx). */}
+          <div style={{ display: "flex", alignItems: "center", height: 28, padding: "0 10px", background: "var(--bg)", borderBottom: "1px solid var(--border)", fontSize: 11, fontWeight: 700, color: "var(--ink-5)", gap: 8 }}>
+            <span style={{ flex: 1 }}>Rules Kai can&apos;t break</span>
+            <span style={{ fontWeight: 500 }}>Enforced by the app, not the model</span>
+          </div>
           {rules.map((r) => (
             <div key={r.pattern} className="rule" style={{ background: "var(--surface)" }}>
-              <span className="mono" style={{ flex: 1, fontSize: 11.5 }}>{r.pattern}</span>
-              <span style={{ color: "var(--ink-4)" }} className="mock-hide-sm">{r.label}</span>
-              <span className="pop" style={{ background: style[r.behavior].bg, color: style[r.behavior].ink, borderColor: "transparent", width: 64, justifyContent: "space-between" }}>{r.behavior}<Ic.UpDown size={9} /></span>
+              <span className="mono" style={{ width: 200, flexShrink: 0, fontSize: 11.5 }}>{r.pattern}</span>
+              <span style={{ flex: 1, color: "var(--ink-4)" }} className="mock-hide-sm">{r.label}</span>
+              <span className="pop" style={{ background: style[r.behavior].bg, color: style[r.behavior].ink, borderColor: "transparent", width: 78, justifyContent: "space-between" }}>{r.behavior === "ask" ? "Ask me" : r.behavior === "allow" ? "Allow" : "Block"}<Ic.UpDown size={9} /></span>
             </div>
           ))}
+          <div className="rule" style={{ background: "var(--surface)", borderBottom: "none" }}>
+            <span className="field mono" style={{ width: 200, flexShrink: 0, color: "var(--ink-5)" }}>Bash(git push*)</span>
+            <span style={{ flex: 1, fontSize: 11, color: "var(--ink-4)" }}>Tool name or Tool(glob). First match wins, most specific first.</span>
+            <Button sm icon={<Ic.Plus size={11} />}>Add rule</Button>
+          </div>
           <div className="pane-h" style={{ borderTop: "1px solid var(--border)" }}><Ic.Dollar size={13} />Budgets</div>
           <div style={{ background: "var(--surface)", padding: "6px 0" }}>
             {agents.map((a) => (

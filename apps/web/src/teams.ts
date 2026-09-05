@@ -4,6 +4,24 @@ import { defaultModelsFor, type Agent, type AgentStatus, type Provider } from "@
 import { agents as devAgents, questions, spentToday, team as devDraft } from "./data";
 
 export type DemoAgent = Agent & { responsibilities: string[] };
+
+/**
+ * One row of the "Needs you" panel on Home. Every team carries its own, because a marketing team
+ * that asks about a merge is a marketing team nobody believes.
+ */
+export type DemoAsk = {
+  /** Agent name, matched against the team's own agents for the avatar. */
+  from: string;
+  kind: "approval" | "question" | "hire";
+  title: string;
+  options: string[];
+  recommended: string;
+  defaultAnswer: string;
+  /** How long until the default applies, and how long ago it was asked. */
+  defaultInMinutes: number;
+  minsAgo: number;
+};
+
 export type DemoTeam = {
   id: string;
   name: string;
@@ -15,6 +33,7 @@ export type DemoTeam = {
   /** index of the agent shown in the inspector */
   selected: number;
   openQuestions: number;
+  asks: DemoAsk[];
 };
 
 const now = Date.now();
@@ -67,6 +86,17 @@ export const devTeam: DemoTeam = {
   agents: devAgents.map((a) => ({ ...a, responsibilities: devDraft.agents.find((d) => d.name === a.name)?.responsibilities ?? [] })),
   selected: 1,
   openQuestions: questions.filter((q) => q.status === "open" && q.kind !== "report").length,
+  // Straight from the same list the Inbox mock renders, so Home and Inbox tell one story.
+  asks: questions.filter((q) => q.kind !== "report").map((q) => ({
+    from: devAgents.find((a) => a.id === q.fromAgentId)?.name ?? q.fromAgentId,
+    kind: q.kind as DemoAsk["kind"],
+    title: q.title,
+    options: q.options,
+    recommended: q.recommended ?? q.options[0] ?? "",
+    defaultAnswer: q.defaultAnswer ?? "",
+    defaultInMinutes: q.defaultAt ? Math.round((new Date(q.defaultAt).getTime() - now) / 60000) : 60,
+    minsAgo: Math.round((now - new Date(q.createdAt).getTime()) / 60000),
+  })),
 };
 void spentToday;
 
@@ -85,6 +115,9 @@ export const marketingTeam: DemoTeam = {
   ],
   selected: 2,
   openQuestions: 1,
+  asks: [
+    { from: "Ivy", kind: "approval", title: "Approve the launch thread before it goes out at 09:00?", options: ["Post it", "Hold for review"], recommended: "Post it", defaultAnswer: "Hold for review", defaultInMinutes: 55, minsAgo: 21 },
+  ],
 };
 
 export const salesTeam: DemoTeam = {
@@ -101,6 +134,10 @@ export const salesTeam: DemoTeam = {
   ],
   selected: 0,
   openQuestions: 2,
+  asks: [
+    { from: "Omar", kind: "approval", title: "Acme wants 20% — go past the 15% ceiling?", options: ["Approve 20%", "Hold at 15%"], recommended: "Hold at 15%", defaultAnswer: "Hold at 15%", defaultInMinutes: 90, minsAgo: 18 },
+    { from: "Jonah", kind: "question", title: "Two demos want the same Thursday slot. Which one takes it?", options: ["Northwind", "Corvus"], recommended: "Northwind", defaultAnswer: "Northwind", defaultInMinutes: 40, minsAgo: 6 },
+  ],
 };
 
 export const supportTeam: DemoTeam = {
@@ -117,6 +154,9 @@ export const supportTeam: DemoTeam = {
   ],
   selected: 0,
   openQuestions: 1,
+  asks: [
+    { from: "Quinn", kind: "approval", title: "Refund #4412 in full? It is nine days past the policy.", options: ["Refund in full", "Refund half", "Decline"], recommended: "Refund in full", defaultAnswer: "Refund half", defaultInMinutes: 45, minsAgo: 11 },
+  ],
 };
 
 export const researchTeam: DemoTeam = {
@@ -133,6 +173,7 @@ export const researchTeam: DemoTeam = {
   ],
   selected: 0,
   openQuestions: 0,
+  asks: [],
 };
 
 export const officeTeam: DemoTeam = {
@@ -149,6 +190,10 @@ export const officeTeam: DemoTeam = {
   ],
   selected: 1,
   openQuestions: 3,
+  asks: [
+    { from: "Rio", kind: "approval", title: "Pay the AWS invoice ten days early for a 2% discount?", options: ["Pay early", "Pay on the due date"], recommended: "Pay early", defaultAnswer: "Pay on the due date", defaultInMinutes: 120, minsAgo: 30 },
+    { from: "June", kind: "approval", title: "Nine replies are drafted and two need your eyes before they send.", options: ["Send the seven", "Hold them all"], recommended: "Send the seven", defaultAnswer: "Hold them all", defaultInMinutes: 70, minsAgo: 12 },
+  ],
 };
 
 export const demoTeams: DemoTeam[] = [devTeam, marketingTeam, salesTeam, supportTeam, researchTeam, officeTeam];
