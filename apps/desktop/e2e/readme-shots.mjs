@@ -80,5 +80,56 @@ else {
   console.log("shot demo.gif");
 }
 
+// social-preview.png: the 1280x640 card GitHub and every link unfurl shows. Composed on the live
+// page so it inherits the site's fonts and palette, around a clone of the real Home window.
+{
+  const card = await browser.newPage({ viewport: { width: 1280, height: 640 }, deviceScaleFactor: 2 });
+  await card.goto(base, { waitUntil: "networkidle" });
+  await card.waitForSelector(".hero-demo .mock", { timeout: 30_000 });
+  await card.locator(".hero-demo").hover();
+  await card.locator(".hero-team").first().click();
+  await card.waitForTimeout(900);
+
+  await card.evaluate(() => {
+    const mock = document.querySelector(".hero-demo .hero-layer-on .mock") ?? document.querySelector(".hero-demo .mock");
+    const window_ = mock.outerHTML;
+    const logo = document.querySelector(".brand svg").outerHTML;
+    document.body.innerHTML = `
+      <div id="card" style="position:relative;width:1280px;height:640px;overflow:hidden;background:linear-gradient(135deg,#faf7f4 0%,#f3ece6 100%);">
+        <div style="position:absolute;left:64px;top:88px;width:560px;">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:34px;">
+            <span style="display:flex;width:56px;height:56px;">${logo}</span>
+            <span style="font-size:38px;font-weight:600;letter-spacing:-0.02em;color:#1d1c1a;">StandBye</span>
+          </div>
+          <div style="font-size:46px;line-height:1.12;font-weight:700;letter-spacing:-0.03em;color:#1d1c1a;">
+            A standing team of AI agents.<br><span style="color:#c4532b;">Working while you're away.</span>
+          </div>
+          <div style="margin-top:24px;font-size:19px;line-height:1.5;color:#57534e;max-width:520px;">
+            Describe the team you wish you had. They check in on a schedule, keep a board, talk to each
+            other, and ask you only when the decision is yours.
+          </div>
+          <div style="display:flex;gap:10px;margin-top:30px;font-size:14px;color:#57534e;">
+            ${["Bring your own key", "macOS · Windows · Linux", "Apache-2.0"].map((t) =>
+              `<span style="padding:8px 16px;border:1px solid rgba(0,0,0,0.14);border-radius:999px;background:rgba(255,255,255,0.7);white-space:nowrap;">${t}</span>`).join("")}
+          </div>
+        </div>
+        <div id="win" style="position:absolute;left:700px;top:118px;transform:scale(0.78);transform-origin:top left;">${window_}</div>
+      </div>`;
+    // Scaled, never resized: at a smaller width the toolbar reflows and its labels collide.
+    const w = document.querySelector("#card .mock");
+    Object.assign(w.style, { width: "1100px", height: "660px", margin: "0", maxWidth: "none" });
+    document.querySelectorAll("#card .hero-layer").forEach((el) => el.removeAttribute("style"));
+  });
+  await card.waitForTimeout(600);
+  const social = path.join(outDir, "social-preview.png");
+  await card.locator("#card").screenshot({ path: social });
+  // The site serves its own copy — og:image points at standbye.navid.tr/social-preview.png, which is
+  // what every link unfurl actually fetches. Both have to move together.
+  const sitePublic = path.join(repoRoot, "apps/web/public/social-preview.png");
+  if (fs.existsSync(path.dirname(sitePublic))) { fs.copyFileSync(social, sitePublic); console.log("shot social-preview (github + site)"); }
+  else console.log("shot social-preview");
+  await card.close();
+}
+
 await browser.close();
 console.log("done");

@@ -153,10 +153,10 @@ From [standbye.navid.tr/download](https://standbye.navid.tr/download) or the
 
 | Platform | File | Notes |
 | --- | --- | --- |
-| **macOS** (Apple silicon) | `Standbye-*-mac-arm64.dmg` | macOS 13+ |
-| **macOS** (Intel) | `Standbye-*-mac-x64.dmg` | macOS 13+ |
-| **Windows** | `Standbye-*-win-x64-setup.exe` | Windows 10/11. A portable `.zip` is also attached |
-| **Linux** | `Standbye-*-linux-x86_64.AppImage` | Also `.deb`, and `arm64` builds of both |
+| **macOS** (Apple silicon) | `StandBye-*-mac-arm64.dmg` | macOS 13+ |
+| **macOS** (Intel) | `StandBye-*-mac-x64.dmg` | macOS 13+ |
+| **Windows** | `StandBye-*-win-x64-setup.exe` | Windows 10/11. A portable `.zip` is also attached |
+| **Linux** | `StandBye-*-linux-x86_64.AppImage` | Also `.deb`, and `arm64` builds of both |
 
 StandBye needs **Node.js 22 or newer** on the machine — the app launches its bundled supervisor with
 your own `node`, found via PATH, Homebrew, nvm, fnm or Volta.

@@ -90,9 +90,15 @@ jobs:
         if: matrix.platform == 'mac' && env.MAC_CSC_LINK != ''
         env:
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          MAC_CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
         run: |
           printf '%s' "$APPLE_API_KEY_P8" > "$RUNNER_TEMP/apple-api-key.p8"
           echo "APPLE_API_KEY=$RUNNER_TEMP/apple-api-key.p8" >> "$GITHUB_ENV"
+          # Only ever defined on this branch. An empty CSC_LINK is not "no certificate" to
+          # electron-builder: it resolves the empty string as a path, lands on the working
+          # directory and dies with "apps/desktop not a file" before it signs anything.
+          echo "CSC_LINK=$MAC_CSC_LINK" >> "$GITHUB_ENV"
+          echo "CSC_KEY_PASSWORD=$MAC_CSC_KEY_PASSWORD" >> "$GITHUB_ENV"
           # An empty identity means "search the keychain", which is where CSC_LINK lands the
           # Developer ID certificate. It overrides the `identity: "-"` the config pins for the
           # certificate-less case. Entitlements are picked up from apps/desktop/build by name.
@@ -105,9 +111,10 @@ jobs:
           # Windows has no Authenticode certificate, and macOS has one only when the secrets above
           # are set. Empty values are ignored, so this block is a no-op without them; the mac build
           # then ad-hoc signs instead, per `identity: "-"` in the config.
+          # CSC_LINK and CSC_KEY_PASSWORD are deliberately absent here: the staging step above adds
+          # them to the environment only when a certificate actually exists. Setting them to "" for
+          # the certificate-less case is what broke the 0.3.0 build.
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ matrix.platform == 'mac' && env.MAC_CSC_LINK != '' && 'true' || 'false' }}
-          CSC_LINK: ${{ matrix.platform == 'mac' && secrets.MAC_CSC_LINK || '' }}
-          CSC_KEY_PASSWORD: ${{ matrix.platform == 'mac' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         run: pnpm exec electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never --config electron-builder.yml $MAC_SIGN_ARGS
@@ -176,10 +183,10 @@ jobs:
 
             | Platform | File |
             | --- | --- |
-            | macOS (Apple silicon) | `Standbye-*-mac-arm64.dmg` |
-            | macOS (Intel) | `Standbye-*-mac-x64.dmg` |
-            | Windows | `Standbye-*-win-x64-setup.exe` |
-            | Linux | `Standbye-*-linux-x86_64.AppImage` or `.deb` |
+            | macOS (Apple silicon) | `StandBye-*-mac-arm64.dmg` |
+            | macOS (Intel) | `StandBye-*-mac-x64.dmg` |
+            | Windows | `StandBye-*-win-x64-setup.exe` |
+            | Linux | `StandBye-*-linux-x86_64.AppImage` or `.deb` |
 
             StandBye needs **Node.js 22+** on the machine: the app launches its bundled supervisor
             with your own `node`.
