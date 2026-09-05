@@ -175,7 +175,12 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: artifacts/*
-          draft: true
+          # A tag publishes. Drafting instead is what stranded 0.2.0: the build went green, nobody
+          # pressed the button, and /releases/latest kept serving 0.1.0 for two days while the
+          # download page and the in-app updater faithfully pointed at it. The mac signature check
+          # above is the gate now — a build that cannot be opened never reaches this step.
+          draft: false
+          make_latest: true
           generate_release_notes: true
           name: StandBye ${{ github.ref_name }}
           body: |
