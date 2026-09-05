@@ -2,10 +2,25 @@
   "fetchedAt": "2026-09-05",
   "version": "0.3.0",
   "tagged": true,
-  "head": "67041fb",
+  "head": "5bdf293",
   "headDate": "2026-09-05",
-  "count": 83,
+  "count": 86,
   "commits": [
+    {
+      "hash": "5bdf293",
+      "date": "2026-09-05",
+      "subject": "Make the mock windows the screens they claim to be"
+    },
+    {
+      "hash": "7c4fde7",
+      "date": "2026-09-05",
+      "subject": "Do not hand electron-builder an empty certificate path"
+    },
+    {
+      "hash": "1352e28",
+      "date": "2026-09-05",
+      "subject": "site: snapshot the log at v0.3.0"
+    },
     {
       "hash": "67041fb",
       "date": "2026-09-05",
@@ -60,21 +75,6 @@
       "hash": "bbd0dad",
       "date": "2026-09-04",
       "subject": "Tell people how to run the team on an OpenRouter key"
-    },
-    {
-      "hash": "3ef7ea5",
-      "date": "2026-09-04",
-      "subject": "kanban: tasks table, RPC surface, agent tools and tests"
-    },
-    {
-      "hash": "6887631",
-      "date": "2026-09-04",
-      "subject": "Stop the test suite hanging for everyone"
-    },
-    {
-      "hash": "b0f1af0",
-      "date": "2026-09-04",
-      "subject": "Release v0.2.0"
     }
   ]
 }
