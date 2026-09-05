@@ -1,11 +1,26 @@
 {
   "fetchedAt": "2026-09-05",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "tagged": true,
-  "head": "538088d",
-  "headDate": "2026-09-04",
-  "count": 80,
+  "head": "67041fb",
+  "headDate": "2026-09-05",
+  "count": 83,
   "commits": [
+    {
+      "hash": "67041fb",
+      "date": "2026-09-05",
+      "subject": "Name the release files the way they are actually built"
+    },
+    {
+      "hash": "259153a",
+      "date": "2026-09-05",
+      "subject": "Release v0.3.0"
+    },
+    {
+      "hash": "03d7371",
+      "date": "2026-09-05",
+      "subject": "Show the product we actually ship"
+    },
     {
       "hash": "538088d",
       "date": "2026-09-04",
@@ -60,21 +75,6 @@
       "hash": "b0f1af0",
       "date": "2026-09-04",
       "subject": "Release v0.2.0"
-    },
-    {
-      "hash": "21b3192",
-      "date": "2026-09-04",
-      "subject": "Desktop: add a teammate to an existing team"
-    },
-    {
-      "hash": "75d5191",
-      "date": "2026-09-03",
-      "subject": "Supervisor: builder.draftTeammate — draft one teammate from a description"
-    },
-    {
-      "hash": "ce1e83f",
-      "date": "2026-09-03",
-      "subject": "Supervisor: cover agents.create with RPC tests"
     }
   ]
 }
