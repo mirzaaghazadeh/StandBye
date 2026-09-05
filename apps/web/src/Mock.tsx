@@ -197,24 +197,24 @@ export function HomeMock({ demo = devTeam, className = "" }: { demo?: DemoTeam; 
           <div className="body">
             <div className="split-v">
               <div className="th">
-                <span style={{ width: 170, flexShrink: 0 }}>Agent</span>
-                <span style={{ width: 104, flexShrink: 0 }}>Status</span>
+                <span style={{ width: 170, flexShrink: 0 }} className="col-agent">Agent</span>
+                <span style={{ width: 104, flexShrink: 0 }} className="mock-hide-xs">Status</span>
                 <span style={{ flex: 1 }}>Doing now</span>
                 <span style={{ width: 100, flexShrink: 0 }} className="mock-hide-sm">Model</span>
-                <span style={{ width: 52, flexShrink: 0 }}>Since</span>
+                <span style={{ width: 52, flexShrink: 0 }} className="mock-hide-sm">Since</span>
                 <span style={{ width: 60, flexShrink: 0, textAlign: "right" }}>Today</span>
               </div>
               <div style={{ flex: 1, background: "var(--surface)" }}>
                 {agents.map((a, i) => (
                   <div key={a.id} className={["tr", i % 2 === 1 && "tr-alt", a.id === selected.id && "tr-sel"].filter(Boolean).join(" ")}>
-                    <span style={{ width: 170, flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ width: 170, flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }} className="col-agent">
                       <Avatar agent={a} size={22} />
-                      <span className="cell"><b style={{ fontWeight: 500 }}>{a.name}</b><span style={{ color: "var(--ink-4)" }}> · {a.role}</span></span>
+                      <span className="cell"><b style={{ fontWeight: 500 }}>{a.name}</b><span style={{ color: "var(--ink-4)" }} className="mock-hide-xs"> · {a.role}</span></span>
                     </span>
-                    <span style={{ width: 104, flexShrink: 0 }}><StatusPill status={a.status} /></span>
+                    <span style={{ width: 104, flexShrink: 0 }} className="mock-hide-xs"><StatusPill status={a.status} /></span>
                     <span style={{ flex: 1 }} className="cell">{a.statusText}</span>
                     <span style={{ width: 100, flexShrink: 0, color: "var(--ink-3)" }} className="cell mock-hide-sm">{modelLabel(a.model)}</span>
-                    <span style={{ width: 52, flexShrink: 0, color: "var(--ink-4)" }}>{ago(a.lastRunAt)}</span>
+                    <span style={{ width: 52, flexShrink: 0, color: "var(--ink-4)" }} className="mock-hide-sm">{ago(a.lastRunAt)}</span>
                     <span style={{ width: 60, flexShrink: 0, textAlign: "right" }}><Money v={a.spentTodayUsd} /></span>
                   </div>
                 ))}
@@ -246,7 +246,7 @@ export function InboxMock() {
         <div className="main">
           <div className="tb">
             <div className="tb-title"><b>Inbox</b></div>
-            <div style={{ marginLeft: 16 }}>
+            <div style={{ marginLeft: 16 }} className="mock-hide-xs">
               <Segmented value="all" onChange={() => undefined} options={[
                 { value: "all", label: <>All <Count n={count("all")} /></> },
                 { value: "question", label: <>Questions <Count n={count("question")} /></> },
@@ -347,12 +347,12 @@ export function RunsMock() {
             <span className="mock-hide-sm"><SearchField width={160} /></span>
           </div>
           <div className="th">
-            <span style={{ width: 50 }}>Time</span>
+            <span style={{ width: 50 }} className="mock-hide-sm">Time</span>
             <span style={{ width: 104 }}>Agent</span>
             <span style={{ width: 150 }} className="mock-hide-sm">Why it woke up</span>
             <span style={{ flex: 1 }}>Summary</span>
-            <span style={{ width: 46, textAlign: "right" }}>Steps</span>
-            <span style={{ width: 74, textAlign: "right" }}>Duration</span>
+            <span style={{ width: 46, textAlign: "right" }} className="mock-hide-sm">Steps</span>
+            <span style={{ width: 74, textAlign: "right" }} className="mock-hide-sm">Duration</span>
             <span style={{ width: 56, textAlign: "right" }}>Cost</span>
             <span style={{ width: 88, paddingLeft: 16 }}>Status</span>
           </div>
@@ -361,12 +361,12 @@ export function RunsMock() {
             const muted = r.status === "noop";
             return (
               <div key={r.id} className={"tr tr-sm" + (i % 2 ? " tr-alt" : "")}>
-                <span className="mono" style={{ width: 50, fontSize: 11, color: "var(--ink-4)" }}>{hhmm(r.createdAt)}</span>
+                <span className="mono mock-hide-sm" style={{ width: 50, fontSize: 11, color: "var(--ink-4)" }}>{hhmm(r.createdAt)}</span>
                 <span style={{ width: 104, display: "flex", gap: 6, alignItems: "center" }} className="cell"><Avatar agent={a} size={18} /><span className="cell">{a.name}</span></span>
                 <span className="cell mock-hide-sm" style={{ width: 150, color: "var(--ink-3)" }}>{triggerLabel(r.trigger)}</span>
                 <span style={{ flex: 1, color: muted ? "var(--ink-4)" : undefined }} className="cell">{r.summary}</span>
-                <span className="mono" style={{ width: 46, textAlign: "right", fontSize: 11 }}>{r.stepCount || ""}</span>
-                <span className="mono" style={{ width: 74, textAlign: "right", fontSize: 11, color: "var(--ink-4)" }}>{dur(r.startedAt, r.finishedAt)}</span>
+                <span className="mono mock-hide-sm" style={{ width: 46, textAlign: "right", fontSize: 11 }}>{r.stepCount || ""}</span>
+                <span className="mono mock-hide-sm" style={{ width: 74, textAlign: "right", fontSize: 11, color: "var(--ink-4)" }}>{dur(r.startedAt, r.finishedAt)}</span>
                 <span style={{ width: 56, textAlign: "right" }}><Money v={r.costUsd} muted={r.costUsd < 0.005} /></span>
                 <span style={{ width: 88, paddingLeft: 16 }}><RunPill status={r.status} /></span>
               </div>
@@ -444,7 +444,7 @@ export function RulesMock() {
           ))}
           <div className="rule" style={{ background: "var(--surface)", borderBottom: "none" }}>
             <span className="field mono" style={{ width: 200, flexShrink: 0, color: "var(--ink-5)" }}>Bash(git push*)</span>
-            <span style={{ flex: 1, fontSize: 11, color: "var(--ink-4)" }}>Tool name or Tool(glob). First match wins, most specific first.</span>
+            <span style={{ flex: 1, fontSize: 11, color: "var(--ink-4)" }} className="mock-hide-sm">Tool name or Tool(glob). First match wins, most specific first.</span>
             <Button sm icon={<Ic.Plus size={11} />}>Add rule</Button>
           </div>
           <div className="pane-h" style={{ borderTop: "1px solid var(--border)" }}><Ic.Dollar size={13} />Budgets</div>

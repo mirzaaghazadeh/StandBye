@@ -213,7 +213,10 @@ a.land-r:hover { background: #f6f4f0; color: var(--ink); }
 .hero-dl { padding-bottom: 28px; }
 /* Every card puts its five parts on the same shared rows, so the download
    buttons line up across the three cards however long a blurb runs. */
-.plats { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: auto auto auto auto auto; gap: 14px; }
+/* minmax(0, 1fr) rather than 1fr: an asset filename is one long unbreakable-looking word, and a
+   plain 1fr track refuses to shrink under it, pushing the whole page sideways between the
+   mobile breakpoint and a full desktop width. */
+.plats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto auto auto auto auto; gap: 14px; }
 .plat { display: grid; grid-row: span 5; grid-template-rows: subgrid; gap: 10px; padding: 20px 22px; }
 .plat-mine { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-sel); }
 .plat-arch { font-weight: 400; opacity: 0.8; font-size: 12px; margin-left: 2px; }
@@ -227,7 +230,11 @@ a.land-r:hover { background: #f6f4f0; color: var(--ink); }
 .plat-soon .plat-i { background: var(--surface); color: var(--ink-3); border: 1px solid var(--border); }
 .plat-n { font-weight: 700; font-size: 18px; letter-spacing: -0.01em; }
 .plat > .fine { margin-top: auto; }
-.plat-btn { justify-self: start; align-self: start; }
+/* The kit's .btn is nowrap, and this one carries a second label ("AppImage x64"), so the whole
+   string became the narrowest the card could ever be — and three of those cards pushed the page
+   sideways on tablets and small laptops. It wraps instead, and the card is free to shrink. */
+.plat { min-width: 0; }
+.plat-btn { justify-self: start; align-self: start; white-space: normal; height: auto; min-height: 40px; padding-top: 9px; padding-bottom: 9px; text-align: left; max-width: 100%; }
 .plat-files { display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
 .plat-files .mono { font-size: 11.5px; color: var(--ink-3); }
 .dl-steps { margin-top: 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; padding: 16px 20px; font-size: 13px; color: var(--ink-2); }
@@ -319,7 +326,34 @@ a.land-r:hover { background: #f6f4f0; color: var(--ink); }
   .mock .th span, .mock .tr > span { white-space: nowrap; }
   .mock .tb { gap: 6px; padding: 0 10px; }
   .mock .tb .ibtn:disabled { display: none; }
-  .br-lg { display: none; }
+
+  /* --- the mock windows on a phone ---
+     The sidebar is gone above, so the main pane has the whole screen. What is left over from the
+     desktop layout has to give way, or the rows overlap each other instead of wrapping. */
+
+  /* A "Needs you" row is avatar + question + answer buttons on one line. At this width the buttons
+     squeeze the question until its text wraps a word at a time behind them. Let them take their
+     own line. */
+  .mock .need { flex-wrap: wrap; gap: 8px 10px; }
+  .mock .need .actions { width: 100%; justify-content: flex-start; }
+  .mock .need .mono { white-space: normal; }
+
+  /* The status bar is three fixed strings; the middle one is the first to go. */
+  .mock .status span:nth-child(2) { display: none; }
+
+  /* The Inbox detail is a two-column grid on the desktop. One column here. */
+  .mock .list-pane { display: none; }
+  .mock .body > div > div[style*="grid-template-columns"] { display: flex !important; flex-direction: column; gap: 18px !important; }
+
+  /* The board keeps its three columns and scrolls sideways inside its own window, the way a board
+     does. The page itself still does not move. */
+  .mock .board { overflow-x: auto; }
+  .mock .board-col { min-width: 220px; }
+
+  /* The line break goes, but the sentences still need the space it was standing in, or the
+     headline reads "AI agents.Working while you're away." */
+  .br-lg { display: inline; content: ""; }
+  .br-lg::after { content: " "; }
   .doors, .mix, .plats, .dl-steps, .pgrid, .dog-log, .doc-two { grid-template-columns: 1fr; }
   .doc-kv > div { grid-template-columns: 1fr; gap: 4px; }
   .hero-stack { height: 480px; }
@@ -332,6 +366,13 @@ a.land-r:hover { background: #f6f4f0; color: var(--ink); }
   .stats { grid-template-columns: repeat(2, 1fr); }
   .vendors { grid-template-columns: repeat(2, 1fr); }
   .mix-row { flex-wrap: wrap; }
+}
+
+/* A phone, where the Home table has to choose. "Doing now" is the column the screen exists for, so
+   the status pill and the agent's role give up their width to it. */
+@media (max-width: 620px) {
+  .mock-hide-xs { display: none !important; }
+  .mock .col-agent { width: 118px !important; }
 }
 @media (max-width: 520px) {
   .agents { grid-template-columns: 1fr; }
