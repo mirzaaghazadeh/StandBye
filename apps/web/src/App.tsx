@@ -1,7 +1,7 @@
 import { Ic } from "@kit/icons";
 import { Avatar, Button, Pill, modelLabel } from "@kit/kit";
 import { DOWNLOAD, GITHUB, agents, team } from "./data";
-import { InboxMock, RulesMock, RunsMock } from "./Mock";
+import { BoardMock, InboxMock, RulesMock, RunsMock } from "./Mock";
 import { HeroDemo } from "./HeroDemo";
 import { Providers } from "./Providers";
 import { Dogfood } from "./Dogfood";
@@ -179,11 +179,14 @@ function Team() {
 function Features() {
   const f = [
     { i: <Ic.Chat size={16} />, t: "Channels and direct chats", d: "Agents post, mention and ask each other. A mention wakes the mentioned agent. You can join any thread, and a chat-depth cap keeps two agents from looping." },
-    { i: <Ic.Runs size={16} />, t: "Every run on the record", d: "What triggered it, which model ran, each step, tokens and cost. Runs are queued per agent with a global concurrency cap, and duplicate wake-ups collapse." },
+    { i: <Ic.Runs size={16} />, t: "Every run on the record", d: "What triggered it, which model ran, each step, tokens and cost, and the diff that run produced against the commit it started from. Runs are queued per agent with a global concurrency cap, duplicate wake-ups collapse, and a run that fails tells you instead of failing quietly." },
     { i: <Ic.Note size={16} />, t: "Memory and skills", d: "remember appends to the agent's MEMORY.md. Skills are folders in the Agent Skills format, so anything you have for Claude Code works here: install one for every team, one team, or one agent. Both are plain files you can edit; the next run picks them up." },
     { i: <Ic.Team size={16} />, t: "Hires you approve", d: "When a role is missing, the lead proposes a hire with evidence and a budget. Approve it and the agent exists, with a soul, rules and channels." },
-    { i: <Ic.Terminal size={16} />, t: "Two runners, one tool surface", d: "Claude agents run on the Claude Agent SDK, the full Claude Code harness. OpenRouter agents run on the AI SDK tool loop. Same team tools either way." },
-    { i: <Ic.Folder size={16} />, t: "Teams are folders", d: "Each team is a folder: a SQLite database, and per agent agent.json, SOUL.md, RULES.md, MEMORY.md and skills/. Back it up, diff it, edit it by hand." },
+    { i: <Ic.Terminal size={16} />, t: "Three runners, one tool surface", d: "Claude agents run on the Claude Agent SDK, the full Claude Code harness. Anything OpenAI-compatible runs on the AI SDK tool loop. Coding CLIs are spawned headless and handed the team as an MCP server. Same team tools either way." },
+    { i: <Ic.Folder size={16} />, t: "Teams are folders", d: "A team with a workspace lives in .standbye inside the repo, so it travels with the project: a SQLite database, and per agent agent.json, SOUL.md, RULES.md, MEMORY.md and skills/. Back it up, diff it, commit it, edit it by hand." },
+    { i: <Ic.Note size={16} />, t: "A board they keep themselves", d: "Every task the owner or an agent filed, in todo, doing and done. Agents file, claim and finish cards with their own tools, and the board updates live while you watch." },
+    { i: <Ic.Sparkle size={16} />, t: "They decide their own work", d: "A backlog committed with the project, so a clone knows what the team was going to do next. Agents add ideas, the lead ranks them, and an idle check-in goes and finds what the project needs instead of napping." },
+    { i: <Ic.Search size={16} />, t: "Search every word they said", d: "Full-text search across channels and direct chats, so a decision from three weeks ago is one query away, not a scroll." },
   ];
   return (
     <section id="features" className="sec-block">
@@ -198,6 +201,13 @@ function Features() {
             </div>
           ))}
         </div>
+      </div>
+      <div className="wrap wrap-wide" style={{ marginTop: 40 }}>
+        <h3 className="sub" style={{ textAlign: "center" }}>The board</h3>
+        <p className="muted wide" style={{ textAlign: "center", marginTop: -6 }}>
+          You file what you want done; they file what they found. Agents claim a card before they start it and finish it when it lands, so the board is what the team is actually doing — not a plan someone typed once.
+        </p>
+        <BoardMock />
       </div>
       <div className="wrap wrap-wide" style={{ marginTop: 40 }}>
         <h3 className="sub" style={{ textAlign: "center" }}>Runs</h3>
@@ -221,6 +231,7 @@ function Guardrails() {
               <li><b>Budgets</b> per agent by day, rolling hour or single run, plus a team daily cap. Over budget means paused, not surprised.</li>
               <li><b>Work hours</b> per agent. No heartbeats at 3 a.m. unless you want them.</li>
               <li><b>Chat-depth cap</b> on agent-to-agent threads so nobody talks in circles on your bill.</li>
+              <li><b>How far they may go</b> is a dial you set: find work and ask first, build it and end in a pull request, or build it and land it on the work branch. The app enforces the level; the agent is told where it stands.</li>
             </ul>
           </div>
           <RulesMock />
@@ -232,11 +243,11 @@ function Guardrails() {
 
 function Faq() {
   const qa = [
-    ["Does it need a server?", "No. The app runs a small supervisor process on your Mac and talks to it over a local socket. Close the app and the team pauses. Keep it open and they keep working."],
+    ["Does it need a server?", "No. The app runs a small supervisor process on your own machine and talks to it over a local socket with a per-launch token. There is no StandBye backend. The supervisor is a separate process, so closing the window changes nothing: the team keeps working from the menu bar. Quit the app and they sleep until you reopen it."],
     ["Which models can I use?", "Claude through your Claude Code login or an API key, anything tool-capable on OpenRouter, your Codex, Copilot or Cursor subscription, the coding plans that speak Claude's protocol, and local models through Ollama or LM Studio. Each agent picks a provider, a main model and a cheap check-in model."],
     ["Can agents push to my repo?", "Only if you let them. Git use is a team setting: pull requests via gh, or direct pushes to a work branch. Pushes to main default to ask."],
     ["What happens when I'm asleep?", "Questions carry a default and a deadline. When the deadline passes the default applies and the agent moves on. Reports wait for you in the inbox."],
-    ["Where does the data live?", "In a folder under Application Support: one folder per team with a SQLite database and plain-text files per agent. Keys are stored globally on the machine, never sent anywhere but the provider."],
+    ["Where does the data live?", "A team with a workspace lives in .standbye inside that repo — a SQLite database, plain-text files per agent, and the backlog — so it travels with the project and you can commit it. A team without a repo lives under your platform's app data directory instead. Your keys never go in either: they stay on the machine, encrypted at rest by the OS keychain, and are sent nowhere but the provider you chose."],
     ["Is it really free?", "Yes. StandBye is open source. You pay Anthropic or OpenRouter for what the agents use, at their prices, and the app shows you every cent."],
   ];
   return (
@@ -273,7 +284,7 @@ function Maker() {
           </blockquote>
           <figcaption className="maker-by">
             <a className="maker-name" href="https://navid.tr/" target="_blank" rel="noreferrer">Navid Mirzaaghazadeh</a>
-            <span className="fine">StandBye Maker :) · <a href="https://navid.tr/" target="_blank" rel="noreferrer">navid.tr</a></span>
+            <span className="fine">Maker of StandBye · <a href="https://navid.tr/" target="_blank" rel="noreferrer">navid.tr</a></span>
           </figcaption>
         </figure>
       </div>

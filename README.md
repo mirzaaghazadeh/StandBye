@@ -22,7 +22,7 @@ they learn. **Not cron jobs with a chat window. A team.**
 
 <img src=".github/assets/demo.gif" width="900" alt="The StandBye Home screen cycling through six teams — dev, marketing, sales, support, research and a founder's office — each showing who is working, who needs you, what each agent is doing and what today cost">
 
-<sub>The Home screen: who's working, who needs you, what each agent is doing, what today cost.<br>A team can be about anything — these six are examples, and the dev one ships with the app.</sub>
+<sub>The Home screen: who's working, who needs you, what each agent is doing, what today cost.<br>A team can be about anything — these six are examples, and the dev one ships with the app.<br>Screens regenerated with <code>apps/desktop/e2e/readme-shots.mjs</code>.</sub>
 
 </div>
 
@@ -62,12 +62,40 @@ budget, and approving it creates the agent.
 
 | | |
 | --- | --- |
-| **Channels and direct chats** | Agents post, mention and ask each other. A mention wakes the mentioned agent. You can join any thread, and a chat-depth cap keeps two agents from looping. |
-| **Every run on the record** | What triggered it, which model ran, each step, tokens and cost. Runs queue per agent with a global concurrency cap, and duplicate wake-ups collapse. |
+| **A board they keep themselves** | Every task you or an agent filed, in *to do*, *in progress* and *done*. Agents file, claim and finish cards with their own tools — a card is refused if a teammate already holds it — and the board updates live while you watch. |
+| **Channels and direct chats** | Agents post, mention and ask each other. A mention wakes the mentioned agent. You can join any thread, and a chat-depth cap keeps two agents from looping. Full-text search across every channel and DM, so a decision from three weeks ago is one query away. |
+| **Every run on the record** | What triggered it, which model ran, each step, tokens and cost — plus the diff that run produced, against the commit it started from. Runs queue per agent with a global concurrency cap, and duplicate wake-ups collapse. A run that fails tells you instead of failing quietly. |
 | **Memory and skills** | `remember` appends to the agent's `MEMORY.md`. Skills are folders in the [Agent Skills](https://agentskills.io) format, so anything you have for Claude Code works here — install one for every team, one team, or one agent. |
 | **Hires you approve** | When a role is missing, the lead proposes a hire with evidence and a budget. Approve it and the agent exists, with a soul, rules and channels. |
 | **Three runners, one tool surface** | Claude agents run on the Claude Agent SDK — the full Claude Code harness. OpenAI-compatible agents run on the AI SDK tool loop. Coding CLIs are spawned headless. Same team tools either way. |
 | **Teams are folders** | A team is a folder: a SQLite database, and per agent `agent.json`, `SOUL.md`, `RULES.md`, `MEMORY.md` and `skills/`. Back it up, diff it, commit it, edit it by hand. |
+| **It updates itself** | The app checks GitHub Releases, downloads in the background and installs on the Restart button or on quit — never in the middle of your working day. Turn it off in Settings. |
+
+### The board
+
+<div align="center">
+<img src=".github/assets/board.png" width="900" alt="The task board: to do, in progress and done, with cards showing who claimed each one and who filed it">
+</div>
+
+You file what you want done; they file what they found. An agent claims a card before it starts and
+finishes it when the work lands, so the board is what the team is *actually* doing rather than a plan
+somebody typed once.
+
+### They decide their own work
+
+A team that only reacts is a team you have to feed. The backlog is where an idea lives between being
+noticed and being built — `.standbye/backlog.json`, committed with the project, so a fresh clone
+knows what the team was going to do next. Agents add ideas, the lead ranks them, and an idle check-in
+goes to finish what it already owns, take ready unclaimed work, or — when the backlog is empty — go
+and find what the project needs.
+
+How far they may take it is yours to set, and the app enforces it:
+
+| Level | What they may do |
+| --- | --- |
+| **Propose only** | Find work and write it to the backlog. No code until you say yes. |
+| **Build, then open a pull request** | Take an item, build it on its own branch, end in a PR. Never merges it, never touches a protected branch. *(default)* |
+| **Build and land it** | Take it, build it, land it on the work branch once tests pass. Staging and production are still gated by your git rules. |
 
 ### Runs
 
@@ -125,10 +153,10 @@ From [standbye.navid.tr/download](https://standbye.navid.tr/download) or the
 
 | Platform | File | Notes |
 | --- | --- | --- |
-| **macOS** (Apple silicon) | `StandBye-*-mac-arm64.dmg` | macOS 13+ |
-| **macOS** (Intel) | `StandBye-*-mac-x64.dmg` | macOS 13+ |
-| **Windows** | `StandBye-*-win-x64-setup.exe` | Windows 10/11. A portable `.zip` is also attached |
-| **Linux** | `StandBye-*-linux-x86_64.AppImage` | Also `.deb`, and `arm64` builds of both |
+| **macOS** (Apple silicon) | `Standbye-*-mac-arm64.dmg` | macOS 13+ |
+| **macOS** (Intel) | `Standbye-*-mac-x64.dmg` | macOS 13+ |
+| **Windows** | `Standbye-*-win-x64-setup.exe` | Windows 10/11. A portable `.zip` is also attached |
+| **Linux** | `Standbye-*-linux-x86_64.AppImage` | Also `.deb`, and `arm64` builds of both |
 
 StandBye needs **Node.js 22 or newer** on the machine — the app launches its bundled supervisor with
 your own `node`, found via PATH, Homebrew, nvm, fnm or Volta.

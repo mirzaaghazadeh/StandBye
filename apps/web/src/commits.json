@@ -1,11 +1,46 @@
 {
-  "fetchedAt": "2026-09-03",
+  "fetchedAt": "2026-09-05",
   "version": "0.2.0",
   "tagged": true,
-  "head": "bbd0dad",
+  "head": "538088d",
   "headDate": "2026-09-04",
-  "count": 73,
+  "count": 80,
   "commits": [
+    {
+      "hash": "538088d",
+      "date": "2026-09-04",
+      "subject": "Point the team at the board it can actually see"
+    },
+    {
+      "hash": "e8eae3c",
+      "date": "2026-09-04",
+      "subject": "Two skills for the half of the product that is looked at"
+    },
+    {
+      "hash": "91848dd",
+      "date": "2026-09-04",
+      "subject": "desktop: Board screen for the kanban task board"
+    },
+    {
+      "hash": "fa14422",
+      "date": "2026-09-04",
+      "subject": "supervisor: notify the owner when a run fails"
+    },
+    {
+      "hash": "0fdc94a",
+      "date": "2026-09-04",
+      "subject": "desktop: store loads tasks.list alongside the other refresh data"
+    },
+    {
+      "hash": "731a758",
+      "date": "2026-09-04",
+      "subject": "supervisor: fetch OpenRouter's live model catalog for the model picker"
+    },
+    {
+      "hash": "12b8ae4",
+      "date": "2026-09-04",
+      "subject": "Tests bind port 0 instead of guessing ports the live app may hold"
+    },
     {
       "hash": "bbd0dad",
       "date": "2026-09-04",
@@ -40,41 +75,6 @@
       "hash": "ce1e83f",
       "date": "2026-09-03",
       "subject": "Supervisor: cover agents.create with RPC tests"
-    },
-    {
-      "hash": "c152e6d",
-      "date": "2026-09-04",
-      "subject": "Answer the owner when they speak to the room"
-    },
-    {
-      "hash": "aa22089",
-      "date": "2026-09-03",
-      "subject": "Say something when the window comes up blank"
-    },
-    {
-      "hash": "7471718",
-      "date": "2026-09-03",
-      "subject": "Answer a question like a question, and show the thinking behind the wait"
-    },
-    {
-      "hash": "9d008c6",
-      "date": "2026-09-03",
-      "subject": "Search honesty: failed searches show an error, cap page says so"
-    },
-    {
-      "hash": "9a80750",
-      "date": "2026-09-03",
-      "subject": "Auto-updater: verify release asset digest and guard asset names"
-    },
-    {
-      "hash": "b223b5c",
-      "date": "2026-09-03",
-      "subject": "Follow the folder when the owner edits the team by hand"
-    },
-    {
-      "hash": "2e39136",
-      "date": "2026-09-03",
-      "subject": "Supervisor: correct failure-pause comments to match decided behavior"
     }
   ]
 }

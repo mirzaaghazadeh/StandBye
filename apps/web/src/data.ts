@@ -1,4 +1,4 @@
-import { defaultModelsFor, type Agent, type AgentDraft, type AgentStatus, type ProviderSettings, type Question, type Run, type TeamDraft } from "@crew/shared";
+import { defaultModelsFor, type Agent, type AgentDraft, type AgentStatus, type ProviderSettings, type Question, type Run, type Task, type TeamDraft } from "@crew/shared";
 import { soloDevTeam } from "@templates";
 
 export const GITHUB = "https://github.com/mirzaaghazadeh/StandBye";
@@ -74,6 +74,17 @@ export const questions: Question[] = [
   { id: "q1", kind: "approval", fromAgentId: "rex", toId: "user", channelId: null, title: "Merge #214 after the flaky test fix?", body: "All 212 tests pass locally. The flaky one (queue.fairness) passed 10/10 after Kai's fix. Merging touches main, which your rules mark as ask.", options: ["Merge it", "Wait for one more green CI run", "Don't merge"], recommended: "Merge it", defaultAnswer: "Wait for one more green CI run", defaultAt: inMinutes(38), status: "open", answer: null, answeredBy: null, payload: null, runId: "r3", createdAt: minutesAgo(23), answeredAt: null },
   { id: "q2", kind: "hire", fromAgentId: "ada", toId: "user", channelId: null, title: "Add a frontend engineer?", body: "Three of the last five tasks touched the renderer and Kai spent 40% of his budget there. A frontend engineer on Sonnet 5 at $3/day would take that over.", options: ["Hire", "Not now"], recommended: "Hire", defaultAnswer: "Not now", defaultAt: inMinutes(600), status: "open", answer: null, answeredBy: null, payload: null, runId: "r1", createdAt: minutesAgo(9), answeredAt: null },
   { id: "q3", kind: "report", fromAgentId: "ada", toId: "user", channelId: null, title: "End of day", body: "Shipped: queue fairness, typing indicator. Blocked: nothing. Needs you: one merge approval.", options: [], recommended: null, defaultAnswer: null, defaultAt: null, status: "open", answer: null, answeredBy: null, payload: null, runId: null, createdAt: minutesAgo(60 * 20), answeredAt: null },
+];
+
+// The shared board: what the owner filed, and what the team filed for itself.
+export const tasks: Task[] = [
+  { id: "t1", column: "todo", title: "Retry the queue on a provider 429", detail: "Back off and requeue instead of failing the run.", assignee: null, createdBy: "user", position: 0, createdAt: minutesAgo(300), updatedAt: minutesAgo(300) },
+  { id: "t2", column: "todo", title: "Document the permission rules", detail: "The allow/ask/block table has no page yet.", assignee: "sol", createdBy: "ada", position: 1, createdAt: minutesAgo(220), updatedAt: minutesAgo(220) },
+  { id: "t3", column: "todo", title: "Budget warning at 80%", detail: null, assignee: null, createdBy: "ada", position: 2, createdAt: minutesAgo(180), updatedAt: minutesAgo(180) },
+  { id: "t4", column: "doing", title: "PR #218: queue retry budget", detail: "A run that dies mid-step should not bill twice.", assignee: "kai", createdBy: "ada", position: 0, createdAt: minutesAgo(140), updatedAt: minutesAgo(11) },
+  { id: "t5", column: "doing", title: "Review #214", detail: "One flaky test in queue.fairness.", assignee: "rex", createdBy: "ada", position: 1, createdAt: minutesAgo(120), updatedAt: minutesAgo(26) },
+  { id: "t6", column: "done", title: "Queue fairness: one run per agent", detail: null, assignee: "kai", createdBy: "user", position: 0, createdAt: minutesAgo(600), updatedAt: minutesAgo(81) },
+  { id: "t7", column: "done", title: "Typing indicator in channels", detail: null, assignee: "kai", createdBy: "kai", position: 1, createdAt: minutesAgo(900), updatedAt: minutesAgo(300) },
 ];
 
 export const rules = [

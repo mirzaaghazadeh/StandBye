@@ -1,7 +1,8 @@
 // The app's own screens, rebuilt from the desktop UI kit with static demo data.
 import { Ic } from "@kit/icons";
 import { Avatar, Button, Group, IconButton, KV, KindPill, Money, Pill, Progress, RunPill, SearchField, StatusPill, UserAvatar, ago, dur, hhmm, modelLabel } from "@kit/kit";
-import { agents, questions, runs, rules, spentToday, team, triggerLabel } from "./data";
+import { type Task, type TaskColumn } from "@crew/shared";
+import { agents, questions, runs, rules, spentToday, tasks, team, triggerLabel } from "./data";
 import { devTeam, type DemoTeam } from "./teams";
 
 function Lights() {
@@ -12,7 +13,7 @@ function Lights() {
   );
 }
 
-function Sidebar({ active, d }: { active: "home" | "inbox" | "runs"; d: DemoTeam }) {
+function Sidebar({ active, d }: { active: "home" | "inbox" | "board" | "runs"; d: DemoTeam }) {
   const needs = d.openQuestions;
   const team = d;
   const agents = d.agents;
@@ -28,7 +29,9 @@ function Sidebar({ active, d }: { active: "home" | "inbox" | "runs"; d: DemoTeam
       <div className="sec">TEAM</div>
       <div className={"srow" + (active === "home" ? " srow-on" : "")}><Ic.Home size={14} /><span className="grow">Home</span></div>
       <div className={"srow" + (active === "inbox" ? " srow-on" : "")}><Ic.Inbox size={14} /><span className="grow">Inbox</span>{needs > 0 && <span className="badge">{needs}</span>}</div>
+      <div className={"srow" + (active === "board" ? " srow-on" : "")}><Ic.Note size={14} /><span className="grow">Board</span></div>
       <div className={"srow" + (active === "runs" ? " srow-on" : "")}><Ic.Runs size={14} /><span className="grow">Runs</span></div>
+      <div className="srow"><Ic.Sparkle size={14} /><span className="grow">Skills</span></div>
       <div className="sec">CHANNELS</div>
       <div className="srow"><Ic.Hash size={14} /><span className="grow">general</span></div>
       {team.channels.map((c) => (
@@ -225,6 +228,52 @@ export function RunsMock() {
               </div>
             );
           })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const COLUMN_LABEL: Record<TaskColumn, string> = { todo: "To do", doing: "In progress", done: "Done" };
+
+/** The shared board. Same three columns and the same card as the app, on the demo team's tasks. */
+export function BoardMock() {
+  const name = (id: string | null) => (id ? agents.find((a) => a.id === id)?.name ?? id : "Unclaimed");
+  const filedBy = (t: Task) => (t.createdBy === "user" ? "you" : name(t.createdBy));
+  const done = tasks.filter((t) => t.column === "done").length;
+  return (
+    <div className="mock">
+      <div className="app">
+        <Sidebar active="board" d={devTeam} />
+        <div className="main">
+          <div className="tb">
+            <div className="tb-title"><b>Board</b><span>{tasks.filter((t) => t.column === "todo").length} to do · {tasks.filter((t) => t.column === "doing").length} in progress · {done} done</span></div>
+            <div className="grow" />
+            <Button sm primary icon={<Ic.Plus size={13} />}>New task</Button>
+          </div>
+          <div className="board">
+            {(["todo", "doing", "done"] as TaskColumn[]).map((c) => {
+              const cards = tasks.filter((t) => t.column === c);
+              return (
+                <div className="board-col" key={c}>
+                  <div className="board-col-h"><span>{COLUMN_LABEL[c]}</span><span className="pill">{cards.length}</span></div>
+                  <div className="board-cards">
+                    {cards.map((t) => (
+                      <div key={t.id} className="board-card">
+                        <span className="board-card-t">{t.title}</span>
+                        {t.detail && <span className="board-card-d">{t.detail}</span>}
+                        <span className="board-card-f">
+                          <Ic.Person size={11} stroke="var(--ink-5)" />
+                          {name(t.assignee)}
+                          <span className="hint">filed by {filedBy(t)}</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
