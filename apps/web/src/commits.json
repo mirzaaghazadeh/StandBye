@@ -1,11 +1,31 @@
 {
   "fetchedAt": "2026-09-06",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "tagged": true,
-  "head": "bf17385",
+  "head": "91162a3",
   "headDate": "2026-09-06",
-  "count": 92,
+  "count": 96,
   "commits": [
+    {
+      "hash": "91162a3",
+      "date": "2026-09-06",
+      "subject": "Release v0.3.2"
+    },
+    {
+      "hash": "7877d54",
+      "date": "2026-09-06",
+      "subject": "Fetch the Claude binary instead of shipping it"
+    },
+    {
+      "hash": "b2e02d1",
+      "date": "2026-09-06",
+      "subject": "Stop shipping the supervisor twice"
+    },
+    {
+      "hash": "d6ba6a5",
+      "date": "2026-09-06",
+      "subject": "Snapshot the log at v0.3.1"
+    },
     {
       "hash": "bf17385",
       "date": "2026-09-06",
@@ -55,26 +75,6 @@
       "hash": "67041fb",
       "date": "2026-09-05",
       "subject": "Name the release files the way they are actually built"
-    },
-    {
-      "hash": "259153a",
-      "date": "2026-09-05",
-      "subject": "Release v0.3.0"
-    },
-    {
-      "hash": "03d7371",
-      "date": "2026-09-05",
-      "subject": "Show the product we actually ship"
-    },
-    {
-      "hash": "538088d",
-      "date": "2026-09-04",
-      "subject": "Point the team at the board it can actually see"
-    },
-    {
-      "hash": "e8eae3c",
-      "date": "2026-09-04",
-      "subject": "Two skills for the half of the product that is looked at"
     }
   ]
 }
