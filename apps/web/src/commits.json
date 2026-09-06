@@ -1,11 +1,41 @@
 {
-  "fetchedAt": "2026-09-05",
-  "version": "0.3.0",
+  "fetchedAt": "2026-09-06",
+  "version": "0.3.1",
   "tagged": true,
-  "head": "5bdf293",
-  "headDate": "2026-09-05",
-  "count": 86,
+  "head": "bf17385",
+  "headDate": "2026-09-06",
+  "count": 92,
   "commits": [
+    {
+      "hash": "bf17385",
+      "date": "2026-09-06",
+      "subject": "Release v0.3.1"
+    },
+    {
+      "hash": "bea5aa4",
+      "date": "2026-09-06",
+      "subject": "Build the macOS signing keychain ourselves"
+    },
+    {
+      "hash": "f9ee891",
+      "date": "2026-09-06",
+      "subject": "Say that the macOS builds are notarized now"
+    },
+    {
+      "hash": "6a47fd6",
+      "date": "2026-09-06",
+      "subject": "Make the site work on a phone"
+    },
+    {
+      "hash": "e9d5894",
+      "date": "2026-09-05",
+      "subject": "A tagged build publishes itself"
+    },
+    {
+      "hash": "7ce6532",
+      "date": "2026-09-05",
+      "subject": "site: snapshot the log again"
+    },
     {
       "hash": "5bdf293",
       "date": "2026-09-05",
@@ -45,36 +75,6 @@
       "hash": "e8eae3c",
       "date": "2026-09-04",
       "subject": "Two skills for the half of the product that is looked at"
-    },
-    {
-      "hash": "91848dd",
-      "date": "2026-09-04",
-      "subject": "desktop: Board screen for the kanban task board"
-    },
-    {
-      "hash": "fa14422",
-      "date": "2026-09-04",
-      "subject": "supervisor: notify the owner when a run fails"
-    },
-    {
-      "hash": "0fdc94a",
-      "date": "2026-09-04",
-      "subject": "desktop: store loads tasks.list alongside the other refresh data"
-    },
-    {
-      "hash": "731a758",
-      "date": "2026-09-04",
-      "subject": "supervisor: fetch OpenRouter's live model catalog for the model picker"
-    },
-    {
-      "hash": "12b8ae4",
-      "date": "2026-09-04",
-      "subject": "Tests bind port 0 instead of guessing ports the live app may hold"
-    },
-    {
-      "hash": "bbd0dad",
-      "date": "2026-09-04",
-      "subject": "Tell people how to run the team on an OpenRouter key"
     }
   ]
 }
