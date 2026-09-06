@@ -21,9 +21,6 @@ importers:
       '@crew/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@crew/supervisor':
-        specifier: workspace:*
-        version: link:../../packages/supervisor
       react:
         specifier: ^19.1.1
         version: 19.2.8
@@ -37,6 +34,9 @@ importers:
         specifier: ^8.18.3
         version: 8.21.3
     devDependencies:
+      '@crew/supervisor':
+        specifier: workspace:*
+        version: link:../../packages/supervisor
       '@types/node':
         specifier: ^24.5.2
         version: 24.13.3

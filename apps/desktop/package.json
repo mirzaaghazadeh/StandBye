@@ -27,13 +27,14 @@
   },
   "dependencies": {
     "@crew/shared": "workspace:*",
-    "@crew/supervisor": "workspace:*",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "simple-icons": "^16.29.0",
     "ws": "^8.18.3"
   },
+  "//@crew/supervisor": "A devDependency on purpose, and it has to stay one. electron-builder packs every production dependency into app.asar no matter what `files` allows, and this one drags in the 190MB `claude` binary from @anthropic-ai/claude-agent-sdk-<platform>. The packaged app never loads that copy — main/index.ts resolves the supervisor from process.resourcesPath, where scripts/after-pack.cjs puts a pruned tree — so it was 270MB of bundle nobody could reach. Dev still resolves it from node_modules, which devDependencies satisfies.",
   "devDependencies": {
+    "@crew/supervisor": "workspace:*",
     "@types/node": "^24.5.2",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
