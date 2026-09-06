@@ -6,6 +6,8 @@ import { childPath, providerBaseUrl, providerKey } from "../providers.js";
 import { CHECKIN_TOOLS, TEAM_TOOLS, type AnyTeamTool, type ToolContext } from "../tools/team-tools.js";
 import { gate } from "./approval.js";
 import { pluginSkillId } from "../skills.js";
+import { claudeRuntime, installClaudeRuntime } from "../claude-runtime.js";
+import { log } from "../log.js";
 import { classifyFailure, classifyText, type FailureKind, type Runner } from "./types.js";
 
 /**
@@ -49,6 +51,28 @@ export const anthropicRunner: Runner = async (input) => {
   const abort = new AbortController();
   signal.addEventListener("abort", () => abort.abort(), { once: true });
 
+  // The harness is a ~190 MB binary the installer no longer carries (see claude-runtime.ts). The
+  // owner normally fetches it in Settings when switching a Claude provider on; this is the safety
+  // net for the team that was configured before that, or restored from a folder onto a fresh Mac.
+  // Downloading inside a run is the worse path — it is minutes of a run's clock — so it is a
+  // fallback, not the plan, and a failure here is reported as a blocked run rather than a crash.
+  let executable: string;
+  try {
+    const rt = claudeRuntime(crew.opts.globalDir);
+    if (rt.unsupported) throw new Error(`Claude Code publishes no binary for ${process.platform}-${process.arch}.`);
+    if (!rt.installed) log(`Claude runtime ${rt.version} is missing; fetching it before this run`, { agent: agent.id });
+    executable = await installClaudeRuntime(crew.opts.globalDir, undefined, signal);
+  } catch (e) {
+    return {
+      costUsd: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      text: "",
+      error: `Could not get the Claude runtime: ${e instanceof Error ? e.message : String(e)}. Download it in Settings › Providers.`,
+      failure: "auth",
+    };
+  }
+
   let text = "";
   let costUsd = 0;
   let inputTokens = 0;
@@ -87,6 +111,8 @@ export const anthropicRunner: Runner = async (input) => {
         settingSources: [],
         disallowedTools: mode === "checkin" ? ["Edit", "Write", "MultiEdit", "NotebookEdit", "Bash", "WebFetch", "Task"] : ["Task"],
         env: claudeEnv(spec, config, apiKey),
+        // Without this the SDK looks for the binary in its own node_modules, where it no longer is.
+        pathToClaudeCodeExecutable: executable,
         abortController: abort,
       },
     });

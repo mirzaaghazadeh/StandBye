@@ -53,27 +53,25 @@ const r = spawnSync("npm", ["install", "--omit=dev", "--ignore-scripts", "--no-p
 });
 if (r.status !== 0) { console.error("npm install failed"); process.exit(1); }
 
-// The Claude Agent SDK ships its ~200 MB native Claude Code binary as one optional dependency per
-// platform. npm's --os/--cpu only *filter* those, they never install a foreign one, so the target's
-// variant has to be asked for by name with --force (which skips the os/cpu check). Then drop every
-// other variant, including the host one npm keeps re-adding.
+// The Claude Agent SDK reaches its harness through one ~190 MB native binary, published as an
+// optional dependency per platform. It is deliberately NOT bundled: it is bigger than the rest of
+// the app put together, and a team running on OpenRouter, a coding plan or a local model never
+// touches it. supervisor/src/claude-runtime.ts fetches it from the npm registry — same publisher,
+// same version, checked against the SHA-256 in the SDK's own manifest — the first time the owner
+// wants a Claude provider.
+//
+// npm keeps re-adding the *host* variant through those optionalDependencies, so it is dropped here
+// rather than trusted not to appear. Deleting it is safe on every target: nothing resolves it at
+// runtime any more, because the runner passes `pathToClaudeCodeExecutable` explicitly.
 const anthropicDir = path.join(out, "node_modules/@anthropic-ai");
-const sdkPkg = path.join(anthropicDir, "claude-agent-sdk/package.json");
-if (fs.existsSync(sdkPkg)) {
-  const sdkVersion = JSON.parse(fs.readFileSync(sdkPkg, "utf8")).version;
-  const want = `claude-agent-sdk-${targetPlatform}-${targetArch}`;
-  const f = spawnSync("npm", ["install", `@anthropic-ai/${want}@${sdkVersion}`, "--force", "--ignore-scripts", "--no-save", "--no-package-lock", "--no-audit", "--no-fund", "--loglevel=error"], {
-    cwd: out,
-    stdio: "inherit",
-    shell: process.platform === "win32",
-    env: { ...process.env, COREPACK_ENABLE_STRICT: "0", npm_config_workspaces: "false" },
-  });
-  if (f.status !== 0) { console.error(`could not install @anthropic-ai/${want}@${sdkVersion}`); process.exit(1); }
+if (fs.existsSync(anthropicDir)) {
+  let dropped = 0;
   for (const d of fs.readdirSync(anthropicDir)) {
-    if (d.startsWith("claude-agent-sdk-") && d !== want) fs.rmSync(path.join(anthropicDir, d), { recursive: true, force: true });
+    if (!d.startsWith("claude-agent-sdk-")) continue;
+    fs.rmSync(path.join(anthropicDir, d), { recursive: true, force: true });
+    dropped++;
   }
-  if (!fs.existsSync(path.join(anthropicDir, want))) { console.error(`@anthropic-ai/${want} did not land`); process.exit(1); }
-  console.log(`kept claude binary: ${want}@${sdkVersion}`);
+  if (dropped) console.log(`dropped ${dropped} bundled claude binary package(s); the app fetches one on demand`);
 }
 
 const sharedOut = path.join(out, "node_modules/@crew/shared");

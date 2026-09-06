@@ -2,7 +2,7 @@ import { log } from "./log.js";
 import fs from "node:fs";
 import path from "node:path";
 import { nanoid } from "nanoid";
-import type { Agent, ArchivedTeam, GitSettings, PushEvent, TeamDraft, TeamSummary } from "@crew/shared";
+import type { Agent, ArchivedTeam, ClaudeRuntimeProgress, GitSettings, PushEvent, TeamDraft, TeamSummary } from "@crew/shared";
 import { TEAM_DIR_NAME } from "@crew/shared";
 import { Crew, type Keys } from "./crew.js";
 import { syncBundledSkills } from "./bundled-skills.js";
@@ -248,6 +248,13 @@ export class Hub {
   }
   private emit(e: PushEvent): void {
     for (const l of this.listeners) l(e);
+  }
+  /**
+   * A global event with no team behind it: the Claude runtime is one binary shared by every team,
+   * and the owner downloads it from Settings, which is not looking at a team either.
+   */
+  notifyClaudeRuntime(data: ClaudeRuntimeProgress): void {
+    this.emit({ event: "claudeRuntime.progress", data });
   }
   private emitTeams(): void {
     this.emit({ event: "teams.updated", data: this.list() });

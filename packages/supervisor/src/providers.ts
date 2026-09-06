@@ -4,8 +4,9 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import {
   APP_NAME, APP_URL, PROVIDERS, providerSpec,
-  type Provider, type ProviderConfig, type ProviderSettings, type ProviderSpec, type ProviderState, type ProviderStatus,
+  type ClaudeRuntimeState, type Provider, type ProviderConfig, type ProviderSettings, type ProviderSpec, type ProviderState, type ProviderStatus,
 } from "@crew/shared";
+import { claudeRuntime } from "./claude-runtime.js";
 
 /**
  * Everything the app needs to know about "can this provider actually run right now".
@@ -188,8 +189,13 @@ function requiredFields(spec: ProviderSpec): string[] {
   return (spec.fields ?? []).filter((f) => !f.optional).map((f) => f.key);
 }
 
-/** One provider's full picture: config, what it has, and the one sentence that says what is missing. */
-export function stateFor(spec: ProviderSpec, cfg: ProviderConfig, keys: Keys): ProviderState {
+/**
+ * One provider's full picture: config, what it has, and the one sentence that says what is missing.
+ *
+ * `globalDir` is optional only so the pure-config callers (tests, the team builder's dry runs) do
+ * not have to invent one; without it a Claude provider simply reports no runtime information.
+ */
+export function stateFor(spec: ProviderSpec, cfg: ProviderConfig, keys: Keys, globalDir?: string): ProviderState {
   const key = providerKey(spec, keys);
   const login = spec.id === "anthropic" && hasClaudeLogin();
   const cliPath = spec.cli ? findBin(cfg.cli?.bin || spec.cli.bin) : null;
@@ -219,12 +225,19 @@ export function stateFor(spec: ProviderSpec, cfg: ProviderConfig, keys: Keys): P
     configured,
     ready: cfg.enabled && credentialed,
     blocker: credentialed ? (cfg.enabled ? "" : "Switched off.") : blocker,
+    ...(spec.kind === "claude" && globalDir ? { runtime: runtimeState(globalDir) } : {}),
   };
 }
 
-export function statusFor(settings: ProviderSettings, keys: Keys): ProviderStatus {
+/** The binary is shared by every Claude-kind provider, so this is one answer for all of them. */
+function runtimeState(globalDir: string): ClaudeRuntimeState {
+  const rt = claudeRuntime(globalDir);
+  return { version: rt.version, bytes: rt.bytes, installed: rt.installed, unsupported: rt.unsupported };
+}
+
+export function statusFor(settings: ProviderSettings, keys: Keys, globalDir?: string): ProviderStatus {
   const out: ProviderStatus = {};
-  for (const spec of PROVIDERS) out[spec.id] = stateFor(spec, settings[spec.id] ?? defaultConfig(spec), keys);
+  for (const spec of PROVIDERS) out[spec.id] = stateFor(spec, settings[spec.id] ?? defaultConfig(spec), keys, globalDir);
   return out;
 }
 

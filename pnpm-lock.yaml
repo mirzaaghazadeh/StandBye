@@ -134,6 +134,9 @@ importers:
       nanoid:
         specifier: ^5.1.5
         version: 5.1.16
+      tar:
+        specifier: ^7.5.22
+        version: 7.5.22
       ws:
         specifier: ^8.18.3
         version: 8.21.3

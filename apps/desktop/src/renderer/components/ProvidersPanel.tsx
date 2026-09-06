@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   GROUP_BLURB, GROUP_LABEL, GROUP_ORDER, PROVIDERS, providerSpec,
-  type Provider, type ProviderConfig, type ProviderGroup, type ProviderSpec, type ProviderState,
+  type ClaudeRuntimeState, type Provider, type ProviderConfig, type ProviderGroup, type ProviderSpec, type ProviderState,
 } from "@crew/shared";
 import { store, useStore } from "../state/store";
-import { Button, KV, Switch } from "../ui/kit";
+import { Button, KV, Progress, Switch } from "../ui/kit";
 import { Ic } from "../ui/icons";
 import { ProviderMark } from "../ui/brand";
 import { ModelPicker } from "./ModelPicker";
@@ -161,6 +161,8 @@ function ProviderDetail({ spec, state }: { spec: ProviderSpec; state?: ProviderS
         {GROUP_BLURB[spec.group as ProviderGroup]}
       </div>
 
+      {state.runtime && <ClaudeRuntimeRow rt={state.runtime} />}
+
       {/* ---- credentials ---- */}
       {spec.auth === "login" && (
         <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>
@@ -277,4 +279,62 @@ function CliOverride({ spec, state, onSave }: { spec: ProviderSpec; state: Provi
       </div>
     </div>
   );
+}
+
+/**
+ * The Claude Code binary the Claude-kind providers run on.
+ *
+ * It is ~190 MB and the installer no longer carries it, because a team on OpenRouter, a coding
+ * plan or a local model never needs it. This is where the owner agrees to the download, in the
+ * one place they are already deciding to use Claude — a run will fetch it unprompted if they
+ * skip this, but minutes of a run's clock is the worse way to find out.
+ */
+function ClaudeRuntimeRow({ rt }: { rt: ClaudeRuntimeState }) {
+  const progress = useStore((s) => s.claudeRuntime);
+  const [busy, setBusy] = useState(false);
+  const running = busy && progress !== null && !progress.done;
+
+  if (rt.unsupported) {
+    return (
+      <div style={{ fontSize: 11.5, color: "var(--amber-ink)" }}>
+        Claude Code publishes no binary for this platform, so Claude providers cannot run here.
+      </div>
+    );
+  }
+
+  const install = async () => {
+    setBusy(true);
+    try { await store.installClaudeRuntime(); } catch { /* the error lands in state.claudeRuntime */ }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 11.5 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span className="dot" style={{ width: 7, height: 7, background: rt.installed ? "var(--green)" : "var(--amber)" }} />
+        <span style={{ color: rt.installed ? "var(--ink-3)" : "var(--ink-2)" }}>
+          {rt.installed
+            ? <>Claude runtime <span className="mono">{rt.version}</span> installed.</>
+            : <>Claude runtime not downloaded yet ({mb(rt.bytes)}).</>}
+        </span>
+        {!rt.installed && !running && <Button sm primary onClick={() => void install()}>Download</Button>}
+      </div>
+      {running && (
+        <>
+          <Progress value={progress.received} max={Math.max(progress.total, 1)} />
+          <span style={{ color: "var(--ink-5)" }}>Downloading {mb(progress.received)} of {mb(progress.total)}…</span>
+        </>
+      )}
+      {progress?.error && <span style={{ color: "var(--red-ink, var(--amber-ink))" }}>{progress.error}</span>}
+      {!rt.installed && !running && (
+        <span style={{ color: "var(--ink-5)" }}>
+          Downloaded once and shared by every team. An agent will fetch it mid-run if you skip this.
+        </span>
+      )}
+    </div>
+  );
+}
+
+function mb(bytes: number): string {
+  return `${Math.round(bytes / 1_000_000)} MB`;
 }

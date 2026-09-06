@@ -213,7 +213,7 @@ export class Crew {
     return this.providerStatus();
   }
   providerStatus(): ProviderStatus {
-    return statusFor(readSettings(this.opts.globalDir), this.keys);
+    return statusFor(readSettings(this.opts.globalDir), this.keys, this.opts.globalDir);
   }
   /** The config for one provider, falling back to catalog defaults for one never touched. */
   providerConfig(id: Provider): ProviderConfig {

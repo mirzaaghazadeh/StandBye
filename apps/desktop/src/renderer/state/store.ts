@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { dmChannelId } from "@crew/shared";
 import type {
-  Agent, AgentDraft, AgentFiles, ArchivedTeam, Channel, MessageDraft, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunDiff, RunStep, SkillScope, SpendSummary, SupervisorStatus, Task, TaskColumn, TeamConfig, TeamDraft, TeamSummary, UpdateState,
+  Agent, AgentDraft, AgentFiles, ArchivedTeam, Channel, ClaudeRuntimeProgress, MessageDraft, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunDiff, RunStep, SkillScope, SpendSummary, SupervisorStatus, Task, TaskColumn, TeamConfig, TeamDraft, TeamSummary, UpdateState,
 } from "@crew/shared";
 
 /** Matches shown per search. One extra is requested from the supervisor so overflow can be labelled. */
@@ -78,12 +78,14 @@ export interface State {
   builderDraft: TeamDraft | null;
   builderBusy: boolean;
   toast: string | null;
+  /** A Claude runtime download in flight, or how the last one ended. Null when none has run. */
+  claudeRuntime: ClaudeRuntimeProgress | null;
 }
 
 const initial: State = {
   ready: false, error: null, route: { name: "home" }, sheet: { kind: "none" }, status: null,
   keys: {}, providers: null, models: null, teams: [], archived: [], activeTeamId: null, team: null, agents: [], channels: [], messages: {}, drafts: {}, thinking: {}, search: null, questions: [], runs: [], tasks: [], steps: {}, runDiffs: {},
-  spend: null, update: null, selectedAgentId: null, pendingWorkspace: null, seen: {}, waking: {}, firstStepsDismissed: false, skillsStamp: 0, builderDraft: null, builderBusy: false, toast: null,
+  spend: null, update: null, selectedAgentId: null, pendingWorkspace: null, seen: {}, waking: {}, firstStepsDismissed: false, skillsStamp: 0, builderDraft: null, builderBusy: false, toast: null, claudeRuntime: null,
 };
 
 type Listener = () => void;
@@ -162,6 +164,21 @@ class Store {
   async testProvider(id: string, config?: Partial<ProviderConfig>): Promise<{ ok: boolean; detail: string }> {
     return this.rpc<{ ok: boolean; detail: string }>("providers.test", { id, config });
   }
+  /**
+   * Fetch the ~190 MB Claude Code binary the Claude providers run on. Progress arrives as
+   * `claudeRuntime.progress` events rather than on this promise, which only settles at the end.
+   */
+  async installClaudeRuntime(): Promise<void> {
+    this.set({ claudeRuntime: { received: 0, total: 1, done: false } });
+    try {
+      const providers = await this.rpc<ProviderStatus>("claudeRuntime.install");
+      this.set({ providers, keys: readyMap(providers) });
+      this.toast("Claude runtime installed.");
+    } catch (e) {
+      this.set({ claudeRuntime: { received: 0, total: 1, done: true, error: e instanceof Error ? e.message : String(e) } });
+      throw e;
+    }
+  }
 
   private onEvent(e: PushEvent): void {
     if (e.event === "teams.updated") { this.set({ teams: e.data }); return; }
@@ -191,6 +208,7 @@ class Store {
       case "spend.updated": this.set({ spend: e.data }); break;
       case "skills.updated": this.set((s) => ({ skillsStamp: s.skillsStamp + 1 })); break;
       case "supervisor.status": this.set({ status: e.data }); break;
+      case "claudeRuntime.progress": this.set({ claudeRuntime: e.data }); break;
       case "notify": break;
     }
   }

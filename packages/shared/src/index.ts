@@ -71,6 +71,34 @@ export interface ProviderState extends ProviderConfig {
   ready: boolean;
   /** Why it is not ready, in one line the owner can act on. Empty when ready. */
   blocker: string;
+  /**
+   * Claude-kind providers only: the Claude Code binary they run on.
+   *
+   * It is ~190 MB and no longer ships with the app, so it is fetched the first time the owner
+   * wants a Claude provider. Deliberately not part of `ready` — the credentials are what make a
+   * provider usable, and a run fetches the binary itself if it comes to that. This is here so
+   * Settings can show the download rather than spring it on someone mid-run.
+   */
+  runtime?: ClaudeRuntimeState;
+}
+
+/** The Claude Code binary on this Mac, as Settings needs to describe it. */
+export interface ClaudeRuntimeState {
+  /** The binary version this build of the SDK expects. */
+  version: string;
+  /** Download size in bytes, so the owner is told the cost before agreeing to it. */
+  bytes: number;
+  installed: boolean;
+  /** No binary is published for this platform and architecture at all. */
+  unsupported: boolean;
+}
+
+/** Progress of a Claude runtime download, pushed to the renderer while it runs. */
+export interface ClaudeRuntimeProgress {
+  received: number;
+  total: number;
+  done: boolean;
+  error?: string;
 }
 
 export type ProviderStatus = Record<Provider, ProviderState>;
@@ -653,6 +681,8 @@ export type PushEvent = (
   | { event: "notify"; data: { title: string; body: string; questionId?: string; runId?: string } }
   | { event: "supervisor.status"; data: SupervisorStatus }
   | { event: "supervisor.reconnected"; data: null }
+  /** The Claude Code binary downloading, so Settings can show a bar rather than a frozen button. */
+  | { event: "claudeRuntime.progress"; data: ClaudeRuntimeProgress }
 ) & {
   /** Which team the event belongs to; absent for global events (teams.updated) */
   teamId?: string;

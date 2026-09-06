@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { AgentConfig, AgentDraft, AgentFiles, GitSettings, Provider, ProviderConfig, PushEvent, RpcRequest, RpcResponse, SkillInstallKind, SkillScope, SkillTarget, TaskColumn, TaskPatch, TeamConfig, TeamDraft } from "@crew/shared";
 import { AgentDraftSchema, PROVIDERS, providerSpec, TeamDraftSchema } from "@crew/shared";
 import { probeProvider } from "./providers.js";
+import { installClaudeRuntime } from "./claude-runtime.js";
 import { previewCommand } from "./runners/cli.js";
 import { skillOrigins } from "./skills.js";
 import { draftTeam, draftTeammate } from "./builder.js";
@@ -105,6 +106,24 @@ export class Api {
       "providers.set": (p: Record<string, Partial<ProviderConfig>>) => hub.settingsCrew().setProviders(p),
       /** The whole catalog, so the settings screen and the model picker need no copy of it. */
       "providers.catalog": () => PROVIDERS,
+      /**
+       * Fetch the Claude Code binary the Claude-kind providers run on. It is ~190 MB and no longer
+       * ships with the app, so this is the owner agreeing to the download rather than a run
+       * stumbling into it. Progress goes out as `claudeRuntime.progress` to every connection;
+       * calling it when the binary is already installed returns immediately.
+       */
+      "claudeRuntime.install": async () => {
+        const dir = hub.opts.dataDir;
+        try {
+          await installClaudeRuntime(dir, ({ received, total }) => hub.notifyClaudeRuntime({ received, total, done: false }));
+          hub.notifyClaudeRuntime({ received: 1, total: 1, done: true });
+        } catch (e) {
+          const error = e instanceof Error ? e.message : String(e);
+          hub.notifyClaudeRuntime({ received: 0, total: 1, done: true, error });
+          throw e;
+        }
+        return hub.settingsCrew().providerStatus();
+      },
       /**
        * Try the credentials for one provider and say plainly whether they work. Cheap by
        * design: a model list for an API, `--version` for a CLI, a credentials file for a cloud.
