@@ -84,24 +84,57 @@ jobs:
         working-directory: apps/desktop
         run: pnpm exec electron-vite build
 
-      # notarytool wants the App Store Connect key as a file on disk, and a secret can only be an
-      # env var. Written under RUNNER_TEMP, which is wiped with the runner.
-      - name: Stage the notarization key
+      # Build the signing keychain by hand instead of handing electron-builder CSC_LINK and letting
+      # it do this itself. Its own version of these steps is flaky: on the first signed run mac-x64
+      # sailed through and mac-arm64 died on `security set-key-partition-list ... failed 1`, same
+      # secrets, same image, different runner. Owning the keychain here makes the sequence explicit
+      # — create, stop it auto-locking mid-build, import, authorise codesign, put it on the search
+      # path — and leaves electron-builder nothing to do but find the identity already sitting there.
+      #
+      # notarytool separately wants the App Store Connect key as a file, and a secret can only be an
+      # env var. Everything written here lands in RUNNER_TEMP, which dies with the runner.
+      - name: Set up the signing keychain
         if: matrix.platform == 'mac' && env.MAC_CSC_LINK != ''
         env:
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
           MAC_CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
         run: |
+          set -euo pipefail
           printf '%s' "$APPLE_API_KEY_P8" > "$RUNNER_TEMP/apple-api-key.p8"
           echo "APPLE_API_KEY=$RUNNER_TEMP/apple-api-key.p8" >> "$GITHUB_ENV"
-          # Only ever defined on this branch. An empty CSC_LINK is not "no certificate" to
-          # electron-builder: it resolves the empty string as a path, lands on the working
-          # directory and dies with "apps/desktop not a file" before it signs anything.
-          echo "CSC_LINK=$MAC_CSC_LINK" >> "$GITHUB_ENV"
-          echo "CSC_KEY_PASSWORD=$MAC_CSC_KEY_PASSWORD" >> "$GITHUB_ENV"
-          # An empty identity means "search the keychain", which is where CSC_LINK lands the
-          # Developer ID certificate. It overrides the `identity: "-"` the config pins for the
-          # certificate-less case. Entitlements are picked up from apps/desktop/build by name.
+
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 24)
+          CERT="$RUNNER_TEMP/certificate.p12"
+          printf '%s' "$MAC_CSC_LINK" | base64 --decode > "$CERT"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          # -lut 21600: no idle auto-lock. A keychain that relocks halfway through fails the signing
+          # of one helper app out of six, which is a miserable thing to debug.
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$CERT" -k "$KEYCHAIN" -P "$MAC_CSC_KEY_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          rm -f "$CERT"
+
+          # Lets codesign use the key without a GUI prompt nobody is there to click. This is the
+          # call that fails intermittently, so give it a couple of tries before believing it.
+          for attempt in 1 2 3; do
+            if security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null 2>&1; then
+              echo "partition list set on attempt $attempt"; break
+            fi
+            [ "$attempt" = 3 ] && { echo "could not authorise the signing key"; exit 1; }
+            sleep 3
+          done
+
+          # Prepend, never replace: the login and system keychains carry Apple's Developer ID
+          # intermediate, and codesign cannot build a chain to the Apple root without it.
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | sed 's/[" ]//g')
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
+          # No CSC_LINK: with the identity already in the search path, electron-builder should find
+          # it rather than repeat the import. An empty identity means "search the keychain", which
+          # overrides the `identity: "-"` the config pins for the certificate-less case.
+          # Entitlements are picked up from apps/desktop/build by name.
           echo "MAC_SIGN_ARGS=-c.mac.identity= -c.mac.hardenedRuntime=true -c.mac.notarize=true" >> "$GITHUB_ENV"
 
       - name: Package ${{ matrix.platform }} ${{ matrix.arch }}
@@ -111,9 +144,11 @@ jobs:
           # Windows has no Authenticode certificate, and macOS has one only when the secrets above
           # are set. Empty values are ignored, so this block is a no-op without them; the mac build
           # then ad-hoc signs instead, per `identity: "-"` in the config.
-          # CSC_LINK and CSC_KEY_PASSWORD are deliberately absent here: the staging step above adds
-          # them to the environment only when a certificate actually exists. Setting them to "" for
-          # the certificate-less case is what broke the 0.3.0 build.
+          # CSC_LINK and CSC_KEY_PASSWORD are deliberately absent, in both cases. Setting them to ""
+          # when there is no certificate is what broke the 0.3.0 build — electron-builder resolves
+          # the empty string as a path and dies on it. And when there *is* a certificate, the step
+          # above has already put it in the keychain, so re-importing it here only reintroduces the
+          # set-key-partition-list flake that step exists to avoid.
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ matrix.platform == 'mac' && env.MAC_CSC_LINK != '' && 'true' || 'false' }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
