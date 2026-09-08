@@ -141,7 +141,7 @@ export function ManualTeamSheet() {
       <div className="sheet-f">
         <span style={{ fontSize: 12, color: "var(--ink-4)" }}>{agents.length} teammate{agents.length === 1 ? "" : "s"} · up to <span className="mono">${daily.toFixed(2)}</span> per day if everyone hits their cap. Sleeping is free.</span>
         <span className="grow" />
-        <Button lg onClick={() => store.openSheet({ kind: "onboarding" })}>Back</Button>
+        <Button lg onClick={() => store.openSheet(store.get().teams.length > 0 ? { kind: "none" } : { kind: "onboarding" })}>Back</Button>
         <Button lg primary onClick={create} disabled={agents.length === 0}>Create Team</Button>
       </div>
     </div>

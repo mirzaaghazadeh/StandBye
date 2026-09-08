@@ -105,6 +105,34 @@ test("init: no teams yet opens the onboarding sheet", async () => {
   assert.equal(store.get().sheet.kind, "onboarding");
 });
 
+test("openNewTeam: a ready OpenRouter key opens the builder in describe mode", async () => {
+  const { store } = await freshStore();
+  await store.init();
+  await flush();
+  store.openNewTeam();
+  const sheet = store.get().sheet;
+  assert.equal(sheet.kind, "builder");
+  assert.equal(sheet.kind === "builder" && sheet.mode, "describe");
+});
+
+test("openNewTeam: no ready provider stays on onboarding", async () => {
+  const { store } = await freshStore({ "providers.get": () => ({ openrouter: { ready: false }, anthropic: { ready: false } }) });
+  await store.init();
+  await flush();
+  store.openNewTeam();
+  assert.equal(store.get().sheet.kind, "onboarding");
+});
+
+test("openNewTeam: only a CLI ready opens the builder on the template", async () => {
+  const { store } = await freshStore({ "providers.get": () => ({ "kimi-cli": { ready: true } }) });
+  await store.init();
+  await flush();
+  store.openNewTeam();
+  const sheet = store.get().sheet;
+  assert.equal(sheet.kind, "builder");
+  assert.equal(sheet.kind === "builder" && sheet.mode, "template");
+});
+
 test("events for another team are dropped; same-team events land", async () => {
   const { store, push } = await freshStore();
   await store.init();

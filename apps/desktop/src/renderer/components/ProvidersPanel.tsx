@@ -289,7 +289,7 @@ function CliOverride({ spec, state, onSave }: { spec: ProviderSpec; state: Provi
  * one place they are already deciding to use Claude — a run will fetch it unprompted if they
  * skip this, but minutes of a run's clock is the worse way to find out.
  */
-function ClaudeRuntimeRow({ rt }: { rt: ClaudeRuntimeState }) {
+export function ClaudeRuntimeRow({ rt, prominent }: { rt: ClaudeRuntimeState; prominent?: boolean }) {
   const progress = useStore((s) => s.claudeRuntime);
   const [busy, setBusy] = useState(false);
   const running = busy && progress !== null && !progress.done;
@@ -317,7 +317,7 @@ function ClaudeRuntimeRow({ rt }: { rt: ClaudeRuntimeState }) {
             ? <>Claude runtime <span className="mono">{rt.version}</span> installed.</>
             : <>Claude runtime not downloaded yet ({mb(rt.bytes)}).</>}
         </span>
-        {!rt.installed && !running && <Button sm primary onClick={() => void install()}>Download</Button>}
+        {!rt.installed && !running && <Button sm={!prominent} lg={prominent} primary onClick={() => void install()}>Download</Button>}
       </div>
       {running && (
         <>
