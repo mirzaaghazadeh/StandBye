@@ -98,7 +98,7 @@ export function TeamSwitcher() {
               <Ic.Folder size={13} stroke="var(--ink-3)" />
               <span style={{ fontWeight: 500 }}>Open folder…</span>
             </button>
-            <button className="li" style={{ padding: "7px 12px", alignItems: "center", gap: 8 }} onClick={() => { setOpen(false); store.openSheet({ kind: "onboarding" }); }}>
+            <button className="li" style={{ padding: "7px 12px", alignItems: "center", gap: 8 }} onClick={() => { setOpen(false); store.openNewTeam(); }}>
               <Ic.Plus size={13} stroke="var(--accent)" />
               <span style={{ color: "var(--accent)", fontWeight: 500 }}>New team…</span>
             </button>

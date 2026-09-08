@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { GitInfo, GitSettings } from "@crew/shared";
 import { store } from "../state/store";
-import { KV, Popup, Segmented, Switch } from "../ui/kit";
+import { Ic } from "../ui/icons";
+import { Popup, Segmented, Switch } from "../ui/kit";
 
 /**
  * Git workflow for a team's workspace. Renders nothing unless the folder is a git repo.
@@ -27,35 +28,61 @@ export function GitSettingsPanel({ workspace, value, onChange, compact }: { work
   const set = (patch: Partial<GitSettings>) => onChange({ ...g, ...patch });
   const branchOptions = [{ value: "", label: "none" }, ...info.branches.map((b) => ({ value: b, label: b }))];
   const requiredBranchOptions = info.branches.map((b) => ({ value: b, label: b }));
+  const remote = info.remoteUrl?.replace(/^.*[:/]([^/]+\/[^/]+?)(\.git)?$/, "$1") ?? null;
 
   return (
-    <div style={{ border: "1px solid var(--border)", borderRadius: 7, background: "var(--surface)", padding: "8px 12px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4, marginBottom: 6 }}>
+    <div className={"git-panel" + (compact ? " git-compact" : "")}>
+      <div className="git-panel-h">
         <Switch on={g.enabled} onChange={(v) => set({ enabled: v })} />
-        <b style={{ fontWeight: 600 }}>Git workflow</b>
-        <span style={{ fontSize: 11, color: "var(--ink-4)" }} className="cell">
-          repo detected · on {info.currentBranch ?? "?"}{info.hasRemote ? ` · remote ${info.remoteUrl?.replace(/^.*[:/]([^/]+\/[^/]+?)(\.git)?$/, "$1") ?? ""}` : " · no remote"}{info.hasGh ? " · gh available" : ""}
-        </span>
+        <div className="git-panel-title">
+          <b><Ic.Branch size={13} />Git workflow</b>
+          <div className="git-panel-meta">
+            <span className="pill git-pill-repo">repo</span>
+            <span className="cell">on <span className="mono">{info.currentBranch ?? "?"}</span></span>
+            {info.hasRemote && remote ? <span className="cell">{remote}</span> : <span>no remote</span>}
+            {info.hasGh && <span className="pill git-pill-gh">gh</span>}
+          </div>
+        </div>
       </div>
       {g.enabled && (
-        <>
-          <KV k="Work on"><Popup value={g.workBranch} options={requiredBranchOptions.length ? requiredBranchOptions : [{ value: g.workBranch, label: g.workBranch }]} onChange={(v) => set({ workBranch: v })} /></KV>
-          <KV k="Changes via">
-            <Segmented value={g.mode} onChange={(mode) => set({ mode })} options={[{ value: "pr", label: "Pull requests" }, { value: "push", label: "Direct push" }]} />
-          </KV>
+        <div className="git-panel-body">
+          <div className="git-top">
+            <Field label="Work on">
+              <Popup value={g.workBranch} options={requiredBranchOptions.length ? requiredBranchOptions : [{ value: g.workBranch, label: g.workBranch }]} onChange={(v) => set({ workBranch: v })} />
+            </Field>
+            <Field label="Changes via">
+              <div className="git-seg">
+                <Segmented value={g.mode} onChange={(mode) => set({ mode })} options={[{ value: "pr", label: compact ? "PRs" : "Pull requests" }, { value: "push", label: compact ? "Push" : "Direct push" }]} />
+              </div>
+            </Field>
+          </div>
           {!compact && (
-            <div style={{ fontSize: 11, color: "var(--ink-4)", padding: "0 0 6px 102px" }}>
+            <div className="git-hint">
               {g.mode === "pr"
                 ? `Agents branch off ${g.workBranch}, push the feature branch and open a PR with gh. Merging asks you.${info.hasGh ? "" : " gh is not installed on this Mac, so PRs can't be opened yet."}`
                 : `Agents commit on ${g.workBranch} and push it when tests pass.`}
             </div>
           )}
-          <KV k="Dev branch"><Popup value={g.devBranch ?? ""} options={branchOptions} onChange={(v) => set({ devBranch: v || null })} /></KV>
-          <KV k="Staging"><Popup value={g.stagingBranch ?? ""} options={branchOptions} onChange={(v) => set({ stagingBranch: v || null })} /></KV>
-          <KV k="Production"><Popup value={g.productionBranch ?? ""} options={branchOptions} onChange={(v) => set({ productionBranch: v || null })} /></KV>
-          {!compact && <div style={{ fontSize: 11, color: "var(--ink-4)", padding: "0 0 6px 102px" }}>Staging and production are never pushed by agents; promotions come to you as a question. Force pushes are always blocked.</div>}
-        </>
+          <div className="git-env-block">
+            {!compact && <span className="git-env-t">Environments</span>}
+            <div className="git-env">
+              <Field label="Dev"><Popup value={g.devBranch ?? ""} options={branchOptions} onChange={(v) => set({ devBranch: v || null })} /></Field>
+              <Field label="Staging"><Popup value={g.stagingBranch ?? ""} options={branchOptions} onChange={(v) => set({ stagingBranch: v || null })} /></Field>
+              <Field label="Production"><Popup value={g.productionBranch ?? ""} options={branchOptions} onChange={(v) => set({ productionBranch: v || null })} /></Field>
+            </div>
+          </div>
+          {!compact && <div className="git-hint">Staging and production are never pushed by agents; promotions come to you as a question. Force pushes are always blocked.</div>}
+        </div>
       )}
     </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="git-field">
+      <span>{label}</span>
+      {children}
+    </label>
   );
 }

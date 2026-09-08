@@ -27,7 +27,7 @@ export function HomeScreen() {
         <PauseControl />
 
         <Button icon={<Ic.Plus size={12} />} onClick={() => store.openSheet({ kind: "add-agent" })} disabled={!team}>Add Teammate…</Button>
-        <Button primary icon={<Ic.Plus size={12} />} onClick={() => store.openSheet({ kind: "onboarding" })}>New Team…</Button>
+        <Button primary icon={<Ic.Plus size={12} />} onClick={() => store.openNewTeam()}>New Team…</Button>
         <IconButton on={showInspector} onClick={() => setShowInspector((v) => !v)}><Ic.Sidebar size={15} /></IconButton>
       </Toolbar>
 

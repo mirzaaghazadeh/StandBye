@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { dmChannelId } from "@crew/shared";
+import { dmChannelId, PROVIDERS } from "@crew/shared";
 import type {
   Agent, AgentDraft, AgentFiles, ArchivedTeam, Channel, ClaudeRuntimeProgress, MessageDraft, GitSettings, KeyStatus, Message, ModelInfo, Provider, ProviderConfig, ProviderStatus, PushEvent, Question, Run, RunDiff, RunStep, SkillScope, SpendSummary, SupervisorStatus, Task, TaskColumn, TeamConfig, TeamDraft, TeamSummary, UpdateState,
 } from "@crew/shared";
@@ -237,6 +237,12 @@ class Store {
   setChannels(channels: Channel[]): void { this.set({ channels }); }
   openSheet(sheet: Sheet): void { this.set({ sheet }); }
   closeSheet(): void { this.set({ sheet: { kind: "none" } }); }
+  /**
+   * New team from Home or the switcher. First launch still lands on onboarding so the
+   * owner confirms what this Mac can run; once a provider is ready, skip that and open
+   * the builder — Describe if something can draft JSON, otherwise the template.
+   */
+  openNewTeam(): void { this.set({ sheet: newTeamSheet(this.state.providers), builderDraft: null }); }
   selectAgent(id: string | null): void { this.set({ selectedAgentId: id }); }
   toast(text: string): void {
     this.set({ toast: text });
@@ -366,13 +372,20 @@ class Store {
     this.toast(Object.values(patch).some(Boolean) ? "Key saved." : "Key removed.");
     void this.loadModels(true);
   }
-  async draftTeam(description: string, ownerName: string, workspaceRoot: string | null, provider?: Provider, mode: "describe" | "template" = "describe"): Promise<void> {
-    this.set({ builderBusy: true });
+  /**
+   * Returns whether the draft came back. The old draft is dropped before the call: a failed
+   * redraft used to leave the previous team sitting in `builderDraft`, and the sheet read that
+   * as success and offered to create it.
+   */
+  async draftTeam(description: string, ownerName: string, workspaceRoot: string | null, provider?: Provider, mode: "describe" | "template" = "describe"): Promise<boolean> {
+    this.set({ builderBusy: true, builderDraft: null });
     try {
       const draft = await this.rpc<TeamDraft>("builder.draft", { description, ownerName, workspaceRoot, provider, mode });
       this.set({ builderDraft: draft });
+      return true;
     } catch (e) {
       this.toast(`Draft failed: ${e instanceof Error ? e.message : String(e)}`);
+      return false;
     } finally {
       this.set({ builderBusy: false });
     }
@@ -467,6 +480,21 @@ class Store {
 /** Which providers can run right now, by id — the one thing the rest of the UI asks about keys. */
 function readyMap(providers: ProviderStatus): KeyStatus {
   return Object.fromEntries(Object.entries(providers).map(([id, p]) => [id, p.ready]));
+}
+
+/** Claude or any OpenAI-kind provider can return the JSON the team drafter needs. */
+export function canDraftTeam(providers: ProviderStatus | null): boolean {
+  if (!providers) return false;
+  return PROVIDERS.some((p) => providers[p.id]?.ready && (p.id === "anthropic" || p.kind === "openai"));
+}
+
+function anyProviderReady(providers: ProviderStatus | null): boolean {
+  return Boolean(providers && Object.values(providers).some((p) => p.ready));
+}
+
+export function newTeamSheet(providers: ProviderStatus | null): Sheet {
+  if (!anyProviderReady(providers)) return { kind: "onboarding" };
+  return { kind: "builder", mode: canDraftTeam(providers) ? "describe" : "template" };
 }
 
 function readLocal(key: string): string | null {
