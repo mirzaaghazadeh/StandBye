@@ -21,7 +21,9 @@ export function OnboardingSheet() {
   const hasTeams = useStore((s) => s.teams.length > 0);
   const [view, setView] = useState<View>({ kind: "pick" });
 
-  const goToTeam = () => store.openSheet({ kind: "builder", mode: canDraftTeam(providers) ? "describe" : "template" });
+  // Read the providers back off the store: the finish pane may have just saved a key or an
+  // endpoint, and the mode this picks decides whether the builder can draft at all.
+  const goToTeam = () => store.openSheet({ kind: "builder", mode: canDraftTeam(store.get().providers) ? "describe" : "template" });
 
   if (!providers) {
     return (
@@ -59,7 +61,13 @@ export function OnboardingSheet() {
         {view.kind !== "pick" && <Button lg onClick={() => setView({ kind: "pick" })}>Back</Button>}
         <span className="grow" />
         {view.kind === "pick" && claudeLogin && (
-          <Button lg primary onClick={() => runtimeMissing(claude) ? setView({ kind: "finish", id: "anthropic" }) : goToTeam()}>
+          <Button lg primary onClick={() => {
+            if (runtimeMissing(claude)) return setView({ kind: "finish", id: "anthropic" });
+            // Signed in is not the same as switched on. The card path enables it on the way
+            // through; this shortcut has to do the same, or the team is built on a dead provider.
+            if (claude && !claude.enabled) void store.setProviders({ anthropic: { enabled: true } }).then(goToTeam, goToTeam);
+            else goToTeam();
+          }}>
             Continue with Claude
           </Button>
         )}
@@ -78,8 +86,10 @@ function PickPane({ providers, onView }: { providers: ProviderStatus; onView: (v
   const claude = providerSpec("anthropic")!;
   const claudeState = providers.anthropic;
   const claudeLogin = Boolean(claudeState?.hasLogin);
+  // Everything already on this Mac that is not Claude and not a paste-a-key API. Rendered on
+  // both paths, so `empty` is measured against exactly what shows: a saved key for, say,
+  // DeepSeek used to suppress the starter block and then never show the provider it hid it for.
   const otherDetected = PROVIDERS.filter((p) => p.id !== "anthropic" && p.group !== "apis" && detected(providers[p.id]));
-  const detectedClis = PROVIDERS.filter((p) => p.group === "clis" && detected(providers[p.id]));
   const empty = !claudeLogin && otherDetected.length === 0 && !detected(providers.openrouter);
 
   return (
@@ -111,12 +121,12 @@ function PickPane({ providers, onView }: { providers: ProviderStatus; onView: (v
         </div>
       )}
 
-      {!claudeLogin && detectedClis.length > 0 && (
+      {!claudeLogin && otherDetected.length > 0 && (
         <div>
           <div className="onboard-kicker">On this Mac</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {detectedClis.map((p) => (
-              <ProviderCard key={p.id} spec={p} state={providers[p.id]} hero={detectedClis.length === 1} onClick={() => onView({ kind: "finish", id: p.id })} />
+            {otherDetected.map((p) => (
+              <ProviderCard key={p.id} spec={p} state={providers[p.id]} hero={otherDetected.length === 1} onClick={() => onView({ kind: "finish", id: p.id })} />
             ))}
           </div>
         </div>
@@ -154,6 +164,13 @@ function PickPane({ providers, onView }: { providers: ProviderStatus; onView: (v
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <ProviderCard spec={providerSpec("openrouter")!} state={providers.openrouter} onClick={() => onView({ kind: "finish", id: "openrouter" })} />
             <ProviderCard spec={claude} state={claudeState} onClick={() => onView({ kind: "finish", id: "anthropic" })} />
+            {/* Kept out of the `empty` block: one detected provider should not hide the CLI list. */}
+            <StarterCard
+              icon={<Ic.Person size={18} stroke="var(--ink-3)" />}
+              title="A CLI I already pay for"
+              body="Codex, Copilot, Cursor, Kimi and the rest. We spawn the CLI you already logged into."
+              onClick={() => onView({ kind: "clis" })}
+            />
           </div>
         </div>
       )}
@@ -193,20 +210,43 @@ function CliPane({ providers, onPick }: { providers: ProviderStatus; onPick: (id
 
 function FinishPane({ id, providers }: { id: Provider; providers: ProviderStatus }) {
   const spec = providerSpec(id)!;
-  const state = providers[id]!;
+  const state = providers[id];
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [test, setTest] = useState<{ ok: boolean; detail: string } | null>(null);
   const [advanced, setAdvanced] = useState(false);
+  const [fields, setFields] = useState<Record<string, string>>(state?.settings ?? {});
 
+  // Opening a card switches the provider on, so the one action on this pane is the only one.
+  // A CLI with no binary is the exception: reading about the 14 we support should not leave
+  // 14 providers enabled behind you.
+  const installable = spec.auth !== "cli" || Boolean(state?.cliPath);
   useEffect(() => {
-    if (!state.enabled) void store.setProviders({ [id]: { enabled: true } });
-  }, [id, state.enabled]);
+    if (state && !state.enabled && installable) void store.setProviders({ [id]: { enabled: true } });
+  }, [id, state?.enabled, installable]);
+
+  // The app attaches to whatever supervisor is already running, so a newer app can know a
+  // provider the live supervisor has never heard of. Say so rather than throwing.
+  if (!state) {
+    return (
+      <div className="sheet-body" style={{ flexDirection: "column", padding: "18px 24px", gap: 8, color: "var(--ink-4)", fontSize: 12 }}>
+        <div style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>{spec.name} is not available</div>
+        <div>The supervisor running on this Mac is older than the app and has no status for it. Quit StandBye and open it again, or pick another provider.</div>
+      </div>
+    );
+  }
 
   const saveKey = async () => {
     if (!key.trim()) return;
     setBusy(true);
     try { await store.saveKeys({ [id]: key.trim() }); setKey(""); setTest(null); }
+    finally { setBusy(false); }
+  };
+
+  const fieldsDirty = JSON.stringify(fields) !== JSON.stringify(state.settings ?? {});
+  const saveFields = async () => {
+    setBusy(true);
+    try { await store.setProviders({ [id]: { settings: fields } }); }
     finally { setBusy(false); }
   };
 
@@ -260,6 +300,30 @@ function FinishPane({ id, providers }: { id: Provider; providers: ProviderStatus
         </div>
       )}
 
+      {/* Endpoint, region, project. Without these a spec that requires one — foundry, custom —
+          could never be finished here: the blocker said "Fill in Endpoint." and there was no field. */}
+      {(spec.fields ?? []).length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {spec.fields!.map((f) => (
+            <div key={f.key}>
+              <div className="onboard-kicker">{f.label}{f.optional ? "" : " (required)"}</div>
+              <input
+                className="field mono" style={{ width: "100%" }}
+                placeholder={f.placeholder} value={fields[f.key] ?? ""}
+                onChange={(e) => setFields({ ...fields, [f.key]: e.target.value })}
+                onKeyDown={(e) => { if (e.key === "Enter" && fieldsDirty) void saveFields(); }}
+              />
+              {f.hint && <div style={{ fontSize: 11, color: "var(--ink-5)", marginTop: 4 }}>{f.hint}</div>}
+            </div>
+          ))}
+          {fieldsDirty && (
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <Button primary onClick={() => void saveFields()} disabled={busy}>Save</Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {(spec.auth === "login" && state.hasLogin) && (
         <a style={{ fontSize: 12 }} onClick={() => setAdvanced(!advanced)}>{advanced ? "Hide" : "Paste a key instead"}</a>
       )}
@@ -280,9 +344,9 @@ function FinishPane({ id, providers }: { id: Provider; providers: ProviderStatus
 }
 
 function FinishFooter({ state, onDone }: { state?: ProviderState; onDone: () => void }) {
+  const progress = useStore((s) => s.claudeRuntime);
   if (!state) return null;
   const missing = runtimeMissing(state);
-  const progress = useStore((s) => s.claudeRuntime);
   const downloading = Boolean(progress && !progress.done);
 
   const continueAnyway = () => {

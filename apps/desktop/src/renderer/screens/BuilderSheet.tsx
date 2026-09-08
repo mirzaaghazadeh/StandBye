@@ -43,9 +43,10 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
   };
 
   const submit = async () => {
-    if (mode === "describe") await store.draftTeam(description.trim(), owner, workspace, drafter, "describe");
-    else await store.draftTeam("", owner, workspace, undefined, "template");
-    if (store.get().builderDraft) setStep("review");
+    const ok = mode === "describe"
+      ? await store.draftTeam(description.trim(), owner, workspace, drafter, "describe")
+      : await store.draftTeam("", owner, workspace, undefined, "template");
+    if (ok) setStep("review");
   };
 
   const create = () => draft && void store.createTeam(draft, workspace, owner, git);
@@ -86,7 +87,7 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
                   title="By hand"
                   body="Pick each teammate yourself."
                   selected={false}
-                  onClick={() => store.openSheet({ kind: "manual" })}
+                  onClick={() => { store.setDraft(null); store.openSheet({ kind: "manual" }); }}
                 />
               </div>
             </div>
@@ -155,7 +156,9 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
           onEditBrief={() => setStep("brief")}
           onUpdate={updateAgent}
           onRemove={removeAgent}
+          canRedraft={ready.length > 0}
           onYes={(q) => {
+            if (ready.length === 0) return;
             const next = `${description.trim()}\n\nAnswer: yes, ${q}`;
             setDescription(next);
             setMode("describe");
@@ -212,7 +215,7 @@ function PathCard({ icon, title, body, selected, onClick }: { icon: ReactNode; t
 }
 
 function ReviewPane({
-  draft, busy, mode, description, expanded, setExpanded, onEditBrief, onUpdate, onRemove, onYes,
+  draft, busy, mode, description, expanded, setExpanded, onEditBrief, onUpdate, onRemove, canRedraft, onYes,
 }: {
   draft: TeamDraft | null;
   busy: boolean;
@@ -223,6 +226,7 @@ function ReviewPane({
   onEditBrief: () => void;
   onUpdate: (i: number, patch: Partial<AgentDraft>) => void;
   onRemove: (i: number) => void;
+  canRedraft: boolean;
   onYes: (q: string) => void;
 }) {
   const recap = mode === "template" ? "Solo dev template" : (description.trim().split("\n")[0] || "Your description");
@@ -279,7 +283,7 @@ function ReviewPane({
             <div key={i} style={{ margin: "14px 12px 0", padding: "10px 12px", border: "1px solid var(--q-border)", borderRadius: 7, background: "var(--q-card)", display: "flex", alignItems: "center", gap: 10 }}>
               <Ic.Question size={16} stroke="var(--accent)" />
               <span style={{ flex: 1, fontSize: 12 }}>{q}</span>
-              <Button sm onClick={() => onYes(q)} disabled={busy}>Yes, redraft</Button>
+              <Button sm onClick={() => onYes(q)} disabled={busy || !canRedraft} title={canRedraft ? undefined : "Redrafting needs Claude or an API key."}>Yes, redraft</Button>
               <Button sm onClick={() => store.setDraft({ ...draft, questionsForOwner: draft.questionsForOwner.filter((_, j) => j !== i) })}>No</Button>
             </div>
           ))}

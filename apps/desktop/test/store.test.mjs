@@ -133,6 +133,34 @@ test("openNewTeam: only a CLI ready opens the builder on the template", async ()
   assert.equal(sheet.kind === "builder" && sheet.mode, "template");
 });
 
+test("draftTeam: a failed redraft reports failure and does not leave the old draft standing", async () => {
+  let calls = 0;
+  const { store } = await freshStore({
+    "builder.draft": () => {
+      if (++calls === 1) return { agents: [{ name: "Mina" }], channels: [], guardrails: [], questionsForOwner: [], dailyCapUsd: 5, estimatedDailyUsd: { low: 1, high: 2 } };
+      throw new Error("no drafter");
+    },
+  });
+  await store.init();
+  await flush();
+
+  assert.equal(await store.draftTeam("a team that ships", "Owner", null, "openrouter"), true);
+  assert.equal(store.get().builderDraft.agents[0].name, "Mina");
+
+  // The builder reads this return value to decide whether to move to the review step.
+  assert.equal(await store.draftTeam("something else", "Owner", null, "openrouter"), false);
+  assert.equal(store.get().builderDraft, null);
+});
+
+test("openNewTeam: a draft left over from a cancelled run does not come back", async () => {
+  const { store } = await freshStore();
+  await store.init();
+  await flush();
+  store.setDraft({ agents: [{ name: "Stale" }] });
+  store.openNewTeam();
+  assert.equal(store.get().builderDraft, null);
+});
+
 test("events for another team are dropped; same-team events land", async () => {
   const { store, push } = await freshStore();
   await store.init();

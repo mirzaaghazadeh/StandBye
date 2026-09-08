@@ -242,7 +242,7 @@ class Store {
    * owner confirms what this Mac can run; once a provider is ready, skip that and open
    * the builder — Describe if something can draft JSON, otherwise the template.
    */
-  openNewTeam(): void { this.set({ sheet: newTeamSheet(this.state.providers) }); }
+  openNewTeam(): void { this.set({ sheet: newTeamSheet(this.state.providers), builderDraft: null }); }
   selectAgent(id: string | null): void { this.set({ selectedAgentId: id }); }
   toast(text: string): void {
     this.set({ toast: text });
@@ -372,13 +372,20 @@ class Store {
     this.toast(Object.values(patch).some(Boolean) ? "Key saved." : "Key removed.");
     void this.loadModels(true);
   }
-  async draftTeam(description: string, ownerName: string, workspaceRoot: string | null, provider?: Provider, mode: "describe" | "template" = "describe"): Promise<void> {
-    this.set({ builderBusy: true });
+  /**
+   * Returns whether the draft came back. The old draft is dropped before the call: a failed
+   * redraft used to leave the previous team sitting in `builderDraft`, and the sheet read that
+   * as success and offered to create it.
+   */
+  async draftTeam(description: string, ownerName: string, workspaceRoot: string | null, provider?: Provider, mode: "describe" | "template" = "describe"): Promise<boolean> {
+    this.set({ builderBusy: true, builderDraft: null });
     try {
       const draft = await this.rpc<TeamDraft>("builder.draft", { description, ownerName, workspaceRoot, provider, mode });
       this.set({ builderDraft: draft });
+      return true;
     } catch (e) {
       this.toast(`Draft failed: ${e instanceof Error ? e.message : String(e)}`);
+      return false;
     } finally {
       this.set({ builderBusy: false });
     }
