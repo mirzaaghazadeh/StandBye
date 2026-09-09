@@ -1,7 +1,7 @@
 {
   "name": "@crew/desktop",
   "productName": "StandBye",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "BYOK desktop app for 24/7 agent teams",
   "author": "StandBye <hello@navid.tr>",
   "homepage": "https://standbye.navid.tr",
