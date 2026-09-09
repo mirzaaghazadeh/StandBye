@@ -1,11 +1,26 @@
 {
-  "fetchedAt": "2026-09-06",
-  "version": "0.3.2",
+  "fetchedAt": "2026-09-09",
+  "version": "0.3.3",
   "tagged": true,
-  "head": "91162a3",
-  "headDate": "2026-09-06",
-  "count": 96,
+  "head": "1f5da15",
+  "headDate": "2026-09-09",
+  "count": 99,
   "commits": [
+    {
+      "hash": "1f5da15",
+      "date": "2026-09-09",
+      "subject": "Release v0.3.3"
+    },
+    {
+      "hash": "27bd877",
+      "date": "2026-09-08",
+      "subject": "Enhance team creation workflow and UI updates (#3)"
+    },
+    {
+      "hash": "3aa8124",
+      "date": "2026-09-06",
+      "subject": "Snapshot the log at v0.3.2"
+    },
     {
       "hash": "91162a3",
       "date": "2026-09-06",
@@ -60,21 +75,6 @@
       "hash": "5bdf293",
       "date": "2026-09-05",
       "subject": "Make the mock windows the screens they claim to be"
-    },
-    {
-      "hash": "7c4fde7",
-      "date": "2026-09-05",
-      "subject": "Do not hand electron-builder an empty certificate path"
-    },
-    {
-      "hash": "1352e28",
-      "date": "2026-09-05",
-      "subject": "site: snapshot the log at v0.3.0"
-    },
-    {
-      "hash": "67041fb",
-      "date": "2026-09-05",
-      "subject": "Name the release files the way they are actually built"
     }
   ]
 }
