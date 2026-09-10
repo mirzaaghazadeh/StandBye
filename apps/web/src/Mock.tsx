@@ -27,25 +27,25 @@ function Sidebar({ active, d }: { active: "home" | "inbox" | "board" | "runs"; d
         <Ic.UpDown size={11} stroke="var(--ink-5)" />
       </div>
       <div className="sec">Team</div>
-      <div className={"srow" + (active === "home" ? " srow-on" : "")}><Ic.Home size={14} stroke={active === "home" ? "var(--accent)" : "var(--ink-3)"} /><span className="grow">Home</span></div>
-      <div className={"srow" + (active === "inbox" ? " srow-on" : "")}><Ic.Inbox size={14} stroke={active === "inbox" ? "var(--accent)" : "var(--ink-3)"} /><span className="grow">Inbox</span>{needs > 0 && <span className="badge">{needs}</span>}</div>
-      <div className={"srow" + (active === "board" ? " srow-on" : "")}><Ic.Note size={14} stroke={active === "board" ? "var(--accent)" : "var(--ink-3)"} /><span className="grow">Board</span></div>
-      <div className={"srow" + (active === "runs" ? " srow-on" : "")}><Ic.Runs size={14} stroke={active === "runs" ? "var(--accent)" : "var(--ink-3)"} /><span className="grow">Runs</span></div>
-      <div className="srow"><Ic.Sparkle size={14} stroke="var(--ink-3)" /><span className="grow">Skills</span></div>
+      <div className={"srow" + (active === "home" ? " srow-on" : "")}><Ic.Home size={14} /><span className="grow">Home</span></div>
+      <div className={"srow" + (active === "inbox" ? " srow-on" : "")}><Ic.Inbox size={14} /><span className="grow">Inbox</span>{needs > 0 && <span className="badge">{needs}</span>}</div>
+      <div className={"srow" + (active === "board" ? " srow-on" : "")}><Ic.Note size={14} /><span className="grow">Board</span></div>
+      <div className={"srow" + (active === "runs" ? " srow-on" : "")}><Ic.Runs size={14} /><span className="grow">Runs</span></div>
+      <div className="srow"><Ic.Sparkle size={14} /><span className="grow">Skills</span></div>
       <div className="sec" style={{ display: "flex", alignItems: "center" }}>
         <span style={{ flex: 1 }}>Channels</span>
         <span className="ibtn" style={{ width: 20, height: 18 }}><Ic.Plus size={11} /></span>
       </div>
-      <div className="srow"><Ic.Hash size={14} stroke="var(--ink-3)" /><span className="grow">general</span></div>
+      <div className="srow"><Ic.Hash size={14} /><span className="grow">general</span></div>
       {team.channels.map((c) => (
-        <div key={c.name} className="srow"><Ic.Hash size={14} stroke="var(--ink-3)" /><span className="grow">{c.name}</span></div>
+        <div key={c.name} className="srow"><Ic.Hash size={14} /><span className="grow">{c.name}</span></div>
       ))}
       <div className="sec">Direct chats</div>
       {agents.map((a) => (
         <div key={a.id} className="srow">
           <span style={{ position: "relative", display: "inline-flex", flexShrink: 0 }}>
             <Avatar agent={a} size={18} />
-            <span className="dot" style={{ position: "absolute", right: -2, bottom: -1, width: 7, height: 7, background: STATUS_COLOR[a.status], boxShadow: "0 0 0 1.5px var(--side-solid)" }} />
+              <span className="dot" style={{ position: "absolute", right: -2, bottom: -1, width: 7, height: 7, background: STATUS_COLOR[a.status], boxShadow: "0 0 0 1.5px var(--side-solid)" }} />
           </span>
           <span className="grow">{a.name}</span>
           <span className="hint">{a.role.split(" ")[0]?.toLowerCase()}</span>
@@ -59,7 +59,7 @@ function Sidebar({ active, d }: { active: "home" | "inbox" | "board" | "runs"; d
         </div>
         <span className="bar" style={{ marginTop: 6 }}><i style={{ width: `${(spentToday / team.dailyCapUsd) * 100}%` }} /></span>
       </div>
-      <div className="srow" style={{ marginBottom: 10 }}><Ic.Settings size={14} stroke="var(--ink-3)" /><span className="grow">Settings</span></div>
+      <div className="srow" style={{ marginBottom: 10 }}><Ic.Settings size={14} /><span className="grow">Settings</span></div>
     </div>
   );
 }
