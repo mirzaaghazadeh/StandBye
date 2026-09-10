@@ -22,24 +22,24 @@ export function Sidebar() {
 
       <div className="sec">Team</div>
       <button className={"srow" + (is("home") || is("agent") ? " srow-on" : "")} onClick={() => store.navigate({ name: "home" })}>
-        <Ic.Home stroke={is("home") ? "var(--accent)" : "var(--ink-3)"} />
+        <Ic.Home />
         <span className="grow">Home</span>
       </button>
       <button className={"srow" + (is("inbox") ? " srow-on" : "")} onClick={() => store.navigate({ name: "inbox" })}>
-        <Ic.Inbox stroke={is("inbox") ? "var(--accent)" : "var(--ink-3)"} />
+        <Ic.Inbox />
         <span className="grow">Inbox</span>
         {openForUser > 0 && <span className="badge">{openForUser}</span>}
       </button>
       <button className={"srow" + (is("board") ? " srow-on" : "")} onClick={() => store.navigate({ name: "board" })}>
-        <Ic.Note stroke={is("board") ? "var(--accent)" : "var(--ink-3)"} />
+        <Ic.Note />
         <span className="grow">Board</span>
       </button>
       <button className={"srow" + (is("runs") ? " srow-on" : "")} onClick={() => store.navigate({ name: "runs" })}>
-        <Ic.Runs stroke={is("runs") ? "var(--accent)" : "var(--ink-3)"} />
+        <Ic.Runs />
         <span className="grow">Runs</span>
       </button>
       <button className="srow" onClick={() => store.openSheet({ kind: "skills" })}>
-        <Ic.Sparkle stroke="var(--ink-3)" />
+        <Ic.Sparkle />
         <span className="grow">Skills</span>
       </button>
 
@@ -53,7 +53,7 @@ export function Sidebar() {
         const unread = !on && (messages[c.id]?.some((m) => m.kind === "question" && questions.find((q) => q.id === m.questionId)?.status === "open") ?? false);
         return (
           <button key={c.id} className={"srow" + (on ? " srow-on" : "")} onClick={() => store.navigate({ name: "channel", channelId: c.id })} onDoubleClick={() => store.openSheet({ kind: "channel", channelId: c.id })} title="Double-click to edit">
-            <Ic.Hash stroke={on ? "var(--accent)" : "var(--ink-3)"} />
+            <Ic.Hash />
             <span className="grow" style={{ fontWeight: unread ? 600 : undefined }}>{c.name}</span>
             {unread && <span className="dot" style={{ width: 7, height: 7, background: "var(--accent)" }} />}
           </button>
@@ -90,7 +90,7 @@ export function Sidebar() {
       )}
       <UpdateRow />
       <button className="srow" style={{ marginBottom: 10 }} onClick={() => store.openSheet({ kind: "keys" })}>
-        <Ic.Settings stroke="var(--ink-3)" />
+        <Ic.Settings />
         <span className="grow">Settings</span>
       </button>
     </aside>

@@ -155,18 +155,18 @@ function updateAwake(): void {
 // ---------- window ----------
 
 /**
- * The window chrome is per-platform: macOS gets the inset traffic lights over a vibrant sidebar,
+ * The window chrome is per-platform: macOS gets the inset traffic lights over the sidebar,
  * Windows gets the native control buttons overlaid on our own toolbar, Linux keeps a normal frame
  * (no overlay support there). All three keep the same 38px drag strip at the top of the sidebar.
+ * The fill is opaque so the sidebar stays the same warm paper as the rest of the kit, instead of
+ * picking up the system sidebar material (which reads as a cold gray against this UI).
  */
 function windowChrome(): Electron.BrowserWindowConstructorOptions {
   if (process.platform === "darwin") {
     return {
       titleBarStyle: "hiddenInset",
       trafficLightPosition: { x: 16, y: 18 },
-      vibrancy: "sidebar",
-      visualEffectState: "active",
-      backgroundColor: "#00000000",
+      backgroundColor: "#f5f4f1",
     };
   }
   if (process.platform === "win32") {

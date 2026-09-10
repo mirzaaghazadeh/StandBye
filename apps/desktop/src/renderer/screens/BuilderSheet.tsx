@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode, type SyntheticEvent } from "react";
 import { PROVIDERS, providerLabel, type AgentDraft, type GitSettings, type Provider, type TeamDraft } from "@crew/shared";
 import { store, useStore } from "../state/store";
 import { Ic } from "../ui/icons";
@@ -54,11 +54,11 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
   const removeAgent = (i: number) => draft && store.setDraft({ ...draft, agents: draft.agents.filter((_, j) => j !== i) });
 
   return (
-    <div className="sheet">
+    <div className={"sheet" + (step === "review" ? " sheet-review" : "")}>
       <div className="sheet-h">
         <b>New Team</b>
         <span className="grow" />
-        <Stepper step={step} />
+        <Stepper step={step} onBrief={() => setStep("brief")} />
         <button className="ibtn" onClick={leave} title="Close"><Ic.X size={14} /></button>
       </div>
 
@@ -168,13 +168,16 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
       )}
 
       <div className="sheet-f">
-        {step === "review" && draft && (
-          <span style={{ fontSize: 12, color: "var(--ink-4)" }}>Estimated <span className="mono">${draft.estimatedDailyUsd.low} – {draft.estimatedDailyUsd.high}</span> per day at normal activity. Sleeping is free.</span>
-        )}
-        {step === "brief" && busy && (
-          <span style={{ fontSize: 12, color: "var(--ink-4)" }}>This usually takes 20–60 seconds.</span>
-        )}
-        <span className="grow" />
+        <span className="grow" style={{ minWidth: 0 }}>
+          {step === "review" && draft && (
+            <span className="builder-foot-note">
+              {draft.agents.length} teammate{draft.agents.length === 1 ? "" : "s"} · Estimated <span className="mono">${draft.estimatedDailyUsd.low} – {draft.estimatedDailyUsd.high}</span> per day at normal activity. Sleeping is free.
+            </span>
+          )}
+          {step === "brief" && busy && (
+            <span className="builder-foot-note">This usually takes 20–60 seconds.</span>
+          )}
+        </span>
         <Button lg onClick={step === "review" ? () => setStep("brief") : leave}>{step === "review" || teamCount === 0 ? "Back" : "Cancel"}</Button>
         {step === "brief" ? (
           <Button lg primary onClick={() => void submit()} disabled={!canSubmit}>
@@ -191,12 +194,12 @@ export function BuilderSheet({ mode: initialMode }: { mode?: "describe" | "templ
   );
 }
 
-function Stepper({ step }: { step: "brief" | "review" }) {
+function Stepper({ step, onBrief }: { step: "brief" | "review"; onBrief: () => void }) {
   const onReview = step === "review";
   return (
     <span className="builder-step">
       <span className="builder-dot builder-dot-on">{onReview ? <Ic.Check size={10} stroke="#fff" strokeWidth={3.5} /> : 1}</span>
-      Brief
+      {onReview ? <button type="button" className="builder-step-link" onClick={onBrief}>Brief</button> : "Brief"}
       <span className="builder-step-line" />
       <span className={"builder-dot" + (onReview ? " builder-dot-on" : "")}>2</span>
       Review
@@ -231,65 +234,134 @@ function ReviewPane({
 }) {
   const recap = mode === "template" ? "Solo dev template" : (description.trim().split("\n")[0] || "Your description");
   return (
-    <div className="sheet-body" style={{ flexDirection: "column", background: "var(--surface)", overflow: "hidden" }}>
+    <div className="sheet-body builder-review">
       <div className="builder-recap">
         <span className="cell">{busy ? "Thinking about your team…" : recap}</span>
+        {draft && <span className="builder-recap-meta">{draft.agents.length} teammate{draft.agents.length === 1 ? "" : "s"}</span>}
         <a onClick={onEditBrief}>Edit brief</a>
-      </div>
-      <div className="th" style={{ height: 30 }}>
-        <span style={{ flex: 1 }}>Proposed team</span><span style={{ width: 200 }}>Model</span><span style={{ width: 64, textAlign: "right" }}>Per day</span><span style={{ width: 28 }} />
       </div>
       {!draft ? (
         <div className="empty" style={{ fontSize: 12 }}>The draft appears here.</div>
       ) : (
-        <div className="scroll" style={{ flex: 1, minHeight: 0 }}>
+        <div className="scroll builder-review-scroll">
+          <div className="grp-t">Proposed team</div>
           {draft.agents.map((a, i) => {
-            const open = expanded[a.name] ?? i === 0;
+            const open = expanded[String(i)] ?? i === 0;
             return (
-              <div key={a.name + i}>
-                <div className="orow">
-                  <button className="tri" onClick={() => setExpanded({ ...expanded, [a.name]: !open })}>{open ? <Ic.TriDown /> : <Ic.TriRight />}</button>
-                  <Avatar name={a.name} color={a.color} size={24} />
-                  <span style={{ flex: 1, minWidth: 0, display: "flex", gap: 6 }}><input className="field" style={{ width: 84, flexShrink: 0, height: 20 }} value={a.name} onChange={(e) => onUpdate(i, { name: e.target.value })} /><input className="field" style={{ flex: 1, minWidth: 40, height: 20 }} value={a.role} onChange={(e) => onUpdate(i, { role: e.target.value })} /></span>
-                  <span style={{ width: 200 }}>
-                    <ModelPicker value={a.model} provider={a.provider} onChange={(model, provider) => onUpdate(i, { model, provider })} width={196} small />
-                  </span>
-                  <span className="mono" style={{ width: 64, textAlign: "right", fontSize: 12 }}>${a.dailyBudgetUsd.toFixed(2)}</span>
-                  <button className="ibtn" style={{ width: 28 }} onClick={() => onRemove(i)} title="Remove"><Ic.X size={12} /></button>
-                </div>
-                {open && (
-                  <>
-                    {a.responsibilities.map((r, j) => <div key={j} className="ochild">{r}</div>)}
-                    <div className="ochild">Checks in every {a.heartbeatMinutes} min · channels {a.channels.map((c) => "#" + c.replace(/^#/, "")).join(", ")}</div>
-                    <div className="ochild" style={{ paddingTop: 6, paddingBottom: 6 }}>
-                      <BudgetEditor compact workHours={14} budget={{ dailyUsd: a.dailyBudgetUsd, perRunUsd: a.perRunBudgetUsd ?? 2, hourlyUsd: a.hourlyBudgetUsd ?? null, capBy: a.capBy ?? "day" }}
-                        onChange={(b) => onUpdate(i, { dailyBudgetUsd: b.dailyUsd, perRunBudgetUsd: b.perRunUsd, hourlyBudgetUsd: b.hourlyUsd ?? null, capBy: b.capBy })} />
-                    </div>
-                    <div className="ochild" style={{ alignItems: "flex-start" }}><textarea className="field mono" style={{ width: "100%", minHeight: 90, fontSize: 11.5 }} value={a.soul} onChange={(e) => onUpdate(i, { soul: e.target.value })} /></div>
-                  </>
-                )}
-              </div>
+              <AgentCard
+                key={i}
+                agent={a}
+                open={open}
+                onToggle={() => setExpanded({ ...expanded, [String(i)]: !open })}
+                onUpdate={(patch) => onUpdate(i, patch)}
+                onRemove={() => onRemove(i)}
+              />
             );
           })}
-          <div className="orow" style={{ marginTop: 6 }}><span className="tri" /><span style={{ flex: 1, fontWeight: 600 }}>Channels</span></div>
-          <div className="ochild" style={{ paddingLeft: 30, flexWrap: "wrap" }}>
-            <span className="mono" style={{ fontSize: 12 }}>#general</span><span>everyone</span>
-            {draft.channels.map((c) => <span key={c.name} style={{ display: "contents" }}><span style={{ color: "var(--ink-6)" }}>·</span><span className="mono" style={{ fontSize: 12 }}>#{c.name.replace(/^#/, "")}</span><span>{c.members.join(", ")}</span></span>)}
+          <div className="builder-block">
+            <div className="grp-t">Channels</div>
+            <div className="builder-channel">
+              <span className="mono builder-channel-id">#general</span>
+              <div className="builder-channel-body">everyone</div>
+            </div>
+            {draft.channels.map((c) => (
+              <div key={c.name} className="builder-channel">
+                <span className="mono builder-channel-id">#{c.name.replace(/^#/, "")}</span>
+                <div className="builder-channel-body">
+                  <div>{c.members.join(", ")}</div>
+                  {c.purpose && <div className="builder-channel-purpose">{c.purpose}</div>}
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="orow"><span className="tri" /><span style={{ flex: 1, fontWeight: 600 }}>Guardrails</span></div>
-          <div className="ochild" style={{ paddingLeft: 30 }}><span className="pill" style={{ background: "var(--red-bg)", color: "var(--red-ink)" }}>Ask you</span><span>{draft.guardrails.join(" · ")}</span></div>
-          <div className="ochild" style={{ paddingLeft: 30 }}><span className="pill">Cap</span><span>$<input className="field mono" style={{ width: 50, display: "inline-block", height: 20 }} value={draft.dailyCapUsd} onChange={(e) => store.setDraft({ ...draft, dailyCapUsd: Number(e.target.value) || 0 })} />/day for the team · agents pause when reached</span></div>
+          <div className="builder-block">
+            <div className="grp-t">Guardrails</div>
+            <div className="builder-rails">
+              <span className="pill" style={{ background: "var(--red-bg)", color: "var(--red-ink)" }}>Ask you</span>
+              {draft.guardrails.map((g) => (
+                <span key={g} className="pill" style={{ background: "var(--q-bg)", color: "var(--q-ink)" }}>{g}</span>
+              ))}
+            </div>
+            <div className="builder-cap">
+              <span className="pill">Cap</span>
+              <span className="mono" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                $<input className="field mono" style={{ width: 56 }} value={draft.dailyCapUsd} onChange={(e) => store.setDraft({ ...draft, dailyCapUsd: Number(e.target.value) || 0 })} />
+                <span style={{ color: "var(--ink-5)", fontSize: 11 }}>/ day</span>
+              </span>
+              <span>for the team · agents pause when reached</span>
+            </div>
+          </div>
           {draft.questionsForOwner.map((q, i) => (
-            <div key={i} style={{ margin: "14px 12px 0", padding: "10px 12px", border: "1px solid var(--q-border)", borderRadius: 7, background: "var(--q-card)", display: "flex", alignItems: "center", gap: 10 }}>
+            <div key={i} className="builder-q">
               <Ic.Question size={16} stroke="var(--accent)" />
               <span style={{ flex: 1, fontSize: 12 }}>{q}</span>
               <Button sm onClick={() => onYes(q)} disabled={busy || !canRedraft} title={canRedraft ? undefined : "Redrafting needs Claude or an API key."}>Yes, redraft</Button>
               <Button sm onClick={() => store.setDraft({ ...draft, questionsForOwner: draft.questionsForOwner.filter((_, j) => j !== i) })}>No</Button>
             </div>
           ))}
-          <div style={{ height: 16 }} />
         </div>
       )}
+    </div>
+  );
+}
+
+function AgentCard({
+  agent: a, open, onToggle, onUpdate, onRemove,
+}: {
+  agent: AgentDraft;
+  open: boolean;
+  onToggle: () => void;
+  onUpdate: (patch: Partial<AgentDraft>) => void;
+  onRemove: () => void;
+}) {
+  const stop = (e: SyntheticEvent) => e.stopPropagation();
+  return (
+    <div className={"builder-agent" + (open ? " builder-agent-open" : "")}>
+      <div className="builder-agent-h" onClick={onToggle}>
+        <button type="button" className="tri" aria-expanded={open} aria-label={open ? "Collapse" : "Expand"} onClick={(e) => { e.stopPropagation(); onToggle(); }}>
+          <Ic.TriRight />
+        </button>
+        <Avatar name={a.name} color={a.color} size={24} />
+        <span className="builder-agent-who" onClick={stop}>
+          <input className="field" style={{ width: 108, flexShrink: 0 }} value={a.name} onChange={(e) => onUpdate({ name: e.target.value })} />
+          <input className="field" style={{ flex: 1, minWidth: 80 }} value={a.role} onChange={(e) => onUpdate({ role: e.target.value })} />
+        </span>
+        <span className="builder-agent-model" onClick={stop}>
+          <ModelPicker value={a.model} provider={a.provider} onChange={(model, provider) => onUpdate({ model, provider })} width={196} small />
+        </span>
+        <span className="mono builder-agent-cost">${a.dailyBudgetUsd.toFixed(2)}<i>/day</i></span>
+        <button type="button" className="ibtn" onClick={(e) => { e.stopPropagation(); onRemove(); }} title={`Remove ${a.name}`}>
+          <Ic.X size={12} />
+        </button>
+      </div>
+      <div className="builder-agent-panel">
+        <div className="builder-agent-panel-inner" inert={!open || undefined} aria-hidden={!open}>
+          <div className="builder-agent-body">
+            <div>
+              <div className="grp-t">Standing duties</div>
+              {a.responsibilities.length > 0 ? (
+                <ul className="builder-duties">
+                  {a.responsibilities.map((r, j) => <li key={j}>{r}</li>)}
+                </ul>
+              ) : (
+                <div style={{ fontSize: 12, color: "var(--ink-5)" }}>None listed.</div>
+              )}
+              <div className="grp-t" style={{ marginTop: 12 }}>Check-in</div>
+              <div className="builder-meta">
+                <span>every {a.heartbeatMinutes} min</span>
+                {a.channels.map((c) => <span key={c} className="builder-ch">#{c.replace(/^#/, "")}</span>)}
+              </div>
+              <div className="grp-t" style={{ marginTop: 12 }}>Budget</div>
+              <BudgetEditor compact workHours={14} budget={{ dailyUsd: a.dailyBudgetUsd, perRunUsd: a.perRunBudgetUsd ?? 2, hourlyUsd: a.hourlyBudgetUsd ?? null, capBy: a.capBy ?? "day" }}
+                onChange={(b) => onUpdate({ dailyBudgetUsd: b.dailyUsd, perRunBudgetUsd: b.perRunUsd, hourlyBudgetUsd: b.hourlyUsd ?? null, capBy: b.capBy })} />
+            </div>
+            <div>
+              <div className="grp-t">Soul</div>
+              <textarea className="field mono sel" style={{ width: "100%", minHeight: 132, fontSize: 11.5 }} value={a.soul} onChange={(e) => onUpdate({ soul: e.target.value })} />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

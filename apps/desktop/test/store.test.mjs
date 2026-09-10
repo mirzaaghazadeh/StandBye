@@ -200,6 +200,16 @@ test("message.created appends, clears that channel's draft, keeps others", async
   assert.equal(s.drafts.ops.text, "d2");
 });
 
+test("message.created with the same id is not shown twice", async () => {
+  const { store, push } = await freshStore();
+  await store.init();
+  await flush();
+  const msg = { id: "m1", channelId: "general", createdAt: "t0" };
+  push({ teamId: "t1", event: "message.created", data: msg });
+  push({ teamId: "t1", event: "message.created", data: msg });
+  assert.equal(store.get().messages.general.length, 1);
+});
+
 test("message.created caps a channel's history at 500", async () => {
   const { store, push } = await freshStore();
   await store.init();
