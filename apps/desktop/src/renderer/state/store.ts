@@ -97,6 +97,9 @@ class Store {
   /** Bumped on every searchMessages call; responses from an older call are dropped. */
   private searchSeq = 0;
 
+  /** Pushed events are bound once; a second init (HMR, reconnect UI) must not stack listeners. */
+  private bound = false;
+
   get = (): State => this.state;
   subscribe = (l: Listener): (() => void) => { this.listeners.add(l); return () => this.listeners.delete(l); };
   private set(patch: Partial<State> | ((s: State) => Partial<State>)): void {
@@ -108,9 +111,12 @@ class Store {
   rpc = <T = unknown>(method: string, params?: unknown): Promise<T> => window.crew.rpc<T>(method, params);
 
   async init(): Promise<void> {
-    window.crew.onEvent((e) => this.onEvent(e));
-    window.crew.onNavigate((r) => this.navigateByPath(r));
-    window.crew.onUpdate((u) => this.set({ update: u }));
+    if (!this.bound) {
+      this.bound = true;
+      window.crew.onEvent((e) => this.onEvent(e));
+      window.crew.onNavigate((r) => this.navigateByPath(r));
+      window.crew.onUpdate((u) => this.set({ update: u }));
+    }
     void window.crew.updates.get().then((update) => this.set({ update }));
     try {
       await this.refreshAll();
@@ -189,8 +195,10 @@ class Store {
       case "tasks.updated": this.set({ tasks: e.data }); break;
       case "agent.updated": this.set((s) => ({ agents: s.agents.some((a) => a.id === e.data.id) ? s.agents.map((a) => (a.id === e.data.id ? e.data : a)) : [...s.agents, e.data] })); break;
       case "message.created": this.set((s) => {
+        const list = s.messages[e.data.channelId] ?? [];
         const { [e.data.channelId]: _gone, ...drafts } = s.drafts;
-        return { messages: { ...s.messages, [e.data.channelId]: [...(s.messages[e.data.channelId] ?? []), e.data].slice(-500) }, drafts };
+        if (list.some((m) => m.id === e.data.id)) return { drafts };
+        return { messages: { ...s.messages, [e.data.channelId]: [...list, e.data].slice(-500) }, drafts };
       }); break;
       case "run.thinking": this.set((s) => ({ thinking: { ...s.thinking, [e.data.runId]: e.data.text } })); break;
       case "message.draft": this.set((s) => {

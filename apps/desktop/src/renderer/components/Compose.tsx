@@ -11,6 +11,8 @@ export function Compose({ placeholder, agents, onSend, hint }: { placeholder: st
   const [cursor, setCursor] = useState(0);
   const [pos, setPos] = useState({ left: 0, bottom: 0 });
   const ref = useRef<HTMLTextAreaElement>(null);
+  const textRef = useRef(text);
+  textRef.current = text;
 
   const matches = mention ? agents.filter((a) => a.name.toLowerCase().startsWith(mention.query.toLowerCase()) || a.id.startsWith(mention.query.toLowerCase())).slice(0, 6) : [];
   useEffect(() => { setCursor(0); }, [mention?.query]);
@@ -31,7 +33,14 @@ export function Compose({ placeholder, agents, onSend, hint }: { placeholder: st
     setMention(null);
     requestAnimationFrame(() => { const el = ref.current; if (el) { const p = mention.start + a.name.length + 2; el.focus(); el.setSelectionRange(p, p); } });
   };
-  const send = () => { const t = text.trim(); if (!t) return; setText(""); setMention(null); onSend(t); };
+  const send = () => {
+    const t = textRef.current.trim();
+    if (!t) return;
+    textRef.current = "";
+    setText("");
+    setMention(null);
+    onSend(t);
+  };
 
   return (
     <>
@@ -49,11 +58,11 @@ export function Compose({ placeholder, agents, onSend, hint }: { placeholder: st
               if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); pick(matches[cursor]!); return; }
               if (e.key === "Escape") { setMention(null); return; }
             }
-            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && !e.repeat) { e.preventDefault(); send(); }
           }}
           onBlur={() => setTimeout(() => setMention(null), 150)}
         />
-        <IconButton onClick={send} disabled={!text.trim()} style={{ color: text.trim() ? "var(--accent)" : undefined }}><Ic.Send size={15} /></IconButton>
+        <IconButton type="button" onClick={send} disabled={!text.trim()} style={{ color: text.trim() ? "var(--accent)" : undefined }}><Ic.Send size={15} /></IconButton>
       </div>
       {hint && <div style={{ fontSize: 11, color: "var(--ink-5)", marginTop: 6 }}>{hint}</div>}
       {mention && matches.length > 0 && createPortal(
