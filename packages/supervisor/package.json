@@ -28,7 +28,7 @@
     "nanoid": "^5.1.5",
     "tar": "^7.5.22",
     "ws": "^8.18.3",
-    "zod": "^4.1.5"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
